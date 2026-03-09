@@ -1,0 +1,106 @@
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 260px;
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem;
+    z-index: 40;
+    overflow-y: auto;
+    border-right: 1px solid var(--color-surface-700);
+    background: rgba(10, 10, 15, 0.95);
+}
+
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+    margin-bottom: 1.5rem;
+}
+
+.sidebar-new-btn {
+    width: 100%;
+    margin-bottom: 1.5rem;
+}
+
+/* ═══ Navigation ═══ */
+.sidebar-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sidebar-section-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #475569;
+    padding: 0 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #94a3b8;
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    width: 100%;
+    text-align: left;
+    font-family: var(--font-sans);
+}
+
+.sidebar-link:hover {
+    background: var(--color-surface-800);
+    color: #e2e8f0;
+}
+
+.sidebar-link-active {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--color-primary-400);
+    font-weight: 500;
+}
+
+.sidebar-link-danger:hover {
+    color: var(--color-danger-400);
+}
+
+/* ═══ Footer ═══ */
+.sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-surface-700);
+    margin-top: auto;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+}

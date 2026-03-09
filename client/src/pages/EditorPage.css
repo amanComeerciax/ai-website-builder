@@ -1,0 +1,24 @@
+.editor-page {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.editor-placeholder {
+    padding: 3rem;
+    text-align: center;
+}
+
+.editor-placeholder h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #f1f5f9;
+    margin-bottom: 0.5rem;
+}
+
+.editor-placeholder p {
+    color: #64748b;
+    font-size: 0.875rem;
+}

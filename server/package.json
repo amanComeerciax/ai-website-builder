@@ -1,9 +1,11 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "StackForge AI Backend",
+  "main": "server.js",
   "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -11,10 +13,18 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@clerk/express": "^2.0.1",
+    "archiver": "^7.0.1",
+    "bullmq": "^5.70.4",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "mongoose": "^9.2.4"
+    "express-rate-limit": "^8.3.0",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.10.0",
+    "mongoose": "^9.2.4",
+    "stripe": "^20.4.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
