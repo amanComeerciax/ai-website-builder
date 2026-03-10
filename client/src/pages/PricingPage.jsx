@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, X, Sparkles, ArrowRight } from 'lucide-react'
+import { Check, X, Wind, ArrowRight, Zap } from 'lucide-react'
+import { SignedIn, SignedOut } from '@clerk/clerk-react'
 import './PricingPage.css'
 
 const plans = [
@@ -7,16 +9,16 @@ const plans = [
         name: 'Free',
         price: '$0',
         period: '/month',
-        description: 'Perfect to try out StackForge AI',
+        description: 'Perfect to explore IndiForge AI',
         cta: 'Get Started',
         highlighted: false,
         features: [
             { text: '1 Project', included: true },
-            { text: '3 Generations/month', included: true },
-            { text: 'Claude Haiku model', included: true },
+            { text: '3 Generations / month', included: true },
+            { text: 'Gemini Flash model', included: true },
             { text: 'Live preview', included: true },
             { text: 'Custom domain', included: false },
-            { text: 'Code download', included: false },
+            { text: 'Code export', included: false },
             { text: 'Backend generation', included: false },
             { text: 'Priority support', included: false },
         ],
@@ -30,11 +32,11 @@ const plans = [
         highlighted: true,
         features: [
             { text: '10 Projects', included: true },
-            { text: '50 Generations/month', included: true },
-            { text: 'Claude Sonnet model', included: true },
+            { text: '50 Generations / month', included: true },
+            { text: 'Gemini Pro model', included: true },
             { text: 'Live preview', included: true },
             { text: 'Custom domain', included: true },
-            { text: 'Code download', included: true },
+            { text: 'Code export', included: true },
             { text: 'Backend generation', included: true },
             { text: 'Email support', included: true },
         ],
@@ -49,59 +51,130 @@ const plans = [
         features: [
             { text: 'Unlimited Projects', included: true },
             { text: 'Unlimited Generations', included: true },
-            { text: 'Claude Sonnet model', included: true },
+            { text: 'Gemini Ultra model', included: true },
             { text: 'Live preview', included: true },
             { text: 'Custom domain', included: true },
-            { text: 'Code download', included: true },
+            { text: 'Code export', included: true },
             { text: 'Backend + DB generation', included: true },
-            { text: 'Priority support + 5 team members', included: true },
+            { text: 'Priority support + 5 seats', included: true },
         ],
     },
 ]
 
+const faqs = [
+    { q: 'Can I switch plans anytime?', a: 'Yes! Upgrade or downgrade at any time. Changes take effect on your next billing cycle.' },
+    { q: 'Is there a free trial for Pro?', a: 'The Free plan lets you explore all core features. You can upgrade to Pro when you need more power.' },
+    { q: 'What payment methods do you accept?', a: 'We accept all major credit cards, Google Pay, and Apple Pay through Stripe.' },
+    { q: 'Can I cancel my subscription?', a: 'Absolutely. Cancel anytime from your dashboard — no questions asked.' },
+]
+
 export default function PricingPage() {
+    const [billingCycle, setBillingCycle] = useState('monthly')
+    const [navScrolled, setNavScrolled] = useState(false)
+    const [openFaq, setOpenFaq] = useState(null)
+
+    useEffect(() => {
+        const handleScroll = () => setNavScrolled(window.scrollY > 20)
+        window.addEventListener('scroll', handleScroll)
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [])
+
+    const getPrice = (plan) => {
+        if (plan.price === '$0') return '$0'
+        const monthly = parseInt(plan.price.replace('$', ''))
+        if (billingCycle === 'yearly') {
+            return `$${Math.round(monthly * 0.8)}`
+        }
+        return plan.price
+    }
+
     return (
         <div className="pricing-page">
-            {/* Nav */}
-            <nav className="landing-nav glass">
-                <div className="landing-nav-inner">
-                    <Link to="/" className="landing-logo">
-                        <Sparkles size={24} className="logo-icon" />
-                        <span className="logo-text">StackForge <span className="gradient-text">AI</span></span>
+            {/* ═══ Navbar (same as landing) ═══ */}
+            <nav className={`lp-nav ${navScrolled ? 'lp-nav-scrolled' : ''}`}>
+                <div className="lp-nav-inner">
+                    <Link to="/" className="lp-nav-logo">
+                        <Wind size={22} />
+                        <span>INDIFORGE AI</span>
                     </Link>
-                    <div className="landing-nav-links">
-                        <Link to="/dashboard" className="btn btn-primary btn-sm">
-                            Dashboard <ArrowRight size={16} />
-                        </Link>
+
+                    <div className="lp-nav-center">
+                        <Link to="/" className="lp-nav-link">Home</Link>
+                        <Link to="/pricing" className="lp-nav-link lp-nav-link-active">Pricing</Link>
+                        <a href="/#features" className="lp-nav-link">Features</a>
+                        <a href="/#how-it-works" className="lp-nav-link">How it Works</a>
+                    </div>
+
+                    <div className="lp-nav-right">
+                        <SignedOut>
+                            <Link to="/login" className="lp-nav-link">Sign in</Link>
+                            <Link to="/signup" className="lp-nav-cta">
+                                Get Started
+                                <ArrowRight size={14} />
+                            </Link>
+                        </SignedOut>
+                        <SignedIn>
+                            <Link to="/dashboard" className="lp-nav-cta">
+                                Dashboard
+                                <ArrowRight size={14} />
+                            </Link>
+                        </SignedIn>
                     </div>
                 </div>
             </nav>
 
-            {/* Pricing Content */}
-            <section className="pricing-section">
-                <div className="pricing-header animate-fade-in">
-                    <h1 className="section-title">
-                        Simple, transparent <span className="gradient-text">pricing</span>
+            {/* ═══ Hero Header ═══ */}
+            <section className="pricing-hero">
+                <div className="pricing-hero-content">
+                    <div className="pricing-badge">
+                        <Zap size={12} />
+                        <span>Simple Pricing</span>
+                    </div>
+                    <h1 className="pricing-hero-title">
+                        Plans that scale<br />
+                        <span className="pricing-hero-accent">with you</span>
                     </h1>
-                    <p className="section-subtitle">
-                        Start for free. Upgrade when you need more power.
+                    <p className="pricing-hero-subtitle">
+                        Start for free. Upgrade when you need more power. No hidden fees.
                     </p>
-                </div>
 
+                    {/* Billing Toggle */}
+                    <div className="billing-toggle">
+                        <button
+                            className={`billing-btn ${billingCycle === 'monthly' ? 'billing-btn-active' : ''}`}
+                            onClick={() => setBillingCycle('monthly')}
+                        >
+                            Monthly
+                        </button>
+                        <button
+                            className={`billing-btn ${billingCycle === 'yearly' ? 'billing-btn-active' : ''}`}
+                            onClick={() => setBillingCycle('yearly')}
+                        >
+                            Yearly
+                            <span className="billing-save">Save 20%</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══ Pricing Cards ═══ */}
+            <section className="pricing-cards-section">
                 <div className="pricing-grid">
                     {plans.map((plan) => (
                         <div
                             key={plan.name}
-                            className={`pricing-card glass-card ${plan.highlighted ? 'pricing-card-highlighted' : ''}`}
+                            className={`pricing-card ${plan.highlighted ? 'pricing-card-highlighted' : ''}`}
                         >
                             {plan.highlighted && (
-                                <div className="pricing-popular-badge badge badge-primary">Most Popular</div>
+                                <div className="pricing-popular-badge">Most Popular</div>
                             )}
                             <div className="pricing-card-header">
                                 <h3 className="pricing-plan-name">{plan.name}</h3>
                                 <div className="pricing-price">
-                                    <span className="pricing-amount">{plan.price}</span>
-                                    <span className="pricing-period">{plan.period}</span>
+                                    <span className="pricing-amount">{getPrice(plan)}</span>
+                                    <span className="pricing-period">
+                                        {plan.price !== '$0' ? (billingCycle === 'yearly' ? '/year' : '/month') : '/month'}
+                                    </span>
                                 </div>
                                 <p className="pricing-description">{plan.description}</p>
                             </div>
@@ -117,13 +190,62 @@ export default function PricingPage() {
                                     </li>
                                 ))}
                             </ul>
-                            <button className={`btn ${plan.highlighted ? 'btn-primary' : 'btn-secondary'} btn-lg pricing-cta`}>
+                            <Link
+                                to="/signup"
+                                className={`pricing-cta-btn ${plan.highlighted ? 'pricing-cta-primary' : 'pricing-cta-secondary'}`}
+                            >
                                 {plan.cta}
-                            </button>
+                                <ArrowRight size={14} />
+                            </Link>
                         </div>
                     ))}
                 </div>
             </section>
+
+            {/* ═══ FAQ Section ═══ */}
+            <section className="pricing-faq-section">
+                <h2 className="pricing-faq-title">Frequently Asked Questions</h2>
+                <div className="pricing-faq-list">
+                    {faqs.map((faq, i) => (
+                        <div
+                            key={i}
+                            className={`pricing-faq-item ${openFaq === i ? 'pricing-faq-open' : ''}`}
+                            onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                        >
+                            <div className="pricing-faq-question">
+                                <span>{faq.q}</span>
+                                <span className="pricing-faq-chevron">{openFaq === i ? '−' : '+'}</span>
+                            </div>
+                            {openFaq === i && (
+                                <p className="pricing-faq-answer">{faq.a}</p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ═══ Bottom CTA ═══ */}
+            <section className="pricing-bottom-cta">
+                <h2 className="pricing-bottom-title">Ready to build something incredible?</h2>
+                <p className="pricing-bottom-subtitle">Join thousands of builders creating with AI.</p>
+                <SignedOut>
+                    <Link to="/signup" className="pricing-bottom-btn">
+                        Start building for free
+                        <ArrowRight size={16} />
+                    </Link>
+                </SignedOut>
+                <SignedIn>
+                    <Link to="/dashboard" className="pricing-bottom-btn">
+                        Go to Dashboard
+                        <ArrowRight size={16} />
+                    </Link>
+                </SignedIn>
+            </section>
+
+            {/* ═══ Footer ═══ */}
+            <footer className="pricing-footer">
+                <span>© 2026 INDIFORGE AI. All rights reserved.</span>
+            </footer>
         </div>
     )
 }

@@ -1,40 +1,147 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-    Sparkles,
-    Code2,
-    Eye,
-    Rocket,
-    Zap,
-    Layers,
-    MessageSquare,
     ArrowRight,
     Github,
     Twitter,
-    Wind
+    Wind,
+    Sparkles,
+    Eye,
+    Rocket,
+    Zap,
+    Globe,
+    Code2,
+    Palette,
+    Shield,
+    Clock,
+    Users,
+    Star,
+    ChevronRight,
+    Calendar,
+    FileText,
+    User
 } from 'lucide-react'
 import { SignedIn, SignedOut } from '@clerk/clerk-react'
 import RadialOrbitalTimeline from '@/components/ui/radial-orbital-timeline'
+import { GooeyText } from '@/components/ui/gooey-text-morphing'
 import './LandingPage.css'
-
-// Timeline data for the orbital display
-const timelineData = [
-    { id: 1, title: "Describe", date: "Step 1", content: "Just describe your website in plain English. Our AI understands context, design preferences, and functionality requirements.", category: "Input", icon: MessageSquare, relatedIds: [2], status: "completed", energy: 100 },
-    { id: 2, title: "Generate", date: "Step 2", content: "Get React frontend, Express backend, MongoDB schemas, and all the glue code — production-ready in seconds.", category: "Build", icon: Code2, relatedIds: [1, 3], status: "completed", energy: 90 },
-    { id: 3, title: "Preview", date: "Step 3", content: "See your website come to life in real-time. Watch every component render as the AI builds it.", category: "Preview", icon: Eye, relatedIds: [2, 4], status: "in-progress", energy: 75 },
-    { id: 4, title: "Edit", date: "Step 4", content: "Full VS Code editing experience in your browser. Syntax highlighting, autocomplete, and file tree navigation.", category: "Editor", icon: Layers, relatedIds: [3, 5], status: "in-progress", energy: 60 },
-    { id: 5, title: "Deploy", date: "Step 5", content: "Deploy your generated site to a live URL with a single click. Share it with the world in seconds.", category: "Launch", icon: Rocket, relatedIds: [4, 6], status: "pending", energy: 40 },
-    { id: 6, title: "Iterate", date: "Step 6", content: "Chat with the AI to refine your site. Change colors, add features, restructure — all in natural language.", category: "Refine", icon: Zap, relatedIds: [5, 1], status: "pending", energy: 20 },
-]
 
 // Rotating placeholder suggestions
 const PLACEHOLDER_SUGGESTIONS = [
-    "Build me a portfolio website with dark theme...",
-    "Create an e-commerce store for handmade jewelry...",
-    "Design a SaaS landing page with pricing tiers...",
-    "Make a restaurant website with online ordering...",
-    "Build a blog platform with a minimalist design...",
-    "Create a fitness tracker dashboard with charts...",
+    "A SaaS dashboard with real-time charts...",
+    "An e-commerce store for artisan candles...",
+    "A portfolio website with dark theme...",
+    "A restaurant site with online ordering...",
+    "A fitness tracker with analytics...",
+]
+
+// How it works steps
+const HOW_IT_WORKS = [
+    {
+        step: '01',
+        title: 'Start with an idea',
+        description: 'Describe the app or website you want to create, or drop in screenshots and docs. Our AI understands context, design, and functionality.',
+        icon: Sparkles,
+    },
+    {
+        step: '02',
+        title: 'Watch it come to life',
+        description: 'See your vision transform into a working prototype in real-time as AI generates production-ready React, backend, and database code.',
+        icon: Eye,
+    },
+    {
+        step: '03',
+        title: 'Refine and ship',
+        description: 'Iterate with simple feedback, refine the design, and deploy to the world with one click. Go from idea to live URL in minutes.',
+        icon: Rocket,
+    },
+]
+
+// Feature cards
+const FEATURES = [
+    { icon: Code2, title: 'Full-Stack Generation', description: 'React frontend, Express backend, MongoDB schemas — production-ready in seconds.' },
+    { icon: Eye, title: 'Live Preview', description: 'Watch your components render in real-time as the AI builds your application.' },
+    { icon: Palette, title: 'Design System', description: 'Beautiful, responsive designs with modern typography and glassmorphism effects.' },
+    { icon: Zap, title: 'AI-Powered Iteration', description: 'Chat with AI to refine your site. Change colors, add features, restructure naturally.' },
+    { icon: Globe, title: 'One-Click Deploy', description: 'Deploy to a live URL instantly. Share your creation with the world in seconds.' },
+    { icon: Shield, title: 'Production Ready', description: 'Clean, maintainable code with best practices. Authentication, API routes, and more.' },
+]
+
+// Template showcase — with realistic mini-mockup style
+const TEMPLATES = [
+    { name: 'Personal Portfolio', category: 'Portfolio', accent: '#a78bfa', bg: '#1a1030' },
+    { name: 'E-Commerce Store', category: 'Commerce', accent: '#f97316', bg: '#1c1008' },
+    { name: 'SaaS Dashboard', category: 'SaaS', accent: '#34d399', bg: '#0a1a14' },
+    { name: 'Blog Platform', category: 'Content', accent: '#f472b6', bg: '#1c0a18' },
+    { name: 'Restaurant Site', category: 'Business', accent: '#fbbf24', bg: '#1a1504' },
+    { name: 'Event Platform', category: 'Events', accent: '#818cf8', bg: '#121228' },
+]
+
+// Stats
+const STATS = [
+    { value: '10K+', label: 'Projects Built' },
+    { value: '5K+', label: 'Happy Builders' },
+    { value: '<2min', label: 'Avg Build Time' },
+    { value: '99.9%', label: 'Uptime' },
+]
+
+// Orbital timeline data – How It Works
+const TIMELINE_DATA = [
+    {
+        id: 1,
+        title: 'Planning',
+        date: 'Step 1',
+        content: 'Describe your app idea in plain English. Our AI understands context, design, and functionality.',
+        category: 'Planning',
+        icon: Calendar,
+        relatedIds: [2],
+        status: 'completed',
+        energy: 100,
+    },
+    {
+        id: 2,
+        title: 'Design',
+        date: 'Step 2',
+        content: 'AI generates beautiful, responsive UI designs with modern typography and glassmorphism effects.',
+        category: 'Design',
+        icon: FileText,
+        relatedIds: [1, 3],
+        status: 'completed',
+        energy: 90,
+    },
+    {
+        id: 3,
+        title: 'Development',
+        date: 'Step 3',
+        content: 'Production-ready React frontend, Express backend, and MongoDB schemas — built in seconds.',
+        category: 'Development',
+        icon: Code2,
+        relatedIds: [2, 4],
+        status: 'in-progress',
+        energy: 60,
+    },
+    {
+        id: 4,
+        title: 'Testing',
+        date: 'Step 4',
+        content: 'Live preview lets you test and iterate with simple feedback. Refine until perfect.',
+        category: 'Testing',
+        icon: User,
+        relatedIds: [3, 5],
+        status: 'pending',
+        energy: 30,
+    },
+    {
+        id: 5,
+        title: 'Release',
+        date: 'Step 5',
+        content: 'One-click deploy to a live URL. Share your creation with the world in seconds.',
+        category: 'Release',
+        icon: Clock,
+        relatedIds: [4],
+        status: 'pending',
+        energy: 10,
+    },
 ]
 
 export default function LandingPage() {
@@ -93,13 +200,14 @@ export default function LandingPage() {
                 <div className="lp-nav-inner">
                     <Link to="/" className="lp-nav-logo">
                         <Wind size={22} />
-                        <span>INDI FORGE AI</span>
+                        <span>INDIFORGE AI</span>
                     </Link>
 
                     <div className="lp-nav-center">
                         <Link to="/" className="lp-nav-link lp-nav-link-active">Home</Link>
                         <Link to="/pricing" className="lp-nav-link">Pricing</Link>
                         <a href="#features" className="lp-nav-link">Features</a>
+                        <a href="#how-it-works" className="lp-nav-link">How it Works</a>
                     </div>
 
                     <div className="lp-nav-right">
@@ -131,13 +239,19 @@ export default function LandingPage() {
 
                     {/* Title */}
                     <h1 className="hero-title">
-                        What will you<br />
-                        <span className="hero-title-accent">build</span> today?
+                        Build something
                     </h1>
+                    <div className="hero-gooey-wrapper">
+                        <GooeyText
+                            texts={["Incredible", "Beautiful", "Powerful", "Stunning", "Amazing"]}
+                            morphTime={1.5}
+                            cooldownTime={0.5}
+                            className="hero-gooey-container"
+                            textClassName="hero-gooey-text"
+                        />
+                    </div>
                     <p className="hero-description">
-                        Describe your website in plain English. StackForge AI generates
-                        production-ready code, gives you a live preview,
-                        and deploys it — all in under 2 minutes.
+                        Create apps and websites by chatting with AI. Describe your idea in plain English — IndiForge AI generates production-ready code and deploys it in under 2 minutes.
                     </p>
 
                     {/* Prompt Input */}
@@ -164,49 +278,195 @@ export default function LandingPage() {
                                     <div className="hero-prompt-separator" />
                                     <button className="hero-prompt-model">
                                         <span className="hero-prompt-model-dot" />
-                                        Claude Sonnet 4.5
+                                        Gemini 3 Flash
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
                                     </button>
                                 </div>
                                 <button className="hero-prompt-send" onClick={handleSend} disabled={!inputValue.trim()}>
-                                    Build now
+                                    Build site
                                     <ArrowRight size={14} />
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* Stats */}
+                    {/* Stats Row */}
                     <div className="hero-stats">
-                        <div className="hero-stat">
-                            <span className="hero-stat-value">10K+</span>
-                            <span className="hero-stat-label">Sites Generated</span>
-                        </div>
-                        <div className="hero-stat-sep" />
-                        <div className="hero-stat">
-                            <span className="hero-stat-value">&lt;2min</span>
-                            <span className="hero-stat-label">Avg Build Time</span>
-                        </div>
-                        <div className="hero-stat-sep" />
-                        <div className="hero-stat">
-                            <span className="hero-stat-value">99.9%</span>
-                            <span className="hero-stat-label">Uptime</span>
-                        </div>
+                        {STATS.map((stat, i) => (
+                            <div key={i} className="hero-stat-group">
+                                {i > 0 && <div className="hero-stat-sep" />}
+                                <div className="hero-stat">
+                                    <span className="hero-stat-value">{stat.value}</span>
+                                    <span className="hero-stat-label">{stat.label}</span>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            {/* ═══ Features — Orbital Timeline ═══ */}
-            <section id="features" className="features-section">
-                <div className="features-header">
-                    <h2 className="section-title">
-                        Everything you need to go <span className="section-title-accent">from idea to live site</span>
-                    </h2>
-                    <p className="section-subtitle">
-                        Click any node to explore. Our AI pipeline takes you from prompt to production.
-                    </p>
+            {/* ═══ Trusted By — Logo Cloud (Marquee) ═══ */}
+            <section className="logos-section">
+                <p className="logos-label">Teams from top companies build with IndiForge</p>
+                <div className="marquee-wrapper">
+                    <div className="marquee-track">
+                        {[...Array(2)].map((_, copy) => (
+                            <div key={copy} className="marquee-group" aria-hidden={copy > 0}>
+                                {['Google', 'Microsoft', 'Meta', 'Stripe', 'Vercel', 'Figma', 'Shopify', 'Notion', 'Linear', 'Supabase'].map((name) => (
+                                    <span key={name} className="logo-text">{name}</span>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
                 </div>
-                <RadialOrbitalTimeline timelineData={timelineData} />
+            </section>
+            {/* ═══ Glow Orb ═══ */}
+            <div className="glow-orb-wrapper">
+                <div className="glow-orb" />
+            </div>
+
+            {/* ═══ How It Works ═══ */}
+            <section id="how-it-works" className="hiw-section">
+                <div className="hiw-inner">
+                    <div className="hiw-header lp-reveal">
+                        <h2 className="section-title">
+                            Meet <span className="section-title-accent">IndiForge AI</span>
+                        </h2>
+                        <p className="section-subtitle">
+                            From idea to production in three simple steps
+                        </p>
+                    </div>
+
+                    {/* Orbital Timeline */}
+                    <div className="lp-reveal" style={{ marginBottom: '4rem' }}>
+                        <RadialOrbitalTimeline timelineData={TIMELINE_DATA} />
+                    </div>
+
+                    <div className="hiw-grid">
+                        {HOW_IT_WORKS.map((item, i) => (
+                            <div key={i} className="hiw-card lp-reveal" style={{ animationDelay: `${i * 0.15}s` }}>
+                                <div className="hiw-step-number">{item.step}</div>
+                                <div className="hiw-icon-wrapper">
+                                    <item.icon size={24} />
+                                </div>
+                                <h3 className="hiw-title">{item.title}</h3>
+                                <p className="hiw-description">{item.description}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══ Features Grid ═══ */}
+            <section id="features" className="features-section">
+                <div className="features-inner">
+                    <div className="features-header lp-reveal">
+                        <h2 className="section-title">
+                            Everything you need to go <span className="section-title-accent">from idea to live site</span>
+                        </h2>
+                        <p className="section-subtitle">
+                            Powered by AI, built for speed. Every tool you need in one place.
+                        </p>
+                    </div>
+
+                    <div className="features-grid">
+                        {FEATURES.map((feat, i) => (
+                            <div key={i} className="feature-card lp-reveal" style={{ animationDelay: `${i * 0.1}s` }}>
+                                <div className="feature-icon-wrapper">
+                                    <feat.icon size={22} />
+                                </div>
+                                <h3 className="feature-title">{feat.title}</h3>
+                                <p className="feature-description">{feat.description}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══ Templates Showcase ═══ */}
+            <section className="templates-section">
+                <div className="templates-inner">
+                    <div className="templates-header lp-reveal">
+                        <h2 className="section-title">
+                            Discover <span className="section-title-accent">Templates</span>
+                        </h2>
+                        <p className="section-subtitle">
+                            Start your next project with a beautiful, production-ready template
+                        </p>
+                    </div>
+
+                    <div className="templates-grid">
+                        {TEMPLATES.map((tmpl, i) => (
+                            <div key={i} className="template-card lp-reveal" style={{ animationDelay: `${i * 0.08}s` }}>
+                                <div className="template-preview" style={{ background: tmpl.bg }}>
+                                    {/* Mini browser mockup */}
+                                    <div className="tmock">
+                                        <div className="tmock-top">
+                                            <div className="tmock-dots">
+                                                <span /><span /><span />
+                                            </div>
+                                            <div className="tmock-url" />
+                                        </div>
+                                        <div className="tmock-body">
+                                            <div className="tmock-nav">
+                                                <div className="tmock-nav-logo" style={{ background: tmpl.accent }} />
+                                                <div className="tmock-nav-links">
+                                                    <span /><span /><span />
+                                                </div>
+                                            </div>
+                                            <div className="tmock-hero">
+                                                <div className="tmock-heading" style={{ background: tmpl.accent, opacity: 0.3 }} />
+                                                <div className="tmock-heading-sm" style={{ background: tmpl.accent, opacity: 0.15, width: '60%' }} />
+                                                <div className="tmock-text-lines">
+                                                    <span /><span /><span style={{ width: '70%' }} />
+                                                </div>
+                                                <div className="tmock-btn" style={{ background: tmpl.accent }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="template-info">
+                                    <span className="template-category" style={{ color: tmpl.accent }}>{tmpl.category}</span>
+                                    <h4 className="template-name">{tmpl.name}</h4>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="templates-cta-row lp-reveal" style={{ animationDelay: '0.5s' }}>
+                        <Link to="/pricing" className="templates-view-all">
+                            View all templates
+                            <ChevronRight size={16} />
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══ CTA Section ═══ */}
+            <section className="cta-section">
+                <div className="cta-inner lp-reveal">
+                    <h2 className="cta-title">Ready to build?</h2>
+                    <p className="cta-subtitle">
+                        Join thousands of builders turning ideas into reality with AI.
+                    </p>
+                    <div className="cta-buttons">
+                        <SignedOut>
+                            <Link to="/signup" className="cta-primary">
+                                Start building for free
+                                <ArrowRight size={16} />
+                            </Link>
+                        </SignedOut>
+                        <SignedIn>
+                            <Link to="/dashboard" className="cta-primary">
+                                Go to Dashboard
+                                <ArrowRight size={16} />
+                            </Link>
+                        </SignedIn>
+                        <Link to="/pricing" className="cta-secondary">
+                            View pricing
+                        </Link>
+                    </div>
+                </div>
             </section>
 
             {/* ═══ Footer ═══ */}
@@ -215,17 +475,36 @@ export default function LandingPage() {
                     <div className="lp-footer-left">
                         <div className="lp-footer-brand">
                             <Wind size={18} />
-                            <span>StackForge AI</span>
+                            <span>INDIFORGE AI</span>
                         </div>
-                        <p className="lp-footer-copy">© 2026 StackForge AI. Build the future with AI.</p>
+                        <p className="lp-footer-copy">Build the future with AI. From idea to production in minutes.</p>
                     </div>
                     <div className="lp-footer-right">
-                        <Link to="/pricing" className="lp-footer-link">Pricing</Link>
-                        <a href="#features" className="lp-footer-link">Features</a>
-                        <div className="lp-footer-sep" />
-                        <a href="#" className="lp-footer-social"><Twitter size={14} /></a>
-                        <a href="#" className="lp-footer-social"><Github size={14} /></a>
+                        <div className="footer-nav">
+                            <span className="footer-nav-title">Product</span>
+                            <a href="#features" className="lp-footer-link">Features</a>
+                            <Link to="/pricing" className="lp-footer-link">Pricing</Link>
+                            <a href="#how-it-works" className="lp-footer-link">How it Works</a>
+                        </div>
+                        <div className="footer-nav">
+                            <span className="footer-nav-title">Company</span>
+                            <a href="#" className="lp-footer-link">About</a>
+                            <a href="#" className="lp-footer-link">Blog</a>
+                            <a href="#" className="lp-footer-link">Careers</a>
+                        </div>
+                        <div className="footer-nav">
+                            <span className="footer-nav-title">Legal</span>
+                            <a href="#" className="lp-footer-link">Privacy</a>
+                            <a href="#" className="lp-footer-link">Terms</a>
+                            <div className="lp-footer-social-wrapper" style={{ marginTop: '0.5rem' }}>
+                                <a href="#" className="lp-footer-social"><Twitter size={14} /></a>
+                                <a href="#" className="lp-footer-social"><Github size={14} /></a>
+                            </div>
+                        </div>
                     </div>
+                </div>
+                <div className="lp-footer-bottom">
+                    <span>© 2026 INDIFORGE AI. All rights reserved.</span>
                 </div>
             </footer>
         </div>

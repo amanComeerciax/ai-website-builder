@@ -237,7 +237,7 @@ export default function DashboardPage() {
             <a href="#"><Github size={14} /></a>
           </div>
           <div className="zen-footer-divider" />
-          <span className="zen-footer-copyright">© 2026 STACKFORGE AI</span>
+          <span className="zen-footer-copyright">© 2026 INDIFORGE AI</span>
         </div>
       </footer>
     </>
