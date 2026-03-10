@@ -7,7 +7,7 @@ function SignupPage() {
       <SignUp
         routing="path"
         path="/signup"
-        afterSignUpUrl="/dashboard"
+        fallbackRedirectUrl="/dashboard"
         appearance={{
           baseTheme: dark,
           elements: {
@@ -45,7 +45,7 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     height: "100vh",
-    background: "var(--color-surface-950)",
+    background: "#050505",
   },
 };
 

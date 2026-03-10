@@ -5,11 +5,11 @@ import './DashboardLayout.css'
 
 export default function DashboardLayout() {
     return (
-        <div className="dashboard-layout">
+        <div className="zen-dashboard-layout">
             <Sidebar />
-            <div className="dashboard-main">
+            <div className="zen-dashboard-main zen-bg-gradient">
                 <TopBar />
-                <main className="dashboard-content">
+                <main className="zen-dashboard-content">
                     <Outlet />
                 </main>
             </div>

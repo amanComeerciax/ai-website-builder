@@ -1,10 +1,11 @@
-.dashboard-layout {
+.zen-dashboard-layout {
     display: flex;
     min-height: 100vh;
-    background-color: var(--color-surface-950);
+    background: #050505;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.dashboard-main {
+.zen-dashboard-main {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -13,14 +14,35 @@
     transition: margin-left 0.3s ease;
 }
 
-.dashboard-content {
+.zen-dashboard-content {
     flex: 1;
-    padding: 1.5rem;
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+}
+
+.zen-dashboard-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.zen-dashboard-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+}
+
+/* Zen gradient background glow */
+.zen-bg-gradient {
+    background: radial-gradient(circle at 50% 0%, rgba(96, 165, 250, 0.03), transparent 70%);
+}
+
+@media (max-width: 1024px) {
+    .zen-dashboard-main {
+        margin-left: 72px;
+    }
 }
 
 @media (max-width: 768px) {
-    .dashboard-main {
+    .zen-dashboard-main {
         margin-left: 0;
     }
 }

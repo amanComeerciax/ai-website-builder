@@ -1,14 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useClerk } from "@clerk/clerk-react"
 import {
-    Sparkles,
+    Wind,
     LayoutDashboard,
-    FolderOpen,
-    CreditCard,
+    Layers,
+    Archive,
     Settings,
     LogOut,
-    Plus,
-    HelpCircle
 } from 'lucide-react'
 import './Sidebar.css'
 
@@ -17,61 +15,43 @@ export default function Sidebar() {
     const { signOut } = useClerk()
 
     return (
-        <aside className="sidebar glass">
+        <aside className="zen-sidebar">
             {/* Logo */}
-            <div className="sidebar-logo">
-                <Sparkles size={22} className="logo-icon" />
-                <span className="logo-text">StackForge <span className="gradient-text">AI</span></span>
+            <div className="zen-sidebar-logo">
+                <div className="zen-sidebar-logo-icon">
+                    <Wind size={20} />
+                </div>
+                <span className="zen-sidebar-logo-text">INDIFORGE AI</span>
             </div>
 
-            {/* New Project Button */}
-            <button
-                className="btn btn-primary sidebar-new-btn"
-                onClick={() => navigate('/editor/new')}
-            >
-                <Plus size={16} />
-                New Project
-            </button>
-
             {/* Navigation */}
-            <nav className="sidebar-nav">
-                <div className="sidebar-section">
-                    <span className="sidebar-section-label">Main</span>
-                    <NavLink to="/dashboard" end className={({ isActive }) => `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`}>
-                        <LayoutDashboard size={18} />
-                        Dashboard
-                    </NavLink>
-                    <NavLink to="/dashboard/projects" className={({ isActive }) => `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`}>
-                        <FolderOpen size={18} />
-                        Projects
-                    </NavLink>
-                </div>
-
-                <div className="sidebar-section">
-                    <span className="sidebar-section-label">Account</span>
-                    <NavLink to="/pricing" className={({ isActive }) => `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`}>
-                        <CreditCard size={18} />
-                        Subscription
-                    </NavLink>
-                    <NavLink to="/dashboard/settings" className={({ isActive }) => `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`}>
-                        <Settings size={18} />
-                        Settings
-                    </NavLink>
-                </div>
+            <nav className="zen-sidebar-nav">
+                <NavLink to="/dashboard" end className={({ isActive }) => `zen-sidebar-link ${isActive ? 'zen-sidebar-link-active' : ''}`}>
+                    <LayoutDashboard size={18} />
+                    <span className="zen-sidebar-link-text">Dashboard</span>
+                </NavLink>
+                <NavLink to="/dashboard/projects" className={({ isActive }) => `zen-sidebar-link ${isActive ? 'zen-sidebar-link-active' : ''}`}>
+                    <Layers size={18} />
+                    <span className="zen-sidebar-link-text">Collections</span>
+                </NavLink>
+                <NavLink to="/dashboard/archive" className={({ isActive }) => `zen-sidebar-link ${isActive ? 'zen-sidebar-link-active' : ''}`}>
+                    <Archive size={18} />
+                    <span className="zen-sidebar-link-text">Archive</span>
+                </NavLink>
             </nav>
 
             {/* Footer */}
-            <div className="sidebar-footer">
-                <button className="sidebar-link">
-                    <HelpCircle size={18} />
-                    Help & Docs
-                </button>
+            <div className="zen-sidebar-footer">
+                <NavLink to="/dashboard/settings" className={({ isActive }) => `zen-sidebar-link ${isActive ? 'zen-sidebar-link-active' : ''}`}>
+                    <Settings size={18} />
+                    <span className="zen-sidebar-link-text">Settings</span>
+                </NavLink>
                 <button
-                    className="sidebar-link sidebar-link-danger"
+                    className="zen-sidebar-link"
                     onClick={() => signOut(() => navigate("/"))}
                 >
                     <LogOut size={18} />
-                    Sign Out
+                    <span className="zen-sidebar-link-text">Sign Out</span>
                 </button>
             </div>
         </aside>

@@ -13,8 +13,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     publishableKey={clerkPubKey}
     signInUrl="/login"
     signUpUrl="/signup"
-    afterSignInUrl="/dashboard"
-    afterSignUpUrl="/dashboard"
+    signInFallbackRedirectUrl="/dashboard"
+    signUpFallbackRedirectUrl="/dashboard"
   >
     <BrowserRouter>
       <App />
