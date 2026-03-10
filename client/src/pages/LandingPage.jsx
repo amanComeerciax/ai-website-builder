@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { SignedIn, SignedOut } from '@clerk/clerk-react'
 import RadialOrbitalTimeline from '@/components/ui/radial-orbital-timeline'
+import { GooeyText } from '@/components/ui/gooey-text-morphing'
 import './LandingPage.css'
 
 // Timeline data for the orbital display
@@ -130,10 +131,19 @@ export default function LandingPage() {
                     </div>
 
                     {/* Title */}
-                    <h1 className="hero-title">
-                        What will you<br />
-                        <span className="hero-title-accent">build</span> today?
-                    </h1>
+                    <div className="hero-title-wrapper">
+                        <h1 className="hero-title">What will you</h1>
+                        <div className="hero-title-dynamic">
+                            <GooeyText
+                                texts={["build", "create", "design", "launch"]}
+                                morphTime={1}
+                                cooldownTime={1.5}
+                                className="hero-gooey-wrapper"
+                                textClassName="hero-title-gooey"
+                            />
+                            <span className="hero-title-suffix">today?</span>
+                        </div>
+                    </div>
                     <p className="hero-description">
                         Describe your website in plain English. StackForge AI generates
                         production-ready code, gives you a live preview,
