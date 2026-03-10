@@ -26,6 +26,7 @@ export function GooeyText({
         let time = new Date();
         let morph = 0;
         let cooldown = cooldownTime;
+        let animId: number;
 
         const setMorph = (fraction: number) => {
             if (text1Ref.current && text2Ref.current) {
@@ -62,7 +63,7 @@ export function GooeyText({
         };
 
         function animate() {
-            requestAnimationFrame(animate);
+            animId = requestAnimationFrame(animate);
             const newTime = new Date();
             const shouldIncrementIndex = cooldown > 0;
             const dt = (newTime.getTime() - time.getTime()) / 1000;
@@ -87,7 +88,7 @@ export function GooeyText({
         animate();
 
         return () => {
-            // Cleanup function if needed
+            cancelAnimationFrame(animId);
         };
     }, [texts, morphTime, cooldownTime]);
 
@@ -102,7 +103,7 @@ export function GooeyText({
                             values="1 0 0 0 0
                       0 1 0 0 0
                       0 0 1 0 0
-                      0 0 0 140 -50"
+                      0 0 0 255 -140"
                         />
                     </filter>
                 </defs>
@@ -110,25 +111,23 @@ export function GooeyText({
 
             <div
                 className="flex items-center justify-center"
-                style={{ filter: "url(#threshold)", transform: "translateZ(0)", willChange: "filter" }}
+                style={{ filter: "url(#threshold)" }}
             >
                 <span
                     ref={text1Ref}
                     className={cn(
-                        "absolute inline-block select-none text-center",
+                        "absolute inline-block select-none text-center text-6xl md:text-[60pt]",
                         "text-foreground",
                         textClassName
                     )}
-                    style={{ willChange: "filter, opacity", transform: "translateZ(0)" }}
                 />
                 <span
                     ref={text2Ref}
                     className={cn(
-                        "absolute inline-block select-none text-center",
+                        "absolute inline-block select-none text-center text-6xl md:text-[60pt]",
                         "text-foreground",
                         textClassName
                     )}
-                    style={{ willChange: "filter, opacity", transform: "translateZ(0)" }}
                 />
             </div>
         </div>

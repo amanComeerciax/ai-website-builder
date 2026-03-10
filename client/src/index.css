@@ -5,50 +5,41 @@
    ═══════════════════════════════════════════════════════════ */
 
 @theme {
-  /* Primary palette — Electric indigo/violet */
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-300: #a5b4fc;
-  --color-primary-400: #818cf8;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
+  /* ════ Zen + Vibrant Design System ════ */
 
-  /* Surface colors — Dark mode first */
-  --color-surface-950: #0a0a0f;
-  --color-surface-900: #0f0f1a;
-  --color-surface-800: #161625;
-  --color-surface-700: #1e1e32;
-  --color-surface-600: #2a2a42;
-  --color-surface-500: #3d3d5c;
+  /* The Vibrant Gradient — 7-stop radial */
+  --zen-gradient: radial-gradient(125% 125% at 50% 101%,
+      rgba(245, 87, 2, 1) 10.5%,
+      rgba(245, 120, 2, 1) 16%,
+      rgba(245, 140, 2, 1) 17.5%,
+      rgba(245, 170, 100, 1) 25%,
+      rgba(238, 174, 202, 1) 40%,
+      rgba(202, 179, 214, 1) 65%,
+      rgba(148, 201, 233, 1) 100%);
 
-  /* Accent — Emerald for success states */
-  --color-accent-400: #34d399;
-  --color-accent-500: #10b981;
-  --color-accent-600: #059669;
+  /* Surface colors — Translucent Zen Dark */
+  --zen-surface-950: #050505;
+  --zen-surface-900: #0e0e0f;
+  --zen-surface-800: #121214;
+  --zen-surface-glass: rgba(14, 14, 15, 0.7);
 
-  /* Danger — Rose for errors */
-  --color-danger-400: #fb7185;
-  --color-danger-500: #f43f5e;
-  --color-danger-600: #e11d48;
-
-  /* Warning — Amber */
-  --color-warning-400: #fbbf24;
-  --color-warning-500: #f59e0b;
+  /* Text colors */
+  --zen-text-primary: #ffffff;
+  --zen-text-secondary: #94a3b8;
+  --zen-text-muted: #71717a;
+  --zen-text-dark: #1a1a2e;
+  /* For light components on vibrant bg */
 
   /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
   /* Border radius */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.5rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.125rem;
+  --radius-xl: 1.75rem;
+  --radius-full: 9999px;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -159,28 +150,61 @@ body {
    ═══════════════════════════════════════════════════════════ */
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-16px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(16px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 8px rgba(99, 102, 241, 0.3); }
-  50% { box-shadow: 0 0 24px rgba(99, 102, 241, 0.6); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.6);
+  }
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-fade-in {
@@ -340,4 +364,59 @@ body {
 .badge-danger {
   background: rgba(244, 63, 94, 0.15);
   color: var(--color-danger-400);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Orbital Timeline — Animations & Utilities
+   ═══════════════════════════════════════════════════════════ */
+
+/* Animation for the pulsing effect */
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Animation for the ping effect */
+@keyframes ping {
+
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Custom animations for the orbital timeline */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Backdrop blur */
+.backdrop-blur-lg {
+  backdrop-filter: blur(16px);
+}
+
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+}
+
+/* Custom gradients */
+.bg-gradient-orbital {
+  background: linear-gradient(to bottom right, #6366f1, #3b82f6, #14b8a6);
+}
+
+/* Custom shadows */
+.shadow-orbital {
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
 }
