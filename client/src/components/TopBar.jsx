@@ -1,4 +1,5 @@
-import { Search, Bell, User } from 'lucide-react'
+import { Search, Bell } from 'lucide-react'
+import { UserButton } from "@clerk/clerk-react"
 import './TopBar.css'
 
 export default function TopBar() {
@@ -20,10 +21,7 @@ export default function TopBar() {
                     <Bell size={18} />
                 </button>
                 <div className="topbar-user">
-                    <div className="topbar-avatar">
-                        <User size={16} />
-                    </div>
-                    <span className="topbar-username">User</span>
+                    <UserButton afterSignOutUrl="/" />
                 </div>
             </div>
         </header>

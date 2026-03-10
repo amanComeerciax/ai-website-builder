@@ -5,7 +5,7 @@ class ApiClient {
         this.baseUrl = API_BASE
     }
 
-    async request(endpoint, options = {}) {
+    async request(endpoint, options = {}, token) {
         const url = `${this.baseUrl}${endpoint}`
         const config = {
             headers: {
@@ -16,8 +16,7 @@ class ApiClient {
         }
 
         // Will add Clerk token here after auth integration
-        // const token = await getToken()
-        // if (token) config.headers.Authorization = `Bearer ${token}`
+        if (token) config.headers.Authorization = `Bearer ${token}`
 
         try {
             const response = await fetch(url, config)
@@ -35,44 +34,44 @@ class ApiClient {
     }
 
     // ── Projects ──
-    getProjects() {
-        return this.request('/projects')
+    getProjects(token) {
+        return this.request('/projects', {}, token)
     }
 
-    getProject(id) {
-        return this.request(`/projects/${id}`)
+    getProject(id, token) {
+        return this.request(`/projects/${id}`, {}, token)
     }
 
-    createProject(data) {
+    createProject(data, token) {
         return this.request('/projects', {
             method: 'POST',
             body: JSON.stringify(data),
-        })
+        }, token)
     }
 
-    updateProject(id, data) {
+    updateProject(id, data, token) {
         return this.request(`/projects/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
-        })
+        }, token)
     }
 
-    deleteProject(id) {
+    deleteProject(id, token) {
         return this.request(`/projects/${id}`, {
             method: 'DELETE',
-        })
+        }, token)
     }
 
     // ── Generation ──
-    startGeneration(projectId, prompt) {
+    startGeneration(projectId, prompt, token) {
         return this.request('/generate', {
             method: 'POST',
             body: JSON.stringify({ projectId, prompt }),
-        })
+        }, token)
     }
 
-    getGenerationStatus(jobId) {
-        return this.request(`/generate/status/${jobId}`)
+    getGenerationStatus(jobId, token) {
+        return this.request(`/generate/status/${jobId}`, {}, token)
     }
 
     // ── Health ──
@@ -81,4 +80,4 @@ class ApiClient {
     }
 }
 
-export const api = new ApiClient()
+export const apiClient = new ApiClient()

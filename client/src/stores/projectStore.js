@@ -1,13 +1,23 @@
 import { create } from 'zustand'
+import { apiClient } from '../lib/api'
 
-export const useProjectStore = create((set, get) => ({
+export const useProjectStore = create((set) => ({
     projects: [],
     currentProject: null,
     isLoading: false,
     error: null,
 
-    // Set all projects
-    setProjects: (projects) => set({ projects }),
+    // Fetch all projects
+    fetchProjects: async (getToken) => {
+        set({ isLoading: true, error: null })
+        try {
+            const token = await getToken()
+            const data = await apiClient.getProjects(token)
+            set({ projects: data.projects, isLoading: false })
+        } catch (error) {
+            set({ error: error.message, isLoading: false })
+        }
+    },
 
     // Set current project
     setCurrentProject: (project) => set({ currentProject: project }),

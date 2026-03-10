@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useClerk } from "@clerk/clerk-react"
 import {
     Sparkles,
     LayoutDashboard,
@@ -13,6 +14,7 @@ import './Sidebar.css'
 
 export default function Sidebar() {
     const navigate = useNavigate()
+    const { signOut } = useClerk()
 
     return (
         <aside className="sidebar glass">
@@ -64,7 +66,10 @@ export default function Sidebar() {
                     <HelpCircle size={18} />
                     Help & Docs
                 </button>
-                <button className="sidebar-link sidebar-link-danger">
+                <button
+                    className="sidebar-link sidebar-link-danger"
+                    onClick={() => signOut(() => navigate("/"))}
+                >
                     <LogOut size={18} />
                     Sign Out
                 </button>

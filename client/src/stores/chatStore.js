@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export const useChatStore = create((set, get) => ({
+export const useChatStore = create((set) => ({
     messages: [],
     isGenerating: false,
     generationStatus: null, // 'queued' | 'understanding' | 'planning' | 'generating' | 'assembling' | 'complete' | 'failed'

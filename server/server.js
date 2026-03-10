@@ -5,11 +5,12 @@ const rateLimit = require("express-rate-limit")
 require("dotenv").config()
 
 const { connectDB } = require("./config/db")
-
+const { clerkMiddleware } = require("@clerk/express");
 // Import routes
-const projectRoutes = require("./routes/projects")
+const projectRoutes = require("./routes/projectRoutes")
 const generateRoutes = require("./routes/generate")
 const healthRoutes = require("./routes/health")
+
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -32,11 +33,13 @@ app.use("/api/", apiLimiter)
 // ── Body Parsing ──
 app.use(express.json({ limit: "10mb" }))
 
+// Clerk middleware
+app.use(clerkMiddleware());
+
 // ── Routes ──
 app.use("/api/projects", projectRoutes)
 app.use("/api/generate", generateRoutes)
 app.use("/api/health", healthRoutes)
-
 // ── Global Error Handler ──
 app.use((err, req, res, next) => {
    console.error("❌ Server Error:", err.message)
