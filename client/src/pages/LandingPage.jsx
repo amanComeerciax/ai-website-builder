@@ -24,15 +24,59 @@ import {
 import { SignedIn, SignedOut } from '@clerk/clerk-react'
 import RadialOrbitalTimeline from '@/components/ui/radial-orbital-timeline'
 import { GooeyText } from '@/components/ui/gooey-text-morphing'
+import { motion } from 'framer-motion'
 import './LandingPage.css'
+
+// ─── Premium scroll animation variants ───
+const fadeUp = {
+    hidden: { opacity: 0, y: 50 },
+    visible: (i = 0) => ({
+        opacity: 1, y: 0,
+        transition: { duration: 0.6, delay: i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }
+    })
+}
+
+const scaleUp = {
+    hidden: { opacity: 0, scale: 0.92, y: 30 },
+    visible: (i = 0) => ({
+        opacity: 1, scale: 1, y: 0,
+        transition: { duration: 0.5, delay: i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }
+    })
+}
+
+const slideInLeft = {
+    hidden: { opacity: 0, x: -40 },
+    visible: (i = 0) => ({
+        opacity: 1, x: 0,
+        transition: { duration: 0.6, delay: i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }
+    })
+}
+
+const slideInRight = {
+    hidden: { opacity: 0, x: 40 },
+    visible: (i = 0) => ({
+        opacity: 1, x: 0,
+        transition: { duration: 0.6, delay: i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }
+    })
+}
+
+const staggerParent = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
+}
+
+const staggerParentFast = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } }
+}
 
 // Rotating placeholder suggestions
 const PLACEHOLDER_SUGGESTIONS = [
-    "A SaaS dashboard with real-time charts...",
-    "An e-commerce store for artisan candles...",
-    "A portfolio website with dark theme...",
-    "A restaurant site with online ordering...",
-    "A fitness tracker with analytics...",
+    "Ask IndiForge to create an internal tool, a landing page, or a custom app...",
+    "Ask IndiForge to build a SaaS dashboard with real-time charts...",
+    "Ask IndiForge to design a portfolio for a freelance developer...",
+    "Ask IndiForge to create a fitness app with nutrition tracking...",
+    "Ask IndiForge to build an e-commerce platform for artisan coffee...",
 ]
 
 // How it works steps
@@ -67,14 +111,14 @@ const FEATURES = [
     { icon: Shield, title: 'Production Ready', description: 'Clean, maintainable code with best practices. Authentication, API routes, and more.' },
 ]
 
-// Template showcase — with realistic mini-mockup style
+// Template showcase — premium bento layout
 const TEMPLATES = [
-    { name: 'Personal Portfolio', category: 'Portfolio', accent: '#a78bfa', bg: '#1a1030' },
-    { name: 'E-Commerce Store', category: 'Commerce', accent: '#f97316', bg: '#1c1008' },
-    { name: 'SaaS Dashboard', category: 'SaaS', accent: '#34d399', bg: '#0a1a14' },
-    { name: 'Blog Platform', category: 'Content', accent: '#f472b6', bg: '#1c0a18' },
-    { name: 'Restaurant Site', category: 'Business', accent: '#fbbf24', bg: '#1a1504' },
-    { name: 'Event Platform', category: 'Events', accent: '#818cf8', bg: '#121228' },
+    { name: 'SaaS Landing Page', category: 'SaaS', accent: '#f97316', bg: 'linear-gradient(135deg, #1c1008, #2a1a0a)', desc: 'High-converting landing page with pricing, testimonials & CTA', tags: ['React', 'Tailwind'] },
+    { name: 'Portfolio Pro', category: 'Portfolio', accent: '#a78bfa', bg: 'linear-gradient(135deg, #1a1030, #241644)', desc: 'Showcase your work with stunning animations', tags: ['Framer Motion'] },
+    { name: 'E-Commerce Store', category: 'Commerce', accent: '#34d399', bg: 'linear-gradient(135deg, #0a1a14, #102e20)', desc: 'Complete store with cart, checkout & payments', tags: ['Stripe', 'MongoDB'] },
+    { name: 'Blog Platform', category: 'Content', accent: '#f472b6', bg: 'linear-gradient(135deg, #1c0a18, #2d1228)', desc: 'Rich text editor, categories & SEO optimized', tags: ['Markdown'] },
+    { name: 'Restaurant Site', category: 'Business', accent: '#fbbf24', bg: 'linear-gradient(135deg, #1a1504, #2c2208)', desc: 'Menu, reservations & location maps', tags: ['Maps API'] },
+    { name: 'Event Platform', category: 'Events', accent: '#818cf8', bg: 'linear-gradient(135deg, #121228, #1c1c40)', desc: 'Ticketing, schedules & speaker profiles', tags: ['Calendar'] },
 ]
 
 // Stats
@@ -187,6 +231,7 @@ export default function LandingPage() {
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
+
     const handleSend = () => {
         if (inputValue.trim()) {
             navigate(`/editor/new?prompt=${encodeURIComponent(inputValue.trim())}`)
@@ -238,10 +283,20 @@ export default function LandingPage() {
                     </div>
 
                     {/* Title */}
-                    <h1 className="hero-title">
+                    <motion.h1
+                        className="hero-title"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    >
                         Build something
-                    </h1>
-                    <div className="hero-gooey-wrapper">
+                    </motion.h1>
+                    <motion.div
+                        className="hero-gooey-wrapper"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.7, delay: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    >
                         <GooeyText
                             texts={["Incredible", "Beautiful", "Powerful", "Stunning", "Amazing"]}
                             morphTime={1.5}
@@ -249,13 +304,23 @@ export default function LandingPage() {
                             className="hero-gooey-container"
                             textClassName="hero-gooey-text"
                         />
-                    </div>
-                    <p className="hero-description">
+                    </motion.div>
+                    <motion.p
+                        className="hero-description"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    >
                         Create apps and websites by chatting with AI. Describe your idea in plain English — IndiForge AI generates production-ready code and deploys it in under 2 minutes.
-                    </p>
+                    </motion.p>
 
                     {/* Prompt Input */}
-                    <div className="hero-prompt-wrapper">
+                    <motion.div
+                        className="hero-prompt-wrapper"
+                        initial={{ opacity: 0, y: 30, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.7, delay: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    >
                         <div className="hero-prompt-box">
                             <textarea
                                 value={inputValue}
@@ -288,10 +353,15 @@ export default function LandingPage() {
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Stats Row */}
-                    <div className="hero-stats">
+                    <motion.div
+                        className="hero-stats"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    >
                         {STATS.map((stat, i) => (
                             <div key={i} className="hero-stat-group">
                                 {i > 0 && <div className="hero-stat-sep" />}
@@ -301,16 +371,22 @@ export default function LandingPage() {
                                 </div>
                             </div>
                         ))}
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
             {/* ═══ Trusted By — Logo Cloud (Marquee) ═══ */}
-            <section className="logos-section">
-                <p className="logos-label">Teams from top companies build with IndiForge</p>
-                <div className="marquee-wrapper">
+            <motion.section
+                className="logos-section"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.5 }}
+                variants={fadeUp}
+            >
+                <motion.p className="logos-label" variants={fadeUp}>Teams from top companies build with IndiForge</motion.p>
+                <motion.div className="marquee-wrapper" variants={fadeUp} custom={1}>
                     <div className="marquee-track">
-                        {[...Array(2)].map((_, copy) => (
+                        {[...Array(4)].map((_, copy) => (
                             <div key={copy} className="marquee-group" aria-hidden={copy > 0}>
                                 {['Google', 'Microsoft', 'Meta', 'Stripe', 'Vercel', 'Figma', 'Shopify', 'Notion', 'Linear', 'Supabase'].map((name) => (
                                     <span key={name} className="logo-text">{name}</span>
@@ -318,8 +394,9 @@ export default function LandingPage() {
                             </div>
                         ))}
                     </div>
-                </div>
-            </section>
+                </motion.div>
+            </motion.section>
+
             {/* ═══ Glow Orb ═══ */}
             <div className="glow-orb-wrapper">
                 <div className="glow-orb" />
@@ -328,185 +405,543 @@ export default function LandingPage() {
             {/* ═══ How It Works ═══ */}
             <section id="how-it-works" className="hiw-section">
                 <div className="hiw-inner">
-                    <div className="hiw-header lp-reveal">
-                        <h2 className="section-title">
-                            Meet <span className="section-title-accent">IndiForge AI</span>
-                        </h2>
-                        <p className="section-subtitle">
-                            From idea to production in three simple steps
-                        </p>
-                    </div>
-
-                    {/* Orbital Timeline */}
-                    <div className="lp-reveal" style={{ marginBottom: '4rem' }}>
-                        <RadialOrbitalTimeline timelineData={TIMELINE_DATA} />
-                    </div>
-
-                    <div className="hiw-grid">
-                        {HOW_IT_WORKS.map((item, i) => (
-                            <div key={i} className="hiw-card lp-reveal" style={{ animationDelay: `${i * 0.15}s` }}>
-                                <div className="hiw-step-number">{item.step}</div>
-                                <div className="hiw-icon-wrapper">
-                                    <item.icon size={24} />
-                                </div>
-                                <h3 className="hiw-title">{item.title}</h3>
-                                <p className="hiw-description">{item.description}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ═══ Features Grid ═══ */}
-            <section id="features" className="features-section">
-                <div className="features-inner">
-                    <div className="features-header lp-reveal">
+                    <motion.div
+                        className="hiw-header"
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, amount: 0.5 }}
+                        variants={fadeUp}
+                    >
                         <h2 className="section-title">
                             Everything you need to go <span className="section-title-accent">from idea to live site</span>
                         </h2>
                         <p className="section-subtitle">
                             Powered by AI, built for speed. Every tool you need in one place.
                         </p>
+                    </motion.div>
+
+                    <motion.div
+                        className="hiw-grid"
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, amount: 0.1 }}
+                        variants={staggerParent}
+                    >
+                        {/* Step 1: AI-Powered Code Generation (Span 8) */}
+                        <motion.div className="hiw-card span-8" variants={scaleUp} custom={0}>
+                            <div className="hiw-card-info">
+                                <h3 className="hiw-card-title">AI-Powered Code Generation</h3>
+                                <p className="hiw-card-desc">
+                                    Describe your website in plain English and watch IndiForge AI generate production-ready React code with modern design in seconds.
+                                </p>
+                            </div>
+                            <div className="hiw-visual-area">
+                                <div className="collab-visual">
+                                    <div className="collab-orbit" />
+                                    <div className="collab-orbit-inner" />
+                                    <div className="collab-center">Prompt → Code</div>
+                                    <div className="collab-avatar" style={{ top: '15%', left: '15%' }} />
+                                    <div className="collab-avatar" style={{ top: '55%', right: '10%' }} />
+                                    <div className="collab-avatar" style={{ bottom: '15%', left: '35%' }} />
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Step 2: Real-Time Preview (Span 4) */}
+                        <motion.div className="hiw-card span-4" variants={scaleUp} custom={1}>
+                            <div className="hiw-card-info">
+                                <h3 className="hiw-card-title">Real-Time Preview</h3>
+                                <p className="hiw-card-desc">
+                                    See your website come alive instantly as AI builds it. Edit, tweak, and iterate with live preview — no refresh needed.
+                                </p>
+                            </div>
+                            <div className="hiw-visual-area">
+                                <div className="role-visual">
+                                    {[60, 80, 50].map((w, i) => (
+                                        <div key={i} className="role-item">
+                                            <div className={`role-checkbox ${i === 1 ? 'checked' : ''}`}>
+                                                {i === 1 && <ArrowRight size={12} color="white" />}
+                                            </div>
+                                            <div className="role-text-placeholder" style={{ width: `${w}%` }} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Step 3: One-Click Deploy (Span 4) */}
+                        <motion.div className="hiw-card span-4" variants={slideInLeft} custom={2}>
+                            <div className="hiw-card-info">
+                                <h3 className="hiw-card-title">One-Click Deploy</h3>
+                                <p className="hiw-card-desc">
+                                    Go live with a single click. Deploy to a custom URL and share your creation with the world instantly.
+                                </p>
+                            </div>
+                            <div className="hiw-visual-area" style={{ flexDirection: 'row', gap: '1.5rem' }}>
+                                <div className="admin-badge" style={{ padding: '1rem' }}><Github size={24} /></div>
+                                <div className="admin-badge" style={{ padding: '1rem' }}><Rocket size={24} /></div>
+                                <div className="admin-badge" style={{ padding: '1rem' }}><Zap size={24} /></div>
+                            </div>
+                        </motion.div>
+
+                        {/* Step 4: Smart Templates & Customization (Span 8) */}
+                        <motion.div className="hiw-card span-8" variants={slideInRight} custom={3}>
+                            <div className="hiw-card-info">
+                                <h3 className="hiw-card-title">Smart Templates & Customization</h3>
+                                <p className="hiw-card-desc">
+                                    Start from 50+ production-ready templates or let AI create a unique design. Every site is fully customizable with natural language edits.
+                                </p>
+                            </div>
+                            <div className="hiw-visual-area">
+                                <div className="admin-visual">
+                                    <div className="admin-header">
+                                        <div className="admin-avatar-row">
+                                            <div className="admin-avatar" />
+                                            <div className="role-text-placeholder" style={{ width: '120px', height: '10px' }} />
+                                        </div>
+                                        <div className="admin-badge">Your Site</div>
+                                    </div>
+                                    <div className="role-text-placeholder" style={{ width: '100%', height: '12px', opacity: 0.5 }} />
+                                    <div className="role-text-placeholder" style={{ width: '70%', height: '12px', marginTop: '10px', opacity: 0.3 }} />
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* ═══ Powerful Features ═══ */}
+            <section id="features" className="features-section features-v2">
+                <div className="features-inner">
+                    {/* Header — left aligned */}
+                    <motion.div
+                        className="features-v2-header"
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, amount: 0.5 }}
+                        variants={fadeUp}
+                    >
+                        <span className="features-v2-badge">Powerful Features</span>
+                        <h2 className="features-v2-title">
+                            <span className="features-v2-title-accent">Powerful Features</span>
+                            <br />to Build & Ship<br />Effortlessly
+                        </h2>
+                        <p className="features-v2-subtitle">
+                            Effortlessly create, optimize, and scale high-converting websites — no coding required.
+                        </p>
+                    </motion.div>
+
+                    {/* Feature 01 — Hero card (full width) */}
+                    <motion.div
+                        className="feat-card feat-card-hero"
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, amount: 0.2 }}
+                        variants={scaleUp}
+                        custom={0}
+                    >
+                        <div className="feat-card-text">
+                            <span className="feat-num">01</span>
+                            <h3 className="feat-card-title">AI-Powered Code Generation</h3>
+                            <p className="feat-card-desc">
+                                Describe your website in plain English and watch IndiForge AI generate production-ready React, Express, and MongoDB code — in under 2 minutes.
+                            </p>
+                        </div>
+                        <div className="feat-card-visual">
+                            <div className="feat-visual-editor">
+                                <div className="feat-editor-top">
+                                    <div className="feat-editor-dots"><span /><span /><span /></div>
+                                    <div className="feat-editor-tab">LandingPage.jsx</div>
+                                </div>
+                                <div className="feat-editor-body">
+                                    <div className="feat-code-line"><span className="c-keyword">const</span> <span className="c-fn">App</span> = () =&gt; {'{'}</div>
+                                    <div className="feat-code-line pl-1"><span className="c-keyword">return</span> (</div>
+                                    <div className="feat-code-line pl-2"><span className="c-tag">&lt;Hero</span> <span className="c-attr">title</span>=<span className="c-str">"Welcome"</span> /&gt;</div>
+                                    <div className="feat-code-line pl-2"><span className="c-tag">&lt;Features</span> /&gt;</div>
+                                    <div className="feat-code-line pl-1">)</div>
+                                    <div className="feat-code-line">{'}'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Feature 02 & 03 — Two column */}
+                    <div className="feat-row">
+                        <motion.div
+                            className="feat-card"
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true, amount: 0.2 }}
+                            variants={slideInLeft}
+                            custom={0}
+                        >
+                            <span className="feat-num">02</span>
+                            <h3 className="feat-card-title">50+ Smart Templates</h3>
+                            <p className="feat-card-desc">
+                                Our AI picks from 50+ stunning, high-converting templates tailored for your business — SaaS, e-commerce, portfolios, and more.
+                            </p>
+                            <div className="feat-card-visual-sm">
+                                <div className="feat-templates-visual">
+                                    <div className="feat-tmpl-stack">
+                                        <div className="feat-tmpl-card" style={{ transform: 'rotate(-8deg)', background: 'linear-gradient(135deg, #1a1030, #2d1b69)' }}><span>Portfolio</span></div>
+                                        <div className="feat-tmpl-card" style={{ transform: 'rotate(-3deg)', background: 'linear-gradient(135deg, #1c1008, #3d2506)' }}><span>E-Commerce</span></div>
+                                        <div className="feat-tmpl-card" style={{ transform: 'rotate(3deg)', background: 'linear-gradient(135deg, #0a1a14, #0d3320)' }}><span>SaaS</span></div>
+                                    </div>
+                                    <div className="feat-tmpl-badges">
+                                        <span className="feat-tmpl-badge">Handcrafted by AI</span>
+                                        <span className="feat-tmpl-badge">Mobile-ready</span>
+                                        <span className="feat-tmpl-badge">SEO-optimized</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            className="feat-card"
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true, amount: 0.2 }}
+                            variants={slideInRight}
+                            custom={0}
+                        >
+                            <span className="feat-num">03</span>
+                            <h3 className="feat-card-title">AI-Powered Copy & Design</h3>
+                            <p className="feat-card-desc">
+                                Stuck on what to write? Our AI generates compelling headlines, descriptions, and layouts in seconds — tailored to your audience.
+                            </p>
+                            <div className="feat-card-visual-sm">
+                                <div className="feat-ai-input">
+                                    <input type="text" className="feat-ai-textbox" placeholder="Enter your text here..." readOnly />
+                                    <button className="feat-ai-btn">
+                                        <Zap size={12} />
+                                        Generate
+                                    </button>
+                                </div>
+                                <div className="feat-ai-preview">
+                                    <div className="feat-ai-preview-bar" />
+                                    <div className="feat-ai-preview-text" />
+                                    <div className="feat-ai-preview-text short" />
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
 
-                    <div className="features-grid">
-                        {FEATURES.map((feat, i) => (
-                            <div key={i} className="feature-card lp-reveal" style={{ animationDelay: `${i * 0.1}s` }}>
-                                <div className="feature-icon-wrapper">
-                                    <feat.icon size={22} />
+                    {/* Feature 04 & 05 — Two column */}
+                    <div className="feat-row">
+                        <motion.div
+                            className="feat-card"
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true, amount: 0.2 }}
+                            variants={slideInLeft}
+                            custom={0}
+                        >
+                            <span className="feat-num">04</span>
+                            <h3 className="feat-card-title">Optimized for Speed</h3>
+                            <p className="feat-card-desc">
+                                Every millisecond counts. Our websites load in record time, ensuring better SEO, higher conversions, and a seamless experience.
+                            </p>
+                            <div className="feat-card-visual-sm">
+                                <div className="feat-speed-gauge">
+                                    <div className="feat-gauge-bg">
+                                        <div className="feat-gauge-fill" />
+                                    </div>
+                                    <div className="feat-gauge-labels">
+                                        <span>SLOW</span>
+                                        <span>AVERAGE</span>
+                                        <span>FAST</span>
+                                    </div>
+                                    <div className="feat-gauge-badge">High Performance</div>
                                 </div>
-                                <h3 className="feature-title">{feat.title}</h3>
-                                <p className="feature-description">{feat.description}</p>
                             </div>
-                        ))}
+                        </motion.div>
+
+                        <motion.div
+                            className="feat-card"
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true, amount: 0.2 }}
+                            variants={slideInRight}
+                            custom={0}
+                        >
+                            <span className="feat-num">05</span>
+                            <h3 className="feat-card-title">Mobile-First & Responsive</h3>
+                            <p className="feat-card-desc">
+                                Build websites that adapt perfectly to any screen — ensuring a smooth and engaging experience on mobile, tablet, and desktop.
+                            </p>
+                            <div className="feat-card-visual-sm">
+                                <div className="feat-responsive-visual">
+                                    <div className="feat-device feat-device-desktop">
+                                        <div className="feat-device-screen">
+                                            <div className="feat-device-nav" />
+                                            <div className="feat-device-hero" />
+                                            <div className="feat-device-grid" />
+                                        </div>
+                                    </div>
+                                    <div className="feat-device feat-device-mobile">
+                                        <div className="feat-device-screen">
+                                            <div className="feat-device-nav" />
+                                            <div className="feat-device-hero" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
                 </div>
             </section>
 
             {/* ═══ Templates Showcase ═══ */}
-            <section className="templates-section">
+            <section className="templates-section tmpl-v2">
                 <div className="templates-inner">
-                    <div className="templates-header lp-reveal">
-                        <h2 className="section-title">
-                            Discover <span className="section-title-accent">Templates</span>
+                    <motion.div
+                        className="tmpl-v2-header"
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, amount: 0.5 }}
+                        variants={fadeUp}
+                    >
+                        <span className="tmpl-v2-badge">Templates</span>
+                        <h2 className="tmpl-v2-title">
+                            Start with a <span className="tmpl-v2-title-accent">Pro Template</span>
                         </h2>
-                        <p className="section-subtitle">
-                            Start your next project with a beautiful, production-ready template
+                        <p className="tmpl-v2-subtitle">
+                            50+ production-ready templates. Pick one, customize with AI, and ship in minutes.
                         </p>
-                    </div>
+                    </motion.div>
 
-                    <div className="templates-grid">
-                        {TEMPLATES.map((tmpl, i) => (
-                            <div key={i} className="template-card lp-reveal" style={{ animationDelay: `${i * 0.08}s` }}>
-                                <div className="template-preview" style={{ background: tmpl.bg }}>
-                                    {/* Mini browser mockup */}
-                                    <div className="tmock">
-                                        <div className="tmock-top">
-                                            <div className="tmock-dots">
-                                                <span /><span /><span />
-                                            </div>
-                                            <div className="tmock-url" />
-                                        </div>
-                                        <div className="tmock-body">
-                                            <div className="tmock-nav">
-                                                <div className="tmock-nav-logo" style={{ background: tmpl.accent }} />
-                                                <div className="tmock-nav-links">
-                                                    <span /><span /><span />
-                                                </div>
-                                            </div>
-                                            <div className="tmock-hero">
-                                                <div className="tmock-heading" style={{ background: tmpl.accent, opacity: 0.3 }} />
-                                                <div className="tmock-heading-sm" style={{ background: tmpl.accent, opacity: 0.15, width: '60%' }} />
-                                                <div className="tmock-text-lines">
-                                                    <span /><span /><span style={{ width: '70%' }} />
-                                                </div>
-                                                <div className="tmock-btn" style={{ background: tmpl.accent }} />
-                                            </div>
+                    {/* Bento Row 1: Featured (large) + 2 stacked */}
+                    <div className="tmpl-bento-row">
+                        <motion.div
+                            className="tmpl-card tmpl-card-featured"
+                            initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={scaleUp} custom={0}
+                            style={{ background: TEMPLATES[0].bg }}
+                        >
+                            <div className="tmpl-card-browser">
+                                <div className="tmpl-browser-bar">
+                                    <div className="tmpl-browser-dots"><span /><span /><span /></div>
+                                    <div className="tmpl-browser-url">{TEMPLATES[0].name.toLowerCase().replace(/\s/g, '-')}.indiforge.app</div>
+                                </div>
+                                <div className="tmpl-browser-body">
+                                    <div className="tmpl-wire-nav" style={{ borderColor: `${TEMPLATES[0].accent}22` }}>
+                                        <div className="tmpl-wire-logo" style={{ background: TEMPLATES[0].accent }} />
+                                        <div className="tmpl-wire-links"><span /><span /><span /></div>
+                                        <div className="tmpl-wire-btn" style={{ background: TEMPLATES[0].accent }}>Get Started</div>
+                                    </div>
+                                    <div className="tmpl-wire-hero-area">
+                                        <div className="tmpl-wire-h1" style={{ background: `${TEMPLATES[0].accent}40` }} />
+                                        <div className="tmpl-wire-h2" style={{ background: `${TEMPLATES[0].accent}20` }} />
+                                        <div className="tmpl-wire-p"><span /><span /><span style={{ width: '60%' }} /></div>
+                                        <div className="tmpl-wire-cta-row">
+                                            <div className="tmpl-wire-cta" style={{ background: TEMPLATES[0].accent }} />
+                                            <div className="tmpl-wire-cta-ghost" style={{ borderColor: `${TEMPLATES[0].accent}44` }} />
                                         </div>
                                     </div>
                                 </div>
-                                <div className="template-info">
-                                    <span className="template-category" style={{ color: tmpl.accent }}>{tmpl.category}</span>
-                                    <h4 className="template-name">{tmpl.name}</h4>
-                                </div>
                             </div>
+                            <div className="tmpl-card-info">
+                                <div className="tmpl-card-tags">
+                                    {TEMPLATES[0].tags.map(t => <span key={t} className="tmpl-tag" style={{ color: TEMPLATES[0].accent, borderColor: `${TEMPLATES[0].accent}33` }}>{t}</span>)}
+                                </div>
+                                <span className="tmpl-card-cat" style={{ color: TEMPLATES[0].accent }}>{TEMPLATES[0].category}</span>
+                                <h3 className="tmpl-card-name">{TEMPLATES[0].name}</h3>
+                                <p className="tmpl-card-desc">{TEMPLATES[0].desc}</p>
+                            </div>
+                        </motion.div>
+
+                        <div className="tmpl-stack">
+                            {TEMPLATES.slice(1, 3).map((tmpl, i) => (
+                                <motion.div
+                                    key={i} className="tmpl-card tmpl-card-small"
+                                    initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={slideInRight} custom={i}
+                                    style={{ background: tmpl.bg }}
+                                >
+                                    <div className="tmpl-card-browser tmpl-browser-sm">
+                                        <div className="tmpl-browser-bar">
+                                            <div className="tmpl-browser-dots"><span /><span /><span /></div>
+                                        </div>
+                                        <div className="tmpl-browser-body">
+                                            <div className="tmpl-wire-nav-sm">
+                                                <div className="tmpl-wire-logo" style={{ background: tmpl.accent }} />
+                                                <div className="tmpl-wire-links"><span /><span /></div>
+                                            </div>
+                                            <div className="tmpl-wire-h1 sm" style={{ background: `${tmpl.accent}40` }} />
+                                            <div className="tmpl-wire-p sm"><span /><span /></div>
+                                        </div>
+                                    </div>
+                                    <div className="tmpl-card-info">
+                                        <span className="tmpl-card-cat" style={{ color: tmpl.accent }}>{tmpl.category}</span>
+                                        <h3 className="tmpl-card-name">{tmpl.name}</h3>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Bento Row 2: Three equal cards */}
+                    <div className="tmpl-row-3">
+                        {TEMPLATES.slice(3).map((tmpl, i) => (
+                            <motion.div
+                                key={i} className="tmpl-card tmpl-card-equal"
+                                initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={scaleUp} custom={i}
+                                style={{ background: tmpl.bg }}
+                            >
+                                <div className="tmpl-card-browser tmpl-browser-sm">
+                                    <div className="tmpl-browser-bar">
+                                        <div className="tmpl-browser-dots"><span /><span /><span /></div>
+                                    </div>
+                                    <div className="tmpl-browser-body">
+                                        <div className="tmpl-wire-nav-sm">
+                                            <div className="tmpl-wire-logo" style={{ background: tmpl.accent }} />
+                                            <div className="tmpl-wire-links"><span /><span /></div>
+                                        </div>
+                                        <div className="tmpl-wire-h1 sm" style={{ background: `${tmpl.accent}40` }} />
+                                        <div className="tmpl-wire-p sm"><span /><span /></div>
+                                    </div>
+                                </div>
+                                <div className="tmpl-card-info">
+                                    <div className="tmpl-card-tags">
+                                        {tmpl.tags.map(t => <span key={t} className="tmpl-tag" style={{ color: tmpl.accent, borderColor: `${tmpl.accent}33` }}>{t}</span>)}
+                                    </div>
+                                    <span className="tmpl-card-cat" style={{ color: tmpl.accent }}>{tmpl.category}</span>
+                                    <h3 className="tmpl-card-name">{tmpl.name}</h3>
+                                    <p className="tmpl-card-desc">{tmpl.desc}</p>
+                                </div>
+                            </motion.div>
                         ))}
                     </div>
 
-                    <div className="templates-cta-row lp-reveal" style={{ animationDelay: '0.5s' }}>
-                        <Link to="/pricing" className="templates-view-all">
-                            View all templates
-                            <ChevronRight size={16} />
+                    <motion.div
+                        className="tmpl-cta-row"
+                        initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}
+                    >
+                        <Link to="/pricing" className="tmpl-browse-btn">
+                            Browse all templates
+                            <ArrowRight size={16} />
                         </Link>
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
             {/* ═══ CTA Section ═══ */}
-            <section className="cta-section">
-                <div className="cta-inner lp-reveal">
-                    <h2 className="cta-title">Ready to build?</h2>
-                    <p className="cta-subtitle">
-                        Join thousands of builders turning ideas into reality with AI.
-                    </p>
-                    <div className="cta-buttons">
-                        <SignedOut>
-                            <Link to="/signup" className="cta-primary">
-                                Start building for free
-                                <ArrowRight size={16} />
-                            </Link>
-                        </SignedOut>
-                        <SignedIn>
-                            <Link to="/dashboard" className="cta-primary">
-                                Go to Dashboard
-                                <ArrowRight size={16} />
-                            </Link>
-                        </SignedIn>
-                        <Link to="/pricing" className="cta-secondary">
-                            View pricing
-                        </Link>
-                    </div>
-                </div>
-            </section>
+            <motion.section
+                className="cta-section cta-v2"
+                initial={{ opacity: 0, y: 50, scale: 0.97 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+                <div className="cta-v2-inner">
+                    <motion.p
+                        className="cta-v2-label"
+                        initial={{ opacity: 0, y: 15 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                    >Build with IndiForge AI</motion.p>
 
-            {/* ═══ Footer ═══ */}
-            <footer className="lp-footer">
-                <div className="lp-footer-inner">
-                    <div className="lp-footer-left">
-                        <div className="lp-footer-brand">
-                            <Wind size={18} />
-                            <span>INDIFORGE AI</span>
-                        </div>
-                        <p className="lp-footer-copy">Build the future with AI. From idea to production in minutes.</p>
-                    </div>
-                    <div className="lp-footer-right">
-                        <div className="footer-nav">
-                            <span className="footer-nav-title">Product</span>
-                            <a href="#features" className="lp-footer-link">Features</a>
-                            <Link to="/pricing" className="lp-footer-link">Pricing</Link>
-                            <a href="#how-it-works" className="lp-footer-link">How it Works</a>
-                        </div>
-                        <div className="footer-nav">
-                            <span className="footer-nav-title">Company</span>
-                            <a href="#" className="lp-footer-link">About</a>
-                            <a href="#" className="lp-footer-link">Blog</a>
-                            <a href="#" className="lp-footer-link">Careers</a>
-                        </div>
-                        <div className="footer-nav">
-                            <span className="footer-nav-title">Legal</span>
-                            <a href="#" className="lp-footer-link">Privacy</a>
-                            <a href="#" className="lp-footer-link">Terms</a>
-                            <div className="lp-footer-social-wrapper" style={{ marginTop: '0.5rem' }}>
-                                <a href="#" className="lp-footer-social"><Twitter size={14} /></a>
-                                <a href="#" className="lp-footer-social"><Github size={14} /></a>
+                    <motion.h2
+                        className="cta-v2-title"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                    >Ready to build?</motion.h2>
+
+                    <motion.div
+                        className="cta-v2-prompt"
+                        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: 0.35 }}
+                    >
+                        <div className="cta-v2-prompt-box">
+                            <textarea
+                                className="cta-v2-textarea"
+                                placeholder={placeholder}
+                                rows={2}
+                                readOnly
+                            />
+                            <div className="cta-v2-prompt-footer">
+                                <div className="cta-v2-prompt-left">
+                                    <button className="cta-v2-icon-btn" title="Attach file">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                                    </button>
+                                </div>
+                                <div className="cta-v2-prompt-right">
+                                    <button className="cta-v2-model-btn">
+                                        <span className="cta-v2-model-dot" />
+                                        Gemini 3 Flash
+                                    </button>
+                                    <Link to="/signup" className="cta-v2-send-btn">
+                                        <ArrowRight size={18} />
+                                    </Link>
+                                </div>
                             </div>
                         </div>
+                    </motion.div>
+                </div>
+            </motion.section>
+
+            {/* ═══ Footer ═══ */}
+            <motion.footer
+                className="lp-footer lp-footer-v2"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+                <div className="lp-footer-inner">
+                    <div className="footer-v2-grid">
+                        <div className="footer-v2-col">
+                            <span className="footer-v2-col-title">Company</span>
+                            <a href="#" className="footer-v2-link">About</a>
+                            <a href="#" className="footer-v2-link">Careers</a>
+                            <a href="#" className="footer-v2-link">Press & media</a>
+                            <a href="#" className="footer-v2-link">Blog</a>
+                            <a href="#" className="footer-v2-link">Contact</a>
+                        </div>
+                        <div className="footer-v2-col">
+                            <span className="footer-v2-col-title">Product</span>
+                            <Link to="/pricing" className="footer-v2-link">Pricing</Link>
+                            <a href="#features" className="footer-v2-link">Features</a>
+                            <a href="#how-it-works" className="footer-v2-link">How it Works</a>
+                            <a href="#" className="footer-v2-link">Templates</a>
+                            <a href="#" className="footer-v2-link">Changelog</a>
+                        </div>
+                        <div className="footer-v2-col">
+                            <span className="footer-v2-col-title">Resources</span>
+                            <a href="#" className="footer-v2-link">Documentation</a>
+                            <a href="#" className="footer-v2-link">Guides</a>
+                            <a href="#" className="footer-v2-link">Tutorials</a>
+                            <a href="#" className="footer-v2-link">Support</a>
+                        </div>
+                        <div className="footer-v2-col">
+                            <span className="footer-v2-col-title">Legal</span>
+                            <a href="#" className="footer-v2-link">Privacy Policy</a>
+                            <a href="#" className="footer-v2-link">Terms of Service</a>
+                            <a href="#" className="footer-v2-link">Cookie Policy</a>
+                        </div>
+                        <div className="footer-v2-col">
+                            <span className="footer-v2-col-title">Community</span>
+                            <a href="#" className="footer-v2-link">Discord</a>
+                            <a href="#" className="footer-v2-link">X / Twitter</a>
+                            <a href="#" className="footer-v2-link">GitHub</a>
+                            <a href="#" className="footer-v2-link">YouTube</a>
+                            <a href="#" className="footer-v2-link">LinkedIn</a>
+                        </div>
                     </div>
                 </div>
-                <div className="lp-footer-bottom">
-                    <span>© 2026 INDIFORGE AI. All rights reserved.</span>
+                <div className="footer-v2-bottom">
+                    <div className="footer-v2-bottom-inner">
+                        <div className="footer-v2-brand">
+                            <Wind size={16} />
+                            <span>INDIFORGE AI</span>
+                        </div>
+                        <span className="footer-v2-copy">© 2026 IndiForge AI. All rights reserved.</span>
+                    </div>
                 </div>
-            </footer>
+            </motion.footer>
         </div>
     )
 }
