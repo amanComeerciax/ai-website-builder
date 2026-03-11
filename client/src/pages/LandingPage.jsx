@@ -933,33 +933,64 @@ export default function LandingPage() {
             </section>
 
             {/* ═══ CTA Section ═══ */}
-            <section className="cta-section">
-                <div className="cta-inner lp-reveal">
-                    <h2 className="cta-title">Ready to build?</h2>
-                    <p className="cta-subtitle">
-                        Join thousands of builders turning ideas into reality with AI.
-                    </p>
-                    <div className="cta-buttons">
-                        <SignedOut>
-                            <SignUpButton mode="modal" fallbackRedirectUrl="/dashboard">
-                                <button className="cta-primary" style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                                    Get Started Free
-                                    <ArrowRight size={16} />
-                                </button>
-                            </SignUpButton>
-                        </SignedOut>
-                        <SignedIn>
-                            <Link to="/dashboard" className="cta-primary">
-                                Go to Dashboard
-                                <ArrowRight size={16} />
-                            </Link>
-                        </SignedIn>
-                        <Link to="/pricing" className="cta-secondary">
-                            View pricing
-                        </Link>
-                    </div>
+            <motion.section
+                className="cta-section cta-v2"
+                initial={{ opacity: 0, y: 50, scale: 0.97 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+                <div className="cta-v2-inner">
+                    <motion.p
+                        className="cta-v2-label"
+                        initial={{ opacity: 0, y: 15 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                    >Build with IndiForge AI</motion.p>
+
+                    <motion.h2
+                        className="cta-v2-title"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                    >Ready to build?</motion.h2>
+
+                    <motion.div
+                        className="cta-v2-prompt"
+                        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: 0.35 }}
+                    >
+                        <div className="cta-v2-prompt-box">
+                            <textarea
+                                className="cta-v2-textarea"
+                                placeholder={placeholder}
+                                rows={2}
+                                readOnly
+                            />
+                            <div className="cta-v2-prompt-footer">
+                                <div className="cta-v2-prompt-left">
+                                    <button className="cta-v2-icon-btn" title="Attach file">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                                    </button>
+                                </div>
+                                <div className="cta-v2-prompt-right">
+                                    <button className="cta-v2-model-btn">
+                                        <span className="cta-v2-model-dot" />
+                                        Gemini 3 Flash
+                                    </button>
+                                    <Link to="/signup" className="cta-v2-send-btn">
+                                        <ArrowRight size={18} />
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
-            </section>
+            </motion.section>
 
             {/* ═══ Footer ═══ */}
             <motion.footer
