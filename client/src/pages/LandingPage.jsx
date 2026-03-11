@@ -245,15 +245,13 @@ export default function LandingPage() {
 
                     <div className="lp-nav-right">
                         <SignedOut>
-                            <SignInButton mode="modal">
+                            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
                                 <button className="lp-nav-link mb-0" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Sign in</button>
                             </SignInButton>
-                            <SignUpButton mode="modal">
-                                <button className="lp-nav-cta mb-0" style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                                    Get Started
-                                    <ArrowRight size={14} />
-                                </button>
-                            </SignUpButton>
+                            <Link to="/signup" className="lp-nav-cta" style={{ textDecoration: 'none' }}>
+                                Get Started
+                                <ArrowRight size={14} />
+                            </Link>
                         </SignedOut>
                         <SignedIn>
                             <Link to="/dashboard" className="lp-nav-cta">
@@ -336,18 +334,55 @@ export default function LandingPage() {
                                         </button>
 
                                         {isModelDropdownOpen && (
-                                            <div className="absolute bottom-full left-0 mb-3 w-56 rounded-2xl border border-white/10 bg-[#050505]/60 backdrop-blur-xl p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                                                {['Gemini 3 Flash', 'Claude 3.5 Sonnet', 'GPT-4o'].map(model => (
+                                            <div className="absolute top-full left-0 mt-3 w-64 rounded-2xl border border-white/10 bg-[#1c1c1f] p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div className="px-3 py-2 text-[10px] font-semibold tracking-widest text-[#71717a] uppercase font-sans">
+                                                    Best for web pages
+                                                </div>
+                                                {['Gemini 3 Flash', 'Gemini 3.1 Pro', 'Kimi K2.5'].map(model => (
                                                     <button
                                                         key={model}
                                                         onClick={() => {
                                                             setSelectedModel(model);
                                                             setIsModelDropdownOpen(false);
                                                         }}
-                                                        className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm text-left text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                                                        className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-[13px] text-left text-gray-300 hover:bg-white/5 hover:text-white transition-colors group"
                                                     >
-                                                        <span>{model}</span>
-                                                        {selectedModel === model && <Check size={14} className="text-blue-400" />}
+                                                        <div className="flex items-center gap-2.5">
+                                                            {model.includes('Gemini') ? (
+                                                                <div className="flex -space-x-1">
+                                                                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                                                                    <div className="w-2.5 h-2.5 rounded-full bg-red-400 mix-blend-screen" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300 transition-colors"><Sparkles size={14} /></div>
+                                                            )}
+                                                            <span className="font-medium">{model}</span>
+                                                        </div>
+                                                        {selectedModel === model && <Check size={14} className="text-white" />}
+                                                    </button>
+                                                ))}
+
+                                                <div className="mt-2 px-3 py-2 text-[10px] font-semibold tracking-widest text-[#71717a] uppercase font-sans">
+                                                    Best for UI design
+                                                </div>
+                                                {['GPT-5.2', 'Claude 4.5 Haiku', 'Claude 4.5 Sonnet', 'Claude 4.5 Opus', 'Claude 4.6 Opus', 'GPT-5.2 Thinking', 'GPT-5 Mini'].map(model => (
+                                                    <button
+                                                        key={model}
+                                                        onClick={() => {
+                                                            setSelectedModel(model);
+                                                            setIsModelDropdownOpen(false);
+                                                        }}
+                                                        className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-[13px] text-left text-[#d4d4d8] hover:bg-white/5 hover:text-white transition-colors group"
+                                                    >
+                                                        <div className="flex items-center gap-2.5">
+                                                            {model.includes('Claude') ? (
+                                                                <div className="w-3.5 h-3.5 text-amber-500/90 group-hover:text-amber-400 transition-colors">A</div>
+                                                            ) : (
+                                                                <div className="w-3.5 h-3.5 text-emerald-500/90 group-hover:text-emerald-400 transition-colors"><Wind size={14} /></div>
+                                                            )}
+                                                            <span className="font-medium">{model}</span>
+                                                        </div>
+                                                        {selectedModel === model && <Check size={14} className="text-white" />}
                                                     </button>
                                                 ))}
                                             </div>
@@ -523,7 +558,7 @@ export default function LandingPage() {
                     </p>
                     <div className="cta-buttons">
                         <SignedOut>
-                            <SignUpButton mode="modal">
+                            <SignUpButton mode="modal" fallbackRedirectUrl="/dashboard">
                                 <button className="cta-primary" style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                                     Get Started Free
                                     <ArrowRight size={16} />
