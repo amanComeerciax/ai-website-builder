@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react"
+import { SignedIn, SignedOut, RedirectToSignIn, ClerkLoaded, ClerkLoading, useUser } from "@clerk/clerk-react"
 import LandingPage from './pages/LandingPage'
 import DashboardPage from './pages/DashboardPage'
 import EditorPage from './pages/EditorPage'
@@ -15,34 +15,66 @@ const ProtectedRoute = ({ children }) => (
   </>
 )
 
+const PublicRoute = ({ children }) => {
+  const { isLoaded, isSignedIn } = useUser();
+
+  if (!isLoaded) return null;
+
+  if (isSignedIn) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
+
 function App() {
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/pricing" element={<PricingPage />} />
+    <>
+      {/* Fallback full-screen dark loading spinner before Clerk calculates session payload. 
+          Stops FOUC (flash of unauthenticated content) on deep links */}
+      <ClerkLoading>
+        <div style={{
+          height: '100vh', width: '100vw', background: '#050505',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '40px', height: '40px', border: '3px solid rgba(255,255,255,0.1)',
+            borderTopColor: '#3b82f6', borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+        </div>
+      </ClerkLoading>
 
-      {/* Dashboard routes */}
-      <Route
-        path="/dashboard"
-        element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}
-      >
-        <Route index element={<DashboardPage />} />
-      </Route>
+      <ClerkLoaded>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
 
-      {/* Editor route */}
-      <Route
-        path="/editor/:projectId"
-        element={<ProtectedRoute><EditorPage /></ProtectedRoute>}
-      />
+          {/* Dashboard routes */}
+          <Route
+            path="/dashboard"
+            element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}
+          >
+            <Route index element={<DashboardPage />} />
+          </Route>
 
-      {/* Authentication routes */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
+          {/* Editor route */}
+          <Route
+            path="/editor/:projectId"
+            element={<ProtectedRoute><EditorPage /></ProtectedRoute>}
+          />
 
-      {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+          {/* Authentication routes (Strictly blocked if already logged in) */}
+          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </ClerkLoaded>
+    </>
 
   )
 }

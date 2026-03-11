@@ -941,10 +941,12 @@ export default function LandingPage() {
                     </p>
                     <div className="cta-buttons">
                         <SignedOut>
-                            <Link to="/signup" className="cta-primary">
-                                Start building for free
-                                <ArrowRight size={16} />
-                            </Link>
+                            <SignUpButton mode="modal" fallbackRedirectUrl="/dashboard">
+                                <button className="cta-primary" style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                                    Get Started Free
+                                    <ArrowRight size={16} />
+                                </button>
+                            </SignUpButton>
                         </SignedOut>
                         <SignedIn>
                             <Link to="/dashboard" className="cta-primary">
