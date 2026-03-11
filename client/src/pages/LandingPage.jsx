@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { SignedIn, SignedOut, useAuth, useClerk, SignInButton, SignUpButton } from '@clerk/clerk-react'
 import RadialOrbitalTimeline from '@/components/ui/radial-orbital-timeline'
+import { CategoryList } from '@/components/ui/category-list'
 import { GooeyText } from '@/components/ui/gooey-text-morphing'
 import { motion } from 'framer-motion'
 import ThemePicker from '../components/ThemePicker'
@@ -190,6 +191,34 @@ const TIMELINE_DATA = [
         energy: 10,
     },
 ]
+
+const landingFeatures = [
+    {
+        id: 1,
+        title: "AI-Powered Generation",
+        subtitle: "Describe your idea in plain English — we generate production-ready code instantly.",
+        icon: <Sparkles className="w-8 h-8" />,
+        featured: true,
+    },
+    {
+        id: 2,
+        title: "Real-Time Preview",
+        subtitle: "See your website come alive instantly as AI builds it. Live iterate without refreshing.",
+        icon: <Eye className="w-8 h-8" />,
+    },
+    {
+        id: 3,
+        title: "One-Click Deploy",
+        subtitle: "Go live with a single click. Deploy to a custom URL and share your creation.",
+        icon: <Rocket className="w-8 h-8" />,
+    },
+    {
+        id: 4,
+        title: "Smart Templates",
+        subtitle: "Start from 50+ production-ready templates or let AI create a unique design from scratch.",
+        icon: <Code2 className="w-8 h-8" />,
+    }
+];
 
 export default function LandingPage() {
     const [inputValue, setInputValue] = useState('')
@@ -620,7 +649,7 @@ export default function LandingPage() {
             </section>
 
             {/* ═══ Powerful Features ═══ */}
-            <section id="features" className="features-section features-v2">
+            <section id="features-overview" className="features-section features-v2">
                 <div className="features-inner">
                     {/* Header — left aligned */}
                     <motion.div
@@ -798,6 +827,17 @@ export default function LandingPage() {
                         </motion.div>
                     </div>
                 </div>
+            </section>
+
+            {/* ═══ Features Showcase (CategoryList) ═══ */}
+            <section id="features" style={{ position: 'relative', zIndex: 10, padding: '4rem 0' }}>
+                <CategoryList
+                    title="Explore Our"
+                    subtitle="Core Features"
+                    categories={landingFeatures}
+                    headerIcon={<Sparkles className="w-8 h-8" />}
+                    className="bg-transparent"
+                />
             </section>
 
             {/* ═══ Templates Showcase ═══ */}
