@@ -25,6 +25,7 @@ import { SignedIn, SignedOut } from '@clerk/clerk-react'
 import RadialOrbitalTimeline from '@/components/ui/radial-orbital-timeline'
 import { GooeyText } from '@/components/ui/gooey-text-morphing'
 import { motion } from 'framer-motion'
+import ThemePicker from '../components/ThemePicker'
 import './LandingPage.css'
 
 // ─── Premium scroll animation variants ───
@@ -256,6 +257,7 @@ export default function LandingPage() {
                     </div>
 
                     <div className="lp-nav-right">
+                        <ThemePicker />
                         <SignedOut>
                             <Link to="/login" className="lp-nav-link">Sign in</Link>
                             <Link to="/signup" className="lp-nav-cta">
