@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
     ArrowRight,
@@ -19,9 +19,11 @@ import {
     ChevronRight,
     Calendar,
     FileText,
-    User
+    User,
+    ChevronUp,
+    Check
 } from 'lucide-react'
-import { SignedIn, SignedOut } from '@clerk/clerk-react'
+import { SignedIn, SignedOut, useAuth, useClerk, SignInButton, SignUpButton } from '@clerk/clerk-react'
 import RadialOrbitalTimeline from '@/components/ui/radial-orbital-timeline'
 import { GooeyText } from '@/components/ui/gooey-text-morphing'
 import { motion } from 'framer-motion'
@@ -196,7 +198,24 @@ export default function LandingPage() {
     const [charIndex, setCharIndex] = useState(0)
     const [isDeleting, setIsDeleting] = useState(false)
     const [navScrolled, setNavScrolled] = useState(false)
+    const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
+    const [selectedModel, setSelectedModel] = useState('Gemini 3 Flash')
+    const fileInputRef = useRef(null)
+    const dropdownRef = useRef(null)
     const navigate = useNavigate()
+    const { isSignedIn } = useAuth()
+    const clerk = useClerk()
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsModelDropdownOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
 
     // Typewriter placeholder
     useEffect(() => {
@@ -235,7 +254,21 @@ export default function LandingPage() {
 
     const handleSend = () => {
         if (inputValue.trim()) {
-            navigate(`/editor/new?prompt=${encodeURIComponent(inputValue.trim())}`)
+            if (!isSignedIn) {
+                // Open modal instead of redirecting to /login page
+                clerk.openSignIn({
+                    fallbackRedirectUrl: `/editor/new?prompt=${encodeURIComponent(inputValue.trim())}&model=${encodeURIComponent(selectedModel)}`
+                });
+            } else {
+                navigate(`/editor/new?prompt=${encodeURIComponent(inputValue.trim())}&model=${encodeURIComponent(selectedModel)}`)
+            }
+        }
+    }
+
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            // Future logic to process the attached file
+            console.log(`Attached file: ${e.target.files[0].name}`)
         }
     }
 
@@ -259,8 +292,10 @@ export default function LandingPage() {
                     <div className="lp-nav-right">
                         <ThemePicker />
                         <SignedOut>
-                            <Link to="/login" className="lp-nav-link">Sign in</Link>
-                            <Link to="/signup" className="lp-nav-cta">
+                            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
+                                <button className="lp-nav-link mb-0" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Sign in</button>
+                            </SignInButton>
+                            <Link to="/signup" className="lp-nav-cta" style={{ textDecoration: 'none' }}>
                                 Get Started
                                 <ArrowRight size={14} />
                             </Link>
@@ -338,16 +373,88 @@ export default function LandingPage() {
                                 }}
                             />
                             <div className="hero-prompt-footer">
-                                <div className="hero-prompt-left">
-                                    <button className="hero-prompt-icon" title="Attach file">
+                                <div className="hero-prompt-left relative">
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        style={{ display: 'none' }}
+                                        onChange={handleFileChange}
+                                    />
+                                    <button
+                                        className="hero-prompt-icon"
+                                        title="Attach file"
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
                                     </button>
                                     <div className="hero-prompt-separator" />
-                                    <button className="hero-prompt-model">
-                                        <span className="hero-prompt-model-dot" />
-                                        Gemini 3 Flash
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
-                                    </button>
+
+                                    <div className="relative" ref={dropdownRef}>
+                                        <button
+                                            className="hero-prompt-model"
+                                            onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                                        >
+                                            <span className="hero-prompt-model-dot" />
+                                            {selectedModel}
+                                            <ChevronUp size={14} className={`transition-transform duration-200 ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+
+                                        {isModelDropdownOpen && (
+                                            <div className="absolute top-full left-0 mt-3 w-64 rounded-2xl border border-white/10 bg-[#1c1c1f] p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div className="px-3 py-2 text-[10px] font-semibold tracking-widest text-[#71717a] uppercase font-sans">
+                                                    Best for web pages
+                                                </div>
+                                                {['Gemini 3 Flash', 'Gemini 3.1 Pro', 'Kimi K2.5'].map(model => (
+                                                    <button
+                                                        key={model}
+                                                        onClick={() => {
+                                                            setSelectedModel(model);
+                                                            setIsModelDropdownOpen(false);
+                                                        }}
+                                                        className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-[13px] text-left text-gray-300 hover:bg-white/5 hover:text-white transition-colors group"
+                                                    >
+                                                        <div className="flex items-center gap-2.5">
+                                                            {model.includes('Gemini') ? (
+                                                                <div className="flex -space-x-1">
+                                                                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                                                                    <div className="w-2.5 h-2.5 rounded-full bg-red-400 mix-blend-screen" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300 transition-colors"><Sparkles size={14} /></div>
+                                                            )}
+                                                            <span className="font-medium">{model}</span>
+                                                        </div>
+                                                        {selectedModel === model && <Check size={14} className="text-white" />}
+                                                    </button>
+                                                ))}
+
+                                                <div className="mt-2 px-3 py-2 text-[10px] font-semibold tracking-widest text-[#71717a] uppercase font-sans">
+                                                    Best for UI design
+                                                </div>
+                                                {['GPT-5.2', 'Claude 4.5 Haiku', 'Claude 4.5 Sonnet', 'Claude 4.5 Opus', 'Claude 4.6 Opus', 'GPT-5.2 Thinking', 'GPT-5 Mini'].map(model => (
+                                                    <button
+                                                        key={model}
+                                                        onClick={() => {
+                                                            setSelectedModel(model);
+                                                            setIsModelDropdownOpen(false);
+                                                        }}
+                                                        className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-[13px] text-left text-[#d4d4d8] hover:bg-white/5 hover:text-white transition-colors group"
+                                                    >
+                                                        <div className="flex items-center gap-2.5">
+                                                            {model.includes('Claude') ? (
+                                                                <div className="w-3.5 h-3.5 text-amber-500/90 group-hover:text-amber-400 transition-colors">A</div>
+                                                            ) : (
+                                                                <div className="w-3.5 h-3.5 text-emerald-500/90 group-hover:text-emerald-400 transition-colors"><Wind size={14} /></div>
+                                                            )}
+                                                            <span className="font-medium">{model}</span>
+                                                        </div>
+                                                        {selectedModel === model && <Check size={14} className="text-white" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <button className="hero-prompt-send" onClick={handleSend} disabled={!inputValue.trim()}>
                                     Build site
@@ -826,64 +933,31 @@ export default function LandingPage() {
             </section>
 
             {/* ═══ CTA Section ═══ */}
-            <motion.section
-                className="cta-section cta-v2"
-                initial={{ opacity: 0, y: 50, scale: 0.97 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-            >
-                <div className="cta-v2-inner">
-                    <motion.p
-                        className="cta-v2-label"
-                        initial={{ opacity: 0, y: 15 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                    >Build with IndiForge AI</motion.p>
-
-                    <motion.h2
-                        className="cta-v2-title"
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                    >Ready to build?</motion.h2>
-
-                    <motion.div
-                        className="cta-v2-prompt"
-                        initial={{ opacity: 0, y: 20, scale: 0.97 }}
-                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, delay: 0.35 }}
-                    >
-                        <div className="cta-v2-prompt-box">
-                            <textarea
-                                className="cta-v2-textarea"
-                                placeholder={placeholder}
-                                rows={2}
-                                readOnly
-                            />
-                            <div className="cta-v2-prompt-footer">
-                                <div className="cta-v2-prompt-left">
-                                    <button className="cta-v2-icon-btn" title="Attach file">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-                                    </button>
-                                </div>
-                                <div className="cta-v2-prompt-right">
-                                    <button className="cta-v2-model-btn">
-                                        <span className="cta-v2-model-dot" />
-                                        Gemini 3 Flash
-                                    </button>
-                                    <Link to="/signup" className="cta-v2-send-btn">
-                                        <ArrowRight size={18} />
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
+            <section className="cta-section">
+                <div className="cta-inner lp-reveal">
+                    <h2 className="cta-title">Ready to build?</h2>
+                    <p className="cta-subtitle">
+                        Join thousands of builders turning ideas into reality with AI.
+                    </p>
+                    <div className="cta-buttons">
+                        <SignedOut>
+                            <Link to="/signup" className="cta-primary">
+                                Start building for free
+                                <ArrowRight size={16} />
+                            </Link>
+                        </SignedOut>
+                        <SignedIn>
+                            <Link to="/dashboard" className="cta-primary">
+                                Go to Dashboard
+                                <ArrowRight size={16} />
+                            </Link>
+                        </SignedIn>
+                        <Link to="/pricing" className="cta-secondary">
+                            View pricing
+                        </Link>
+                    </div>
                 </div>
-            </motion.section>
+            </section>
 
             {/* ═══ Footer ═══ */}
             <motion.footer
