@@ -26,6 +26,7 @@ import {
 import { SignedIn, SignedOut, useAuth, useClerk, SignInButton, SignUpButton } from '@clerk/clerk-react'
 import RadialOrbitalTimeline from '@/components/ui/radial-orbital-timeline'
 import { CategoryList } from '@/components/ui/category-list'
+import { Accordion05 } from '@/components/ui/accordion-05'
 import { GooeyText } from '@/components/ui/gooey-text-morphing'
 import { motion } from 'framer-motion'
 import ThemePicker from '../components/ThemePicker'
@@ -970,6 +971,11 @@ export default function LandingPage() {
                         </Link>
                     </motion.div>
                 </div>
+            </section>
+
+            {/* ═══ FAQ Section ═══ */}
+            <section className="faq-section relative z-10">
+                <Accordion05 />
             </section>
 
             {/* ═══ CTA Section ═══ */}

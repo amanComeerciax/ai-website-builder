@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
 
 // Define the type for a single category item
 export interface Category {
@@ -28,91 +27,114 @@ export const CategoryList = ({
     headerIcon,
     className,
 }: CategoryListProps) => {
-    const [hoveredItem, setHoveredItem] = useState<string | number | null>(null);
+    const [hovered, setHovered] = useState<string | number | null>(null);
+
+    // The orange theme color from the app
+    const themeColor = "#f97316"; // orange-500
+    // Transparent orange for backgrounds
+    const themeBgHover = "rgba(249, 115, 22, 0.1)"; // orange-500/10
 
     return (
-        <div className={cn("w-full flex justify-center bg-background text-foreground p-8", className)}>
-            <div className="w-full max-w-5xl flex flex-col items-center">
-                {/* Header Section */}
-                <div className="text-center w-full mb-16 md:mb-24">
+        <div style={{
+            color: "#fff",
+            fontFamily: "system-ui, -apple-system, sans-serif",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px",
+            width: "100%"
+        }} className={className}>
+            <div style={{ width: "100%", maxWidth: "860px" }}>
+                {/* Header */}
+                <div style={{ textAlign: "center", marginBottom: "48px" }}>
                     {headerIcon && (
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-orange-500/80 to-orange-500 mb-6 text-white shadow-lg shadow-orange-500/20">
+                        <div style={{
+                            display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            width: "64px", height: "64px", borderRadius: "50%",
+                            background: "rgba(249, 115, 22, 0.2)", marginBottom: "20px",
+                            color: themeColor
+                        }}>
                             {headerIcon}
                         </div>
                     )}
-                    <h1 className="text-4xl md:text-5xl font-bold mb-2 tracking-tight">{title}</h1>
+                    <h1 style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", fontWeight: 800, margin: "0 0 4px", lineHeight: 1.1 }}>
+                        {title}
+                    </h1>
                     {subtitle && (
-                        <h2 className="text-4xl md:text-5xl font-bold text-muted-foreground">{subtitle}</h2>
+                        <h2 style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", fontWeight: 800, margin: 0, color: "rgba(255,255,255,0.35)", lineHeight: 1.1 }}>
+                            {subtitle}
+                        </h2>
                     )}
                 </div>
 
-                {/* Categories List */}
-                <div className="flex flex-col items-center justify-center space-y-4 w-full">
-                    {categories.map((category) => (
-                        <div
-                            key={category.id}
-                            className="relative group w-full"
-                            onMouseEnter={() => setHoveredItem(category.id)}
-                            onMouseLeave={() => setHoveredItem(null)}
-                            onClick={category.onClick}
-                        >
+                {/* List */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {categories.map((cat) => {
+                        const isHovered = hovered === cat.id;
+                        return (
                             <div
-                                className={cn(
-                                    "relative overflow-hidden border bg-card transition-all duration-300 ease-in-out cursor-pointer w-full flex flex-col justify-center",
-                                    // Hover state styles with orange instead of blue/primary
-                                    hoveredItem === category.id
-                                        ? 'h-32 border-orange-500 shadow-xl shadow-orange-500/20 bg-orange-500/5'
-                                        : 'h-24 border-border hover:border-orange-500/50'
-                                )}
+                                key={cat.id}
+                                onMouseEnter={() => setHovered(cat.id)}
+                                onMouseLeave={() => setHovered(null)}
+                                onClick={cat.onClick}
+                                style={{
+                                    position: "relative",
+                                    background: isHovered ? themeBgHover : "rgba(255,255,255,0.03)",
+                                    border: isHovered ? `1px solid ${themeColor}` : "1px solid rgba(255,255,255,0.12)",
+                                    borderRadius: "8px",
+                                    padding: "0 28px",
+                                    height: isHovered ? "120px" : "88px",
+                                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                                    cursor: "pointer",
+                                    transition: "all 0.3s ease",
+                                    overflow: "hidden",
+                                    boxShadow: isHovered ? `0 10px 30px -10px rgba(249, 115, 22, 0.3)` : "none"
+                                }}
                             >
-                                {/* Corner brackets that appear on hover */}
-                                {hoveredItem === category.id && (
+                                {/* Top-left bracket */}
+                                {isHovered && (
                                     <>
-                                        <div className="absolute top-3 left-3 w-6 h-6">
-                                            <div className="absolute top-0 left-0 w-4 h-0.5 bg-orange-500" />
-                                            <div className="absolute top-0 left-0 w-0.5 h-4 bg-orange-500" />
+                                        <div style={{ position: "absolute", top: "12px", left: "12px" }}>
+                                            <div style={{ position: "absolute", top: 0, left: 0, width: "16px", height: "2px", background: themeColor }} />
+                                            <div style={{ position: "absolute", top: 0, left: 0, width: "2px", height: "16px", background: themeColor }} />
                                         </div>
-                                        <div className="absolute bottom-3 right-3 w-6 h-6">
-                                            <div className="absolute bottom-0 right-0 w-4 h-0.5 bg-orange-500" />
-                                            <div className="absolute bottom-0 right-0 w-0.5 h-4 bg-orange-500" />
+                                        <div style={{ position: "absolute", bottom: "12px", right: "12px" }}>
+                                            <div style={{ position: "absolute", bottom: 0, right: 0, width: "16px", height: "2px", background: themeColor }} />
+                                            <div style={{ position: "absolute", bottom: 0, right: 0, width: "2px", height: "16px", background: themeColor }} />
                                         </div>
                                     </>
                                 )}
 
-                                {/* Content - Left Aligned text, Icon on Right (giving it a gap) */}
-                                <div className="flex items-center justify-between h-full px-12 md:px-20">
-                                    <div className="flex-1 text-left">
-                                        <h3
-                                            className={cn(
-                                                "font-bold transition-colors duration-300",
-                                                category.featured ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl',
-                                                hoveredItem === category.id ? 'text-orange-500' : 'text-foreground'
-                                            )}
-                                        >
-                                            {category.title}
-                                        </h3>
-                                        {category.subtitle && (
-                                            <p
-                                                className={cn(
-                                                    "mt-1 transition-colors duration-300 text-sm md:text-base",
-                                                    hoveredItem === category.id ? 'text-foreground/90' : 'text-muted-foreground'
-                                                )}
-                                            >
-                                                {category.subtitle}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Icon appears on the right on hover */}
-                                    {category.icon && hoveredItem === category.id && (
-                                        <div className="text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ml-6">
-                                            {category.icon}
-                                        </div>
+                                {/* Text */}
+                                <div>
+                                    <h3 style={{
+                                        fontSize: cat.featured ? "1.6rem" : "1.25rem",
+                                        fontWeight: 700, margin: "0 0 6px",
+                                        color: isHovered ? themeColor : "rgba(255,255,255,0.9)",
+                                        transition: "color 0.3s",
+                                    }}>
+                                        {cat.title}
+                                    </h3>
+                                    {cat.subtitle && (
+                                        <p style={{
+                                            margin: 0, fontSize: "0.9rem",
+                                            color: isHovered ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.45)",
+                                            transition: "color 0.3s", maxWidth: "600px", lineHeight: 1.5,
+                                        }}>
+                                            {cat.subtitle}
+                                        </p>
                                     )}
                                 </div>
+
+                                {/* Icon */}
+                                <div style={{
+                                    opacity: isHovered ? 1 : 0,
+                                    transition: "all 0.3s ease",
+                                    color: themeColor, flexShrink: 0, marginLeft: "16px",
+                                    transform: isHovered ? "translateX(0)" : "translateX(-10px)",
+                                }}>
+                                    {cat.icon}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </div>
