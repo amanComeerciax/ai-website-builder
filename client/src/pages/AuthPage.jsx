@@ -1,8 +1,8 @@
-import { SignUp } from "@clerk/clerk-react";
+import { SignUp, SignIn } from "@clerk/clerk-react";
 import { dark } from "@clerk/themes";
 import { Link } from "react-router-dom";
 import { Wind, ArrowUp } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 const TYPING_SUGGESTIONS = [
   "Ask IndiForge to build your blog.",
@@ -11,13 +11,93 @@ const TYPING_SUGGESTIONS = [
   "Design a restaurant website.",
 ];
 
-function SignupPage() {
+// Reusable Clerk Appearance Object to guarantee visual consistency between both modes
+const clerkAppearance = {
+  baseTheme: dark,
+  elements: {
+    rootBox: {
+      width: "100%",
+      maxWidth: "380px",
+    },
+    card: {
+      background: "transparent",
+      border: "none",
+      boxShadow: "none",
+      padding: "0",
+    },
+    headerTitle: {
+      color: "#ffffff",
+      fontWeight: "700",
+      fontSize: "1.75rem",
+    },
+    headerSubtitle: {
+      color: "#71717a",
+    },
+    socialButtonsBlockButton: {
+      background: "rgba(255, 255, 255, 0.04)",
+      border: "1px solid rgba(255, 255, 255, 0.08)",
+      borderRadius: "0.75rem",
+      color: "#ffffff",
+      fontWeight: "500",
+      "&:hover": {
+        background: "rgba(255, 255, 255, 0.08)",
+      },
+    },
+    dividerLine: {
+      background: "rgba(255, 255, 255, 0.08)",
+    },
+    dividerText: {
+      color: "#71717a",
+    },
+    formFieldLabel: {
+      color: "#a1a1aa",
+      fontWeight: "500",
+    },
+    formFieldInput: {
+      background: "rgba(255, 255, 255, 0.03)",
+      border: "1px solid rgba(255, 255, 255, 0.08)",
+      borderRadius: "0.75rem",
+      color: "#ffffff",
+      "&:focus": {
+        borderColor: "rgba(255, 255, 255, 0.2)",
+        boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.05)",
+      },
+    },
+    formButtonPrimary: {
+      background: "#ffffff",
+      color: "#050505",
+      borderRadius: "0.75rem",
+      fontWeight: "600",
+      fontSize: "0.875rem",
+      padding: "0.75rem 0",
+      "&:hover": {
+        background: "rgba(255, 255, 255, 0.9)",
+      },
+    },
+    footerActionText: {
+      color: "#71717a",
+    },
+    footerActionLink: {
+      color: "#60a5fa",
+      "&:hover": {
+        color: "#93c5fd",
+      },
+    },
+    footer: {
+      "& + div": {
+        color: "#52525b",
+      },
+    },
+  },
+};
+
+export default function AuthPage({ mode = "sign-up" }) {
   const [placeholder, setPlaceholder] = useState("");
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Typewriter effect for the floating prompt bar
+  // Typewriter effect ensures it never resets when switching between sign-in and sign-up!
   useEffect(() => {
     const current = TYPING_SUGGESTIONS[suggestionIndex];
     let timeout;
@@ -46,7 +126,7 @@ function SignupPage() {
 
   return (
     <div style={styles.wrapper}>
-      {/* ─── LEFT PANEL: Dark with Clerk Sign Up ─── */}
+      {/* ─── LEFT PANEL: Dark Auth Form ─── */}
       <div style={styles.leftPanel}>
         <div style={styles.leftInner}>
           {/* Logo */}
@@ -55,90 +135,26 @@ function SignupPage() {
             <span>INDIFORGE AI</span>
           </Link>
 
-          {/* Clerk Sign Up Component */}
-          <SignUp
-            routing="path"
-            path="/signup"
-            fallbackRedirectUrl="/dashboard"
-            appearance={{
-              baseTheme: dark,
-              elements: {
-                rootBox: {
-                  width: "100%",
-                  maxWidth: "380px",
-                },
-                card: {
-                  background: "transparent",
-                  border: "none",
-                  boxShadow: "none",
-                  padding: "0",
-                },
-                headerTitle: {
-                  color: "#ffffff",
-                  fontWeight: "700",
-                  fontSize: "1.75rem",
-                },
-                headerSubtitle: {
-                  color: "#71717a",
-                },
-                socialButtonsBlockButton: {
-                  background: "rgba(255, 255, 255, 0.04)",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
-                  borderRadius: "0.75rem",
-                  color: "#ffffff",
-                  fontWeight: "500",
-                  "&:hover": {
-                    background: "rgba(255, 255, 255, 0.08)",
-                  },
-                },
-                dividerLine: {
-                  background: "rgba(255, 255, 255, 0.08)",
-                },
-                dividerText: {
-                  color: "#71717a",
-                },
-                formFieldLabel: {
-                  color: "#a1a1aa",
-                  fontWeight: "500",
-                },
-                formFieldInput: {
-                  background: "rgba(255, 255, 255, 0.03)",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
-                  borderRadius: "0.75rem",
-                  color: "#ffffff",
-                  "&:focus": {
-                    borderColor: "rgba(255, 255, 255, 0.2)",
-                    boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.05)",
-                  },
-                },
-                formButtonPrimary: {
-                  background: "#ffffff",
-                  color: "#050505",
-                  borderRadius: "0.75rem",
-                  fontWeight: "600",
-                  fontSize: "0.875rem",
-                  padding: "0.75rem 0",
-                  "&:hover": {
-                    background: "rgba(255, 255, 255, 0.9)",
-                  },
-                },
-                footerActionText: {
-                  color: "#71717a",
-                },
-                footerActionLink: {
-                  color: "#60a5fa",
-                  "&:hover": {
-                    color: "#93c5fd",
-                  },
-                },
-                footer: {
-                  "& + div": {
-                    color: "#52525b",
-                  },
-                },
-              },
-            }}
-          />
+          {/* Render Mode Dynamically -> FLIPS FLAWLESSLY ON THE SAME LAYOUT */}
+          <div style={{ minHeight: "600px" }}>
+            {mode === "sign-up" ? (
+              <SignUp
+                routing="path"
+                path="/signup"
+                signInUrl="/login"
+                fallbackRedirectUrl="/dashboard"
+                appearance={clerkAppearance}
+              />
+            ) : (
+              <SignIn
+                routing="path"
+                path="/login"
+                signUpUrl="/signup"
+                fallbackRedirectUrl="/dashboard"
+                appearance={clerkAppearance}
+              />
+            )}
+          </div>
 
           {/* SSO Note */}
           <p style={styles.ssoNote}>
@@ -153,7 +169,6 @@ function SignupPage() {
 
       {/* ─── RIGHT PANEL: Gradient visual with floating prompt ─── */}
       <div style={styles.rightPanel}>
-        {/* Floating prompt bar */}
         <div style={styles.promptContainer}>
           <div style={styles.promptBar}>
             <span style={styles.promptText}>{placeholder}</span>
@@ -174,8 +189,6 @@ const styles = {
     minHeight: "100vh",
     fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif",
   },
-
-  // ─── Left Panel ───
   leftPanel: {
     flex: "0 0 50%",
     maxWidth: "50%",
@@ -215,8 +228,6 @@ const styles = {
     textDecoration: "underline",
     textUnderlineOffset: "2px",
   },
-
-  // ─── Right Panel ───
   rightPanel: {
     flex: "0 0 50%",
     maxWidth: "50%",
@@ -272,5 +283,3 @@ const styles = {
     flexShrink: 0,
   },
 };
-
-export default SignupPage;

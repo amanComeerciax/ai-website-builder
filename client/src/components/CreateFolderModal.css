@@ -1,0 +1,193 @@
+.lv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lv-modal {
+  width: 440px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  font-family: inherit;
+  color: #fff;
+  overflow: hidden;
+}
+
+.lv-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 16px;
+}
+
+.lv-modal-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.lv-modal-header p {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+.lv-modal-close {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.lv-modal-close:hover {
+  color: #fff;
+}
+
+.lv-modal-content {
+  padding: 0 24px 20px;
+}
+
+.lv-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 24px;
+}
+
+.lv-input-icon {
+  color: #888;
+  margin-right: 10px;
+}
+
+.lv-input-wrapper input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.lv-input-wrapper input::placeholder {
+  color: #666;
+}
+
+.lv-visibility-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lv-vis-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.lv-vis-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border 0.2s;
+}
+
+.lv-vis-option.active {
+  border-color: #fff;
+}
+
+.lv-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #888;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lv-vis-option.active .lv-radio {
+  border-color: #fff;
+}
+
+.lv-radio-fill {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+}
+
+.lv-vis-text {
+  flex: 1;
+}
+
+.lv-vis-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.lv-vis-text p {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.lv-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: rgba(255,255,255,0.02);
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.lv-btn-cancel {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 6px;
+}
+
+.lv-btn-cancel:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.lv-btn-create {
+  background: #fff;
+  color: #000;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lv-btn-create:disabled {
+  background: #555;
+  color: #888;
+  cursor: not-allowed;
+}

@@ -1,0 +1,248 @@
+.lv-dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.lv-workspace-dropdown {
+  position: absolute;
+  top: 106px;
+  left: 12px;
+  width: 196px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  font-family: inherit;
+  color: #fff;
+  z-index: 101;
+  overflow: hidden;
+}
+
+.lv-drop-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+}
+
+.lv-drop-avatar {
+  width: 40px;
+  height: 40px;
+  background: #e0206e;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.lv-drop-avatar.small {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+.lv-drop-meta h3 {
+  margin: 0 0 2px 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.lv-drop-meta p {
+  margin: 0;
+  font-size: 11px;
+  color: #888;
+}
+
+.lv-drop-actions-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 12px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.lv-drop-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.05);
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: #ddd;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.lv-drop-btn:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.lv-drop-pro-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+}
+
+.lv-pro-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.lv-pro-left svg {
+  color: #fff;
+  fill: #fff;
+}
+
+.lv-upgrade-badge {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lv-drop-credits-box {
+  margin: 0 12px 12px;
+  padding: 12px;
+  background: #222;
+  border-radius: 8px;
+}
+
+.lv-credits-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.lv-credits-top h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lv-credits-top span {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.lv-credits-bar {
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.lv-credits-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 4px;
+}
+
+.lv-credits-reset {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 10px;
+  color: #888;
+}
+
+.lv-dot {
+  width: 4px;
+  height: 4px;
+  background: #888;
+  border-radius: 50%;
+}
+
+.lv-drop-workspaces {
+  padding: 12px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.lv-drop-workspaces h5 {
+  margin: 0 0 8px 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #aaa;
+}
+
+.lv-workspace-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.lv-ws-name {
+  font-size: 12px;
+  font-weight: 500;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lv-badge-free {
+  background: rgba(255,255,255,0.1);
+  color: #aaa;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 12px;
+  letter-spacing: 0.05em;
+}
+
+.lv-check-icon {
+  color: #fff;
+  width: 14px;
+  height: 14px;
+}
+
+.lv-drop-footer {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding: 6px;
+}
+
+.lv-footer-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 10px;
+  color: #ddd;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.lv-footer-btn:hover {
+  background: rgba(255,255,255,0.03);
+  color: #fff;
+}

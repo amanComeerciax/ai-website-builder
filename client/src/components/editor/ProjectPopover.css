@@ -1,0 +1,211 @@
+.project-popover {
+    position: absolute;
+    top: 44px;
+    left: 16px;
+    width: 280px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+}
+
+.ppv-section {
+    padding: 12px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.ppv-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ppv-back-link {
+    color: #888;
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.ppv-back-link:hover {
+    color: #fff;
+}
+
+/* Workspace Row */
+.ppv-workspace-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.ppv-workspace-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.ppv-workspace-name {
+    font-size: 14px;
+    color: #fff;
+    font-weight: 500;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ppv-badge-free {
+    background: #333;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+}
+
+/* Credits Card */
+.ppv-credits-card {
+    background: #111;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.ppv-credits-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ppv-credits-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.ppv-credits-amount {
+    font-size: 13px;
+    color: #888;
+}
+
+.ppv-credits-bar {
+    width: 100%;
+    height: 6px;
+    background: #333;
+    border-radius: 3px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.ppv-credits-fill {
+    height: 100%;
+    background: #4466ff;
+    border-radius: 3px;
+}
+
+.ppv-credits-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: #888;
+}
+
+.ppv-dot {
+    width: 6px;
+    height: 6px;
+    background: #555;
+    border-radius: 50%;
+}
+
+/* Free credits */
+.ppv-free-credits {
+    padding: 8px 12px;
+}
+
+.ppv-blue-text {
+    color: #4488ff;
+    font-size: 13px;
+}
+.ppv-blue-text:hover { color: #5599ff; }
+
+/* Menu List */
+.ppv-menu-list {
+    padding: 4px 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.ppv-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border: none;
+    background: transparent;
+    color: #ccc;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s;
+    width: 100%;
+    text-align: left;
+}
+
+.ppv-menu-item:hover {
+    background: #222;
+    color: #fff;
+}
+
+.ppv-icon {
+    color: #888;
+    flex-shrink: 0;
+}
+
+.ppv-menu-item:hover .ppv-icon {
+    color: #ccc;
+}
+
+.ppv-label {
+    font-size: 13px;
+    flex: 1;
+}
+
+.ppv-shortcut {
+    font-size: 12px;
+    color: #555;
+    font-family: monospace;
+}
+
+.ppv-chevron-right {
+    color: #555;
+}
+
+.ppv-badge-new {
+    background: #3b82f6;
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.ppv-divider {
+    height: 1px;
+    background: #222;
+    margin: 4px 0;
+}

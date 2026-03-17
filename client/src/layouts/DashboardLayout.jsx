@@ -1,18 +1,29 @@
 import { Outlet } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
-import TopBar from '../components/TopBar'
+import WorkspaceDropdown from '../components/WorkspaceDropdown'
+import CreateFolderModal from '../components/CreateFolderModal'
+import { useUIStore } from '../stores/uiStore'
+import { PanelLeftOpen } from 'lucide-react'
 import './DashboardLayout.css'
 
 export default function DashboardLayout() {
+    const { isSidebarCollapsed, toggleSidebar } = useUIStore()
+
     return (
-        <div className="zen-dashboard-layout">
+        <div className={`lv-layout ${isSidebarCollapsed ? 'collapsed' : ''}`}>
             <Sidebar />
-            <div className="zen-dashboard-main zen-bg-gradient">
-                <TopBar />
-                <main className="zen-dashboard-content">
-                    <Outlet />
-                </main>
-            </div>
+            
+            <WorkspaceDropdown />
+            <CreateFolderModal />
+            
+            <main className="lv-main">
+                {isSidebarCollapsed && (
+                    <button className="lv-sidebar-floater" onClick={toggleSidebar}>
+                        <PanelLeftOpen size={18} />
+                    </button>
+                )}
+                <Outlet />
+            </main>
         </div>
     )
 }

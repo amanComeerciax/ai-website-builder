@@ -1,77 +1,34 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { RefreshCw, Monitor, Tablet, Smartphone, ExternalLink } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { RefreshCw, Monitor, Tablet, Smartphone, ExternalLink, Loader2 } from 'lucide-react'
+import { 
+    SandpackProvider, 
+    SandpackLayout, 
+    SandpackPreview, 
+} from "@codesandbox/sandpack-react"
 import { useEditorStore } from '../../stores/editorStore'
 import './PreviewPanel.css'
 
-// Assemble all VFS files into a single HTML document for srcdoc
-const assemblePreview = (files) => {
-    // Dynamically find index.html which might be at root or in public/
-    const htmlFilePath = Object.keys(files).find(path => path.endsWith('index.html'))
-    const htmlFile = htmlFilePath ? files[htmlFilePath] : null
-    
-    // Dynamically find main CSS and JS files
-    const cssFilePath = Object.keys(files).find(path => path.endsWith('.css'))
-    const cssFile = cssFilePath ? files[cssFilePath] : null
-    
-    const jsFilePath = Object.keys(files).find(path => path.endsWith('.js') || path.endsWith('.jsx'))
-    const jsFile = jsFilePath ? files[jsFilePath] : null
-
-    if (!htmlFile) {
-        // No index.html — try to build a basic preview from whatever we have
-        let css = ''
-        let js = ''
-        Object.entries(files).forEach(([path, file]) => {
-            if (path.endsWith('.css')) css += file.content + '\n'
-            if (path.endsWith('.js') || path.endsWith('.jsx')) js += file.content + '\n'
-        })
-        return `<!DOCTYPE html>
-<html>
-<head><style>${css}</style></head>
-<body>
-<div id="root"><p style="color:#888;font-family:sans-serif;padding:2rem;">No index.html found. Add one to see a preview.</p></div>
-<script type="module">${js}<\/script>
-</body>
-</html>`
-    }
-
-    let html = htmlFile.content
-
-    // Inject CSS if referenced but provided separately
-    if (cssFile && !html.includes(cssFile.content)) {
-        html = html.replace(
-            /<link[^>]*href=["']style\.css["'][^>]*\/?>/i,
-            `<style>${cssFile.content}</style>`
-        )
-    }
-
-    // Inject JS if referenced but provided separately
-    if (jsFile && !html.includes(jsFile.content)) {
-        html = html.replace(
-            /<script[^>]*src=["']script\.js["'][^>]*><\/script>/i,
-            `<script>${jsFile.content}<\/script>`
-        )
-    }
-
-    return html
-}
-
 export default function PreviewPanel() {
     const { files } = useEditorStore()
-    const iframeRef = useRef(null)
     const [viewMode, setViewMode] = useState('desktop')
     const [refreshKey, setRefreshKey] = useState(0)
 
-    // Debounced preview update
-    const updatePreview = useCallback(() => {
-        if (!iframeRef.current) return
-        const html = assemblePreview(files)
-        iframeRef.current.srcdoc = html
+    // Convert VFS from { path: { content } } to Sandpack { path: content }
+    const sandpackFiles = useMemo(() => {
+        const result = {}
+        Object.entries(files).forEach(([path, file]) => {
+            // Sandpack expects paths to start with /
+            const cleanPath = path.startsWith('/') ? path : `/${path}`
+            result[cleanPath] = file.content
+        })
+        
+        // Ensure a minimal entry point if missing
+        if (!result['/App.jsx'] && !result['/App.js'] && !result['/index.js'] && !result['/index.jsx']) {
+             result['/App.jsx'] = `import React from 'react';\n\nexport default function App() {\n  return <div style={{ padding: '20px', color: 'white' }}>No entry file (App.jsx) found in the project.</div>;\n}`;
+        }
+        
+        return result
     }, [files])
-
-    useEffect(() => {
-        const timeout = setTimeout(updatePreview, 500)
-        return () => clearTimeout(timeout)
-    }, [files, refreshKey, updatePreview])
 
     const viewWidths = {
         desktop: '100%',
@@ -116,17 +73,42 @@ export default function PreviewPanel() {
                 </div>
             </div>
 
-            <div className="pp-iframe-container">
+            <div className="pp-iframe-container" key={refreshKey}>
                 <div className="pp-iframe-wrapper" style={{ maxWidth: viewWidths[viewMode] }}>
-                    <iframe
-                        ref={iframeRef}
-                        className="pp-iframe"
-                        title="Live Preview"
-                        sandbox="allow-scripts allow-modals"
-                        key={refreshKey}
-                    />
+                    <SandpackProvider
+                        template="react"
+                        theme="dark"
+                        files={sandpackFiles}
+                        options={{
+                            recompileMode: "immediate",
+                            recompileDelay: 300,
+                        }}
+                    >
+                        <SandpackLayout style={{ height: '100%', border: 'none', background: 'transparent' }}>
+                            <SandpackPreview 
+                                style={{ height: '100%' }} 
+                                showNavigator={false}
+                                showRefreshButton={false}
+                                loadingAdComponent={() => (
+                                    <div className="pp-loading" style={{ 
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center', 
+                                        height: '100%',
+                                        gap: '12px',
+                                        color: '#888'
+                                    }}>
+                                        <Loader2 className="animate-spin" size={24} />
+                                        <span>Compiling...</span>
+                                    </div>
+                                )}
+                            />
+                        </SandpackLayout>
+                    </SandpackProvider>
                 </div>
             </div>
         </div>
     )
 }
+

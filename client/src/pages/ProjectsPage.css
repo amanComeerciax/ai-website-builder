@@ -1,0 +1,346 @@
+.projects-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 32px 48px;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #fff;
+}
+
+/* TOP BAR */
+.pp-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.pp-heading {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.pp-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pp-search-box {
+    position: relative;
+    width: 280px;
+}
+
+.pp-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+}
+
+.pp-search-input {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 8px 12px 8px 36px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.pp-search-input:focus {
+    border-color: #444;
+}
+
+.pp-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 13px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.pp-filter-btn:hover {
+    background: #2a2a2a;
+}
+
+.pp-view-toggles {
+    display: flex;
+    align-items: center;
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 2px;
+    margin-left: 8px;
+}
+
+.pp-view-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pp-view-btn.active {
+    background: #2a2a2a;
+    color: #fff;
+}
+
+/* CONTENT AREA / GRID */
+.pp-content-area {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.pp-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 20px;
+}
+
+@media (max-width: 1200px) { .pp-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .pp-grid { grid-template-columns: 1fr; } }
+
+.pp-card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+}
+
+.pp-card:hover {
+    border-color: #444;
+    transform: scale(1.01);
+}
+
+.pp-card-thumbnail {
+    height: 160px;
+    background: #111;
+    position: relative;
+    border-bottom: 1px solid #1e1e1e;
+}
+
+/* NEW DASHED CARD */
+.pp-new-card {
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+}
+.pp-new-card:hover .pp-new-card-box {
+    border-color: #666;
+    background: rgba(255,255,255,0.02);
+}
+.pp-new-card-box {
+    height: 160px;
+    border: 1px dashed #444;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+.pp-new-plus-icon {
+    font-size: 24px;
+    color: #666;
+    font-weight: 300;
+}
+.pp-new-card-text {
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    padding: 0 4px;
+}
+
+.pp-thumbnail-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, #111, #1a1a1a);
+    display: flex;
+    flex-direction: column;
+}
+
+.pp-mock-browser {
+    height: 24px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+}
+
+.pp-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #333;
+}
+
+.pp-card-bottom {
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pp-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.pp-card-info h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+}
+
+.pp-card-info p {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: #888;
+}
+
+/* EMPTY STATES */
+.pp-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    margin-top: -64px; /* visually center better */
+}
+
+.pp-empty-icon {
+    color: #444;
+    margin-bottom: 24px;
+}
+
+.pp-empty-state h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #fff;
+    max-width: 320px;
+    margin: 0 0 16px 0;
+    line-height: 1.4;
+}
+
+.pp-empty-subtext {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 24px;
+}
+
+.pp-browse-btn {
+    background: transparent;
+    border: 1px solid #444;
+    color: #fff;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 32px;
+}
+
+.pp-browse-btn:hover {
+    background: #1e1e1e;
+}
+
+/* 3D Glassmorphism Cards Illustration */
+.pp-3d-cards-illustration {
+    position: relative;
+    width: 350px;
+    height: 200px;
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pp-3d-card {
+    position: absolute;
+    width: 250px;
+    height: 140px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: linear-gradient(135deg, rgba(80,50,200,0.4) 0%, rgba(30,10,80,0.2) 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease;
+}
+
+.card-left {
+    transform: translateX(-40px) rotate(-8deg) scale(0.9);
+    z-index: 1;
+    background: linear-gradient(135deg, rgba(50,150,250,0.3) 0%, rgba(10,30,80,0.1) 100%);
+}
+
+.card-center {
+    transform: translateX(0) rotate(0deg) scale(1.05);
+    z-index: 3;
+    border-color: rgba(255,255,255,0.2);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+}
+
+.pp-3d-card-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pp-3d-text {
+    background: rgba(0,0,0,0.3);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 10px;
+    color: #fff;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.card-right {
+    transform: translateX(40px) rotate(8deg) scale(0.9);
+    z-index: 2;
+    background: linear-gradient(135deg, rgba(250,50,150,0.3) 0%, rgba(80,10,30,0.1) 100%);
+}
+
+.pp-3d-cards-illustration:hover .card-left { transform: translateX(-50px) rotate(-12deg) scale(0.95); }
+.pp-3d-cards-illustration:hover .card-right { transform: translateX(50px) rotate(12deg) scale(0.95); }
+.pp-3d-cards-illustration:hover .card-center { transform: translateX(0) rotate(0deg) scale(1.1); }

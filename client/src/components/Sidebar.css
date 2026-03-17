@@ -1,108 +1,267 @@
-.zen-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 260px;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding: 2rem 1.25rem;
-    background: #050505;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    z-index: 50;
+.lv-sidebar {
+  width: 220px;
+  min-width: 220px;
+  height: 100vh;
+  background: #111111;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #fff;
+  z-index: 50;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.zen-sidebar-logo {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0 0.5rem;
-    margin-bottom: 2.5rem;
+.lv-layout.collapsed .lv-sidebar {
+  transform: translateX(-100%);
 }
 
-.zen-sidebar-logo-icon {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
+.lv-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.lv-sidebar::-webkit-scrollbar-thumb {
+  background: #333;
 }
 
-.zen-sidebar-logo-text {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: white;
-    letter-spacing: -0.02em;
+.lv-sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #111111;
 }
 
-.zen-sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
+.lv-brand {
+  display: flex;
+  align-items: center;
 }
 
-.zen-sidebar-link {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border-radius: 1rem;
-    text-decoration: none;
-    color: #94a3b8;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.25s ease;
-    border: none;
-    background: none;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-    font-family: inherit;
+.lv-brand-icon {
+  color: #FF5500;
 }
 
-.zen-sidebar-link:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.05);
+.lv-icon-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: color 0.2s;
+}
+.lv-icon-btn:hover { color: #fff; }
+
+.lv-workspace-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1a1a1a;
+  border-radius: 8px;
+  margin: 8px 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.lv-workspace-selector:hover { background: #222; }
+
+.lv-workspace-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.zen-sidebar-link-active {
-    color: white;
-    background: rgba(255, 255, 255, 0.05);
+.lv-workspace-avatar {
+  width: 20px;
+  height: 20px;
+  background: #e0206e;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
 }
 
-.zen-sidebar-link-text {
-    display: block;
+.lv-workspace-name {
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.zen-sidebar-footer {
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
+.lv-workspace-chevron {
+  color: #666;
 }
 
-@media (max-width: 1024px) {
-    .zen-sidebar {
-        width: 72px;
-        align-items: center;
-        padding: 2rem 0.75rem;
-    }
+.lv-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 12px;
+  margin-top: 8px;
+}
 
-    .zen-sidebar-logo-text,
-    .zen-sidebar-link-text {
-        display: none;
-    }
+.lv-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #999;
+  font-size: 13px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.2s;
+}
 
-    .zen-sidebar-link {
-        justify-content: center;
-        padding: 0.75rem;
-    }
+.lv-nav-link:hover, .lv-nav-link-active {
+  background: #1f1f1f;
+  color: #fff;
+}
+
+.lv-sub-nav {
+  display: flex;
+  flex-direction: column;
+  margin-top: 2px;
+}
+
+.lv-nav-link.lv-indented {
+  padding-left: 36px;
+  font-size: 12px;
+}
+
+.lv-nav-link.lv-indented svg {
+  color: #666;
+}
+
+.lv-badge {
+  margin-left: auto;
+  font-size: 10px;
+  color: #666;
+  background: #1f1f1f;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.lv-nav-section {
+  margin-top: 24px;
+}
+
+.lv-section-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0 24px;
+  margin: 0 0 8px 0;
+}
+
+.lv-recents-section {
+  flex: 1;
+}
+
+.lv-empty-recents {
+  font-size: 13px;
+  color: #555;
+  padding: 8px 24px;
+}
+
+.lv-sidebar-bottom {
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.lv-share-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.lv-share-info h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.lv-share-info p {
+  margin: 0;
+  font-size: 11px;
+  color: #666;
+}
+
+.lv-share-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+.lv-share-btn:hover { color: #fff; }
+
+.lv-upgrade-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 10px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.lv-upgrade-btn:hover { background: #222; }
+.lv-upgrade-btn svg { color: #60a5fa; }
+
+.lv-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.lv-user-row:hover { background: #1a1a1a; }
+
+.lv-user-avatar {
+  width: 24px;
+  height: 24px;
+  background: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.lv-user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ccc;
 }
 
 @media (max-width: 768px) {
-    .zen-sidebar {
-        display: none;
-    }
+  .lv-sidebar { display: none; }
 }

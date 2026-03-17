@@ -5,13 +5,13 @@ import DashboardPage from './pages/DashboardPage'
 import EditorPage from './pages/EditorPage'
 import PricingPage from './pages/PricingPage'
 import DashboardLayout from './layouts/DashboardLayout'
-import LoginPage from './pages/LoginPage'
-import SignupPage from './pages/SignupPage'
+import ProjectsPage from './pages/ProjectsPage'
+import AuthPage from './pages/AuthPage'
 
 const ProtectedRoute = ({ children }) => (
   <>
     <SignedIn>{children}</SignedIn>
-    <SignedOut><RedirectToSignIn /></SignedOut>
+    <SignedOut><Navigate to="/login" replace /></SignedOut>
   </>
 )
 
@@ -60,15 +60,23 @@ function App() {
             <Route index element={<DashboardPage />} />
           </Route>
 
+          {/* Project Grid routes */}
+          <Route
+            path="/projects/:type"
+            element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}
+          >
+            <Route index element={<ProjectsPage />} />
+          </Route>
+
           {/* Editor route */}
           <Route
             path="/editor/:projectId"
             element={<ProtectedRoute><EditorPage /></ProtectedRoute>}
           />
 
-          {/* Authentication routes (Strictly blocked if already logged in) */}
-          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-          <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+          {/* Authentication routes powered by unified Lovable Layout */}
+          <Route path="/login/*" element={<PublicRoute><AuthPage mode="sign-in" /></PublicRoute>} />
+          <Route path="/signup/*" element={<PublicRoute><AuthPage mode="sign-up" /></PublicRoute>} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />

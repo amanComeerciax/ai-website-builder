@@ -10,9 +10,11 @@ const { clerkMiddleware } = require("@clerk/express");
 const projectRoutes = require("./routes/projectRoutes")
 const generateRoutes = require("./routes/generate")
 const healthRoutes = require("./routes/health")
+const authRoutes = require("./routes/auth") // Subtask 1.5, 1.6 Auth Routes
 
 
 const app = express()
+app.get('/ping', (req, res) => res.send('pong'))
 const PORT = process.env.PORT || 5000
 
 // ── Security Middleware ──
@@ -33,10 +35,11 @@ app.use("/api/", apiLimiter)
 // ── Body Parsing ──
 app.use(express.json({ limit: "10mb" }))
 
-// Clerk middleware
-app.use(clerkMiddleware());
+// Clerk middleware intentionally removed from global scope to prevent hanging
+// on public routes like /health and /generate.
 
 // ── Routes ──
+app.use("/api/auth", authRoutes)
 app.use("/api/projects", projectRoutes)
 app.use("/api/generate", generateRoutes)
 app.use("/api/health", healthRoutes)

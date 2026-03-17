@@ -1,0 +1,90 @@
+.preview-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #0a0a0a;
+}
+
+.pp-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #0d0d0d;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    min-height: 40px;
+}
+
+.pp-url-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 4px 12px;
+    flex: 1;
+    max-width: 300px;
+}
+
+.pp-url-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+.pp-url-dot.green { background: #22c55e; }
+.pp-url-dot.yellow { background: #eab308; }
+.pp-url-dot.red { background: #ef4444; }
+
+.pp-url-text {
+    font-size: 11px;
+    color: #888;
+    margin-left: 6px;
+    font-family: monospace;
+}
+
+.pp-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.pp-view-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #888;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.pp-view-btn:hover { background: rgba(255,255,255,0.06); color: #ccc; }
+.pp-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+
+.pp-iframe-container {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+}
+
+.pp-iframe-wrapper {
+    width: 100%;
+    height: 100%;
+    transition: max-width 0.3s ease;
+    margin: 0 auto;
+}
+
+.pp-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+}

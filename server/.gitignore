@@ -23,3 +23,12 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Agent / GSD generated files
+.agent/
+.agents/
+_agent/
+_agents/
+.planning/
+.gemini/
+.ai/

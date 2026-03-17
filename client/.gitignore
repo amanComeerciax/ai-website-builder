@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Agent / GSD generated files
+.agent/
+.agents/
+_agent/
+_agents/
+.planning/
+.gemini/
+.ai/
