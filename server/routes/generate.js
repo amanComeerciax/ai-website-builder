@@ -82,8 +82,9 @@ router.get("/stream/:jobId", async (req, res) => {
     // Listen for job completion
     queueEvents.on('completed', ({ jobId: id, returnvalue }) => {
         if (id === req.params.jobId) {
-            // returnvalue is the JSON string of the worker's return value
-            res.write(`event: complete\ndata: ${returnvalue || '"done"'}\n\n`);
+            // returnvalue is a JavaScript Object in BullMQ v5, so we MUST JSON.stringify it for SSE
+            const stringifiedData = typeof returnvalue === 'object' ? JSON.stringify(returnvalue) : (returnvalue || '"done"');
+            res.write(`event: complete\ndata: ${stringifiedData}\n\n`);
             cleanup();
         }
     });
