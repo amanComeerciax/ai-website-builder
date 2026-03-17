@@ -74,6 +74,11 @@ class ApiClient {
         return this.request(`/generate/status/${jobId}`, {}, token)
     }
 
+    // ── SSE Stream ──
+    getStreamUrl(jobId) {
+        return `${this.baseUrl}/generate/stream/${jobId}`
+    }
+
     // ── Health ──
     healthCheck() {
         return this.request('/health')
