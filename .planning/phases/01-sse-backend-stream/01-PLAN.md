@@ -1,89 +1,25 @@
-# Plan 01: SSE Streaming Route & Qwen Streaming Mode
+# Plan 01: SSE Streaming Route & Strict Validation Strategy
 
 ---
 wave: 1
 depends_on: []
 files_modified:
   - server/routes/generate.js
-  - server/services/qwen.js
 autonomous: true
 requirements: []
 ---
 
 ## Goal
-Replace the current `POST /api/generate` (which returns a `202 + jobId`) with a new `GET /api/generate/stream/:jobId` SSE endpoint that holds the HTTP connection open and pushes real-time events. Simultaneously, upgrade `qwen.js` to support Ollama's native streaming mode (`stream: true`) so tokens arrive incrementally.
+Replace the current `POST /api/generate` (which returns a `202 + jobId`) with a new `GET /api/generate/stream/:jobId` SSE endpoint. This endpoint will hold the HTTP connection open, attach a `QueueEvents` listener to the Redis queue, and push real-time `job.updateProgress` events to the React frontend. Based on `RESEARCH.md`, the AI worker will emit high-level phase events rather than raw code tokens to ensure the final code payload can be strictly validated using `JSON.parse` before sending to the client.
 
 ## must_haves
 - The SSE endpoint must send `Content-Type: text/event-stream` headers
-- The SSE endpoint must emit `event: thinking`, `event: log`, `event: token`, `event: complete`, and `event: error` typed events
-- `qwen.js` must support a `streamWithQwen()` function that returns an async iterable of token chunks
-- The existing `generateWithQwen()` must remain unchanged for backward compatibility
+- The SSE endpoint must emit `event: progress`, `event: complete`, and `event: error` typed events matching payload shapes
+- The connection must be explicitly cleaned up when the client disconnects
 
 ## Tasks
 
-### Task 1: Add `streamWithQwen()` to `qwen.js`
-
-<read_first>
-- server/services/qwen.js
-</read_first>
-
-<action>
-Add a new exported async generator function `streamWithQwen(systemPrompt, userPrompt)` that:
-
-1. Calls `POST ${OLLAMA_HOST}/api/generate` with `stream: true` in the payload body
-2. Reads the response body as an NDJSON stream (each line is a JSON object with a `response` field containing token text and a `done` boolean)
-3. Yields each token string as it arrives
-4. On `done: true`, yields a final empty string and returns
-
-The function signature:
-```js
-async function* streamWithQwen(systemPrompt, userPrompt) {
-  const url = `${OLLAMA_HOST}/api/generate`;
-  const payload = {
-    model: OLLAMA_MODEL,
-    system: systemPrompt,
-    prompt: userPrompt,
-    stream: true,
-    options: { temperature: 0.1, num_ctx: 32768 }
-  };
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) throw new Error(`Ollama HTTP Error: ${response.status}`);
-
-  const reader = response.body;
-  let buffer = '';
-  for await (const chunk of reader) {
-    buffer += chunk.toString();
-    const lines = buffer.split('\n');
-    buffer = lines.pop();
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      const parsed = JSON.parse(line);
-      yield parsed.response || '';
-      if (parsed.done) return;
-    }
-  }
-}
-```
-
-Add to `module.exports`: `{ generateWithQwen, streamWithQwen }`
-</action>
-
-<acceptance_criteria>
-- `server/services/qwen.js` contains `async function* streamWithQwen(`
-- `module.exports` object contains both `generateWithQwen` and `streamWithQwen`
-- The fetch call inside `streamWithQwen` uses `stream: true` in the payload
-- The function yields individual token strings via `yield parsed.response`
-</acceptance_criteria>
-
----
-
-### Task 2: Create SSE streaming endpoint `GET /api/generate/stream/:jobId`
+### Task 1: Create SSE streaming endpoint `GET /api/generate/stream/:jobId`
 
 <read_first>
 - server/routes/generate.js
@@ -113,7 +49,7 @@ Add a new route `GET /stream/:jobId` to `generate.js` that:
    const queueEvents = new QueueEvents('AI_Generation_Queue', { connection });
    ```
 
-4. Listens for `progress` events on the specific `jobId`:
+4. Listens for `progress` events on the specific `jobId`. Since BullMQ passes object payloads, we destructure:
    ```js
    queueEvents.on('progress', ({ jobId: id, data }) => {
      if (id === req.params.jobId) {
@@ -122,11 +58,11 @@ Add a new route `GET /stream/:jobId` to `generate.js` that:
    });
    ```
 
-5. Listens for `completed` and `failed` events to close the stream:
+5. Listens for `completed` and `failed` events to gracefully close the stream:
    ```js
-   queueEvents.on('completed', ({ jobId: id }) => {
+   queueEvents.on('completed', ({ jobId: id, returnvalue }) => {
      if (id === req.params.jobId) {
-       res.write(`event: complete\ndata: ${JSON.stringify({ status: 'done' })}\n\n`);
+       res.write(`event: complete\ndata: ${returnvalue || '"done"'}\n\n`);
        cleanup();
      }
    });
@@ -139,14 +75,14 @@ Add a new route `GET /stream/:jobId` to `generate.js` that:
    });
    ```
 
-6. Sends a keep-alive ping every 15 seconds:
+6. Sends a keep-alive ping every 15 seconds to prevent browser timeouts:
    ```js
    const keepAlive = setInterval(() => {
      res.write(': keep-alive\n\n');
    }, 15000);
    ```
 
-7. On client disconnect, cleans up:
+7. On client disconnect, cleans up the Redis listeners:
    ```js
    function cleanup() {
      clearInterval(keepAlive);
@@ -156,7 +92,7 @@ Add a new route `GET /stream/:jobId` to `generate.js` that:
    req.on('close', cleanup);
    ```
 
-Keep the existing `POST /` and `GET /status/:jobId` routes intact.
+Keep the existing `POST /` and `GET /status/:jobId` routes intact for backward compatibility and initialization.
 </action>
 
 <acceptance_criteria>
@@ -164,13 +100,11 @@ Keep the existing `POST /` and `GET /status/:jobId` routes intact.
 - The route sets `Content-Type: text/event-stream` header
 - The route imports and uses `QueueEvents` from `bullmq`
 - The route writes SSE-formatted events: `event: ...\ndata: ...\n\n`
-- The route has a `cleanup()` function that closes `queueEvents` and clears the keepAlive interval
+- The route has a `cleanup()` function that calls `queueEvents.close()`
 - The route listens for `req.on('close', cleanup)`
 </acceptance_criteria>
 
 ## Verification
-1. `grep -c "streamWithQwen" server/services/qwen.js` returns at least 2 (definition + export)
-2. `grep -c "text/event-stream" server/routes/generate.js` returns 1
-3. `grep -c "QueueEvents" server/routes/generate.js` returns at least 2
-4. `node -e "require('./server/services/qwen.js')"` exits without error
-5. `node -e "require('./server/routes/generate.js')"` exits without error (when Redis is available)
+1. `grep -c "text/event-stream" server/routes/generate.js` returns 1
+2. `grep -c "QueueEvents" server/routes/generate.js` returns at least 2
+3. `node -e "require('./server/routes/generate.js')"` exits without syntax error

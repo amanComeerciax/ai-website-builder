@@ -1,4 +1,4 @@
-# Plan 02: AI Worker Multi-Phase Pipeline with Progress Events & Strict Parser
+# Plan 02: AI Worker Multi-Phase Pipeline & Strict Parser
 
 ---
 wave: 1
@@ -10,13 +10,12 @@ requirements: []
 ---
 
 ## Goal
-Rebuild `aiWorker.js` to implement a full 3-phase generation pipeline (Understand → Plan → Generate Code) that emits granular `job.updateProgress()` events at each step. Add a strict output parser that validates the LLM's final code output is a valid JSON file-map before marking the job complete.
+Rebuild `aiWorker.js` to implement a full 3-phase generation pipeline (Understand → Plan → Generate Code) that emits granular `job.updateProgress()` events at each step. Add a strict output parser that validates the LLM's final code output is a valid JSON file-map before marking the job complete, preventing malformed generation strings from breaking the React UI.
 
 ## must_haves
 - The worker must emit progress events with `{ event, payload }` shape for SSE consumption
-- The worker must call `streamWithQwen()` for the code generation phase
 - The worker must validate the final output is parseable as `{ files: { [path]: content } }` JSON
-- On parse failure, the worker must retry the generation (up to 2 retries) before failing
+- On parse failure, the worker must retry the generation (up to 3 retries) before failing the job
 
 ## Tasks
 
@@ -33,7 +32,7 @@ Completely rewrite `aiWorker.js` to implement:
 ```js
 const { Worker } = require('bullmq');
 const IORedis = require('ioredis');
-const { generateWithQwen, streamWithQwen } = require('../services/qwen.js');
+const { generateWithQwen } = require('../services/qwen.js');
 
 const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0.1:6379', {
   maxRetriesPerRequest: null,
@@ -76,7 +75,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     await new Promise(r => setTimeout(r, 200));
   }
 
-  // ─── PHASE 3: CODE GENERATION (Stream tokens) ───
+  // ─── PHASE 3: CODE GENERATION (Strict Validation Loop) ───
   await job.updateProgress({
     event: 'log',
     payload: { type: 'Editing', file: 'all files', message: 'Generating code...' }
@@ -126,15 +125,10 @@ No markdown, no explanations, ONLY the raw JSON object.`;
   }
 
   // ─── COMPLETE ───
-  await job.updateProgress({
-    event: 'complete',
-    payload: {
-      summary: `Generated ${Object.keys(parsedFiles).length} files for "${plan.appName || 'your app'}"`,
-      files: parsedFiles
-    }
-  });
-
-  return { success: true, files: parsedFiles };
+  return {
+    summary: `Generated ${Object.keys(parsedFiles).length} files for "${plan.appName || 'your app'}"`,
+    files: parsedFiles
+  };
 
 }, {
   connection,
@@ -153,27 +147,26 @@ module.exports = { aiWorker };
 ```
 
 Key design decisions:
-- Phase 1 uses `generateWithQwen()` (non-streaming, JSON mode) for structured intent analysis
-- Phase 3 uses `generateWithQwen()` with JSON mode for the full code output (streaming individual tokens is less useful when we need the complete JSON to parse)
-- The strict parser validates: (a) valid JSON, (b) has `files` key, (c) each value is a string
-- Retries up to 3 times on parse failure before throwing
-- Progress events use `{ event, payload }` shape that the SSE route from Plan 01 will forward directly
+- The worker uses `generateWithQwen()` (non-streaming, JSON mode) for both structured intent analysis and full code generation.
+- The strict parser validates: (a) valid JSON, (b) has `files` key, (c) each value is a string.
+- Retries up to 3 times on parse failure before throwing.
+- Progress events use `{ event, payload }` shape. Note that the final return value natively triggers the `completed` event in BullMQ which is routed to the client via `queueEvents` in Plan 01.
 </action>
 
 <acceptance_criteria>
-- `server/workers/aiWorker.js` contains `job.updateProgress({` at least 4 times (thinking, logs, complete)
+- `server/workers/aiWorker.js` contains `job.updateProgress({` at least 3 times (thinking, logs)
 - `server/workers/aiWorker.js` contains `event: 'thinking'`
 - `server/workers/aiWorker.js` contains `event: 'log'`
-- `server/workers/aiWorker.js` contains `event: 'complete'`
-- `server/workers/aiWorker.js` contains `JSON.parse(rawCode)`
+- `server/workers/aiWorker.js` contains `JSON.parse` at least twice (for plan and for code)
 - `server/workers/aiWorker.js` contains `parsed.files`
 - `server/workers/aiWorker.js` contains `for (let attempt = 1; attempt <= 3`
 - `module.exports` includes `aiWorker`
+- The worker function `return { summary, files }` at the end
 </acceptance_criteria>
 
 ## Verification
-1. `grep -c "updateProgress" server/workers/aiWorker.js` returns >= 5
-2. `grep -c "event:" server/workers/aiWorker.js` returns >= 4
-3. `grep "streamWithQwen\|generateWithQwen" server/workers/aiWorker.js` shows imports from qwen.js
+1. `grep -c "updateProgress" server/workers/aiWorker.js` returns >= 4
+2. `grep -c "event:" server/workers/aiWorker.js` returns >= 3
+3. `grep "generateWithQwen" server/workers/aiWorker.js` shows imports from qwen.js
 4. `grep -c "parsed.files" server/workers/aiWorker.js` returns >= 1
 5. `node -e "require('./server/workers/aiWorker.js')"` exits without syntax error (Redis connection may fail gracefully)
