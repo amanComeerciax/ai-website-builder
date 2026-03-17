@@ -18,9 +18,10 @@ const mistralClient = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY })
  * Execute a prompt against the local Qwen model via Ollama.
  * Falls back to Mistral API on failure.
  */
-async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retries = 2) {
+async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retries = 2, forceMistral = false) {
   // ─── 1. ATTEMPT LOCAL OLLAMA FIRST ───
-  const url = `${OLLAMA_HOST}/api/generate`;
+  if (!forceMistral) {
+    const url = `${OLLAMA_HOST}/api/generate`;
   
   const payload = {
     model: OLLAMA_MODEL,
@@ -56,12 +57,16 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
       }
 
       const data = await response.json();
+      let rawText = data.response;
       
       if (jsonMode) {
-        JSON.parse(data.response); // Validate parseable
+        if (rawText.includes('```json')) rawText = rawText.split('```json')[1].split('```')[0].trim();
+        else if (rawText.includes('```')) rawText = rawText.split('```')[1].split('```')[0].trim();
+        
+        JSON.parse(rawText); // Validate parseable
       }
 
-      return data.response;
+      return rawText;
 
     } catch (error) {
       const isSystemTimeout = error.name === 'AbortError' || error.message.includes('fetch failed');
@@ -77,7 +82,8 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
 
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
-  }
+  } 
+  } // End if(!forceMistral) block
 
   // ─── 2. FALLBACK TO MISTRAL CLOUD API ───
   if (!mistralClient) {
@@ -97,9 +103,12 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
       responseFormat: jsonMode ? { type: 'json_object' } : undefined
     });
 
-    const content = chatResponse.choices[0].message.content;
+    let content = chatResponse.choices[0].message.content;
     
     if (jsonMode) {
+      if (content.includes('```json')) content = content.split('```json')[1].split('```')[0].trim();
+      else if (content.includes('```')) content = content.split('```')[1].split('```')[0].trim();
+      
       JSON.parse(content); // Validate parseable
     }
 

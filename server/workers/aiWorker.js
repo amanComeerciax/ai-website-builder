@@ -40,7 +40,9 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   const rawPlan = await generateWithQwen(systemInstruct, planPrompt, true, 3);
   let plan;
   try {
-    plan = JSON.parse(rawPlan);
+    let cleanPlan = typeof rawPlan === 'string' && rawPlan.includes('```json') ? rawPlan.split('```json')[1].split('```')[0].trim() : rawPlan;
+    if (typeof cleanPlan === 'string' && cleanPlan.includes('```')) cleanPlan = cleanPlan.split('```')[1].split('```')[0].trim();
+    plan = JSON.parse(cleanPlan);
     // Ensure plan.files is always an array
     if (!Array.isArray(plan.files)) {
       plan.files = ['src/App.jsx', 'src/index.css'];
@@ -91,8 +93,14 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   let parsedFiles = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const rawCode = await generateWithQwen(codeSystemPrompt, codePrompt, true, 1);
-      const parsed = JSON.parse(rawCode);
+      // Force Mistral fallback on retry attempts if Qwen returned bad shape
+      const forceMistral = attempt > 1;
+      const rawCode = await generateWithQwen(codeSystemPrompt, codePrompt, true, 1, forceMistral);
+      
+      let cleanCode = typeof rawCode === 'string' && rawCode.includes('```json') ? rawCode.split('```json')[1].split('```')[0].trim() : rawCode;
+      if (typeof cleanCode === 'string' && cleanCode.includes('```')) cleanCode = cleanCode.split('```')[1].split('```')[0].trim();
+      
+      const parsed = JSON.parse(cleanCode);
 
       // Strict validation: must have a "files" key with object value
       if (!parsed.files || typeof parsed.files !== 'object') {
