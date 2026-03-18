@@ -63,10 +63,10 @@ class ApiClient {
     }
 
     // ── Generation ──
-    startGeneration(projectId, prompt, token) {
+    startGeneration(projectId, prompt, model, existingFiles = null, token) {
         return this.request('/generate', {
             method: 'POST',
-            body: JSON.stringify({ projectId, prompt }),
+            body: JSON.stringify({ projectId, prompt, model: model || 'qwen', existingFiles }),
         }, token)
     }
 

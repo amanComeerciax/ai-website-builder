@@ -19,8 +19,18 @@ const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0
  */
 const aiWorker = new Worker('AI_Generation_Queue', async job => {
   console.log(`[Worker] Job ${job.id} started for project: ${job.data.projectId}`);
-  const { prompt } = job.data;
+  const { prompt, model, existingFiles } = job.data;
+  const preferredModel = model || 'qwen';
+  console.log(`[Worker] Using model: ${preferredModel}`);
   if (!prompt) throw new Error("Missing 'prompt' in job data");
+
+  let contextString = '';
+  if (existingFiles && Object.keys(existingFiles).length > 0) {
+    contextString = '### EXISTING CODEBASE:\n';
+    for (const [path, fileObj] of Object.entries(existingFiles)) {
+      contextString += `\n--- ${path} ---\n${fileObj.content}\n`;
+    }
+  }
 
   // ─── PHASE 1: THINKING (Understand Intent) ────────────────────────
   await job.updateProgress({
@@ -35,9 +45,9 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     'Only output the JSON, nothing else.'
   ].join(' ');
 
-  const planPrompt = `Analyze this request and plan the file structure:\n\nUser: "${prompt}"`;
+  const planPrompt = `Analyze this request and plan the file structure:\n\n${contextString ? contextString + '\n\n' : ''}User Request: "${prompt}"`;
 
-  const rawPlan = await generateWithQwen(systemInstruct, planPrompt, true, 3);
+  const rawPlan = await generateWithQwen(systemInstruct, planPrompt, true, 3, preferredModel);
   let plan;
   try {
     plan = JSON.parse(rawPlan);
@@ -80,9 +90,12 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   ].join('\n');
 
   const codePrompt = [
-    `Generate the complete code for: "${prompt}"`,
+    contextString ? `Apply this update/request to the existing codebase:` : `Generate the complete code for:`,
+    `"${prompt}"`,
     ``,
-    `Files to create: ${plan.files.join(', ')}`,
+    contextString ? contextString : ``,
+    ``,
+    `Files to create or modify: ${plan.files.join(', ')}`,
     ``,
     `Output a single JSON object mapping file paths to their full file contents.`
   ].join('\n');
@@ -91,7 +104,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   let parsedFiles = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const rawCode = await generateWithQwen(codeSystemPrompt, codePrompt, true, 1);
+      const rawCode = await generateWithQwen(codeSystemPrompt, codePrompt, true, 1, preferredModel);
       const parsed = JSON.parse(rawCode);
 
       // Strict validation: must have a "files" key with object value

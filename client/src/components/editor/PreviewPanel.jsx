@@ -13,6 +13,27 @@ export default function PreviewPanel() {
     const [viewMode, setViewMode] = useState('desktop')
     const [refreshKey, setRefreshKey] = useState(0)
 
+    // Determine the correct Sandpack template (react vs vanilla HTML)
+    // Determine the correct Sandpack template (react vs vanilla HTML vs vite-react)
+    const sandpackTemplate = useMemo(() => {
+        const fileNames = Object.keys(files).map(k => k.startsWith('/') ? k : `/${k}`);
+        
+        const hasPackageJson = fileNames.includes('/package.json');
+        const hasReactFiles = fileNames.some(k => k.endsWith('.jsx') || k.endsWith('.tsx'));
+        const hasViteConfig = fileNames.some(k => k.includes('vite.config'));
+        
+        if (hasReactFiles || hasPackageJson || hasViteConfig) {
+            // If it has a root index.html alongside react files, it's a Vite app
+            if (fileNames.includes('/index.html') || hasViteConfig) {
+                return 'vite-react';
+            }
+            return 'react';
+        }
+
+        // Default to vanilla HTML/JS
+        return 'vanilla';
+    }, [files]);
+
     // Convert VFS from { path: { content } } to Sandpack { path: content }
     const sandpackFiles = useMemo(() => {
         const result = {}
@@ -22,13 +43,45 @@ export default function PreviewPanel() {
             result[cleanPath] = file.content
         })
         
-        // Ensure a minimal entry point if missing
-        if (!result['/App.jsx'] && !result['/App.js'] && !result['/index.js'] && !result['/index.jsx']) {
-             result['/App.jsx'] = `import React from 'react';\n\nexport default function App() {\n  return <div style={{ padding: '20px', color: 'white' }}>No entry file (App.jsx) found in the project.</div>;\n}`;
+        if (sandpackTemplate === 'vanilla') {
+            // Fix vanilla routing if index is stuck inside public/
+            if (!result['/index.html']) {
+                if (result['/public/index.html']) {
+                    result['/index.html'] = result['/public/index.html'];
+                } else {
+                    result['/index.html'] = `<h1>No index.html found at root. Waiting for AI to generate...</h1>`;
+                }
+            }
+            // Prevent Sandpack from crashing trying to find an index.js
+            if (!result['/index.js']) {
+                 result['/index.js'] = `// Suppressing CodeSandbox default boilerplate`;
+            }
+        } else if (sandpackTemplate === 'react' || sandpackTemplate === 'vite-react') {
+            // Fallback packages if the AI forgot package.json
+            if (!result['/package.json']) {
+                result['/package.json'] = JSON.stringify({
+                    "name": "stackforge-generated-app",
+                    "version": "1.0.0",
+                    "main": "src/main.jsx",
+                    "dependencies": {
+                        "react": "^18.2.0",
+                        "react-dom": "^18.2.0",
+                        "lucide-react": "^0.263.1",
+                        "framer-motion": "latest",
+                        "clsx": "latest",
+                        "tailwind-merge": "latest"
+                    }
+                }, null, 2);
+            }
+            
+            // Ensure a minimal entry point if missing
+            if (!result['/src/App.jsx'] && !result['/src/main.jsx'] && !result['/App.jsx'] && !result['/App.js'] && !result['/index.js']) {
+                 result['/App.jsx'] = `import React from 'react';\nexport default function App() { return <div style={{ padding: '20px', color: 'white' }}>Loading entry point...</div>; }`;
+            }
         }
         
         return result
-    }, [files])
+    }, [files, sandpackTemplate])
 
     const viewWidths = {
         desktop: '100%',
@@ -76,7 +129,7 @@ export default function PreviewPanel() {
             <div className="pp-iframe-container" key={refreshKey}>
                 <div className="pp-iframe-wrapper" style={{ maxWidth: viewWidths[viewMode] }}>
                     <SandpackProvider
-                        template="react"
+                        template={sandpackTemplate}
                         theme="dark"
                         files={sandpackFiles}
                         options={{

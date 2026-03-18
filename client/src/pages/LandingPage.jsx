@@ -287,10 +287,10 @@ export default function LandingPage() {
             if (!isSignedIn) {
                 // Open modal instead of redirecting to /login page
                 clerk.openSignIn({
-                    fallbackRedirectUrl: `/editor/new?prompt=${encodeURIComponent(inputValue.trim())}&model=${encodeURIComponent(selectedModel)}`
+                    fallbackRedirectUrl: `/chat/new?prompt=${encodeURIComponent(inputValue.trim())}&model=${encodeURIComponent(selectedModel)}`
                 });
             } else {
-                navigate(`/editor/new?prompt=${encodeURIComponent(inputValue.trim())}&model=${encodeURIComponent(selectedModel)}`)
+                navigate(`/chat/new?prompt=${encodeURIComponent(inputValue.trim())}&model=${encodeURIComponent(selectedModel)}`)
             }
         }
     }

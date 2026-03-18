@@ -17,9 +17,19 @@ const mistralClient = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY })
 /**
  * Execute a prompt against the local Qwen model via Ollama.
  * Falls back to Mistral API on failure.
+ * @param {string} preferredModel - 'qwen' (default with fallback) or 'mistral' (direct cloud)
  */
-async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retries = 2) {
-  // ─── 1. ATTEMPT LOCAL OLLAMA FIRST ───
+async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retries = 2, preferredModel = 'qwen') {
+  // If user explicitly chose Mistral, skip local Ollama entirely
+  if (preferredModel === 'mistral') {
+    if (!mistralClient) {
+      throw new Error('Mistral model selected but no MISTRAL_API_KEY is configured.');
+    }
+    console.log(`[Model Router] User selected Mistral — skipping local Ollama, going straight to cloud...`);
+    return await generateWithMistral(systemPrompt, userPrompt, jsonMode);
+  }
+
+  // ─── DEFAULT: ATTEMPT LOCAL OLLAMA FIRST (with Mistral fallback) ───
   const url = `${OLLAMA_HOST}/api/generate`;
   
   const payload = {
@@ -84,10 +94,23 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
     throw new Error('Local generation failed and no MISTRAL_API_KEY is configured for fallback.');
   }
 
-  console.log(`[Mistral Fallback] Generating via Mistral Cloud API...`);
-  
+  console.log(`[Mistral Fallback] Local Qwen failed, falling back to Mistral Cloud API...`);
+  return await generateWithMistral(systemPrompt, userPrompt, jsonMode);
+}
+
+/**
+ * Direct Mistral Cloud API generation (reusable helper).
+ */
+async function generateWithMistral(systemPrompt, userPrompt, jsonMode = false) {
+  if (!mistralClient) {
+    throw new Error('No MISTRAL_API_KEY configured.');
+  }
+
   try {
-    const chatResponse = await mistralClient.chat.complete({
+    // We use .stream() instead of .complete() to bypass Node/Undici's hard 5-minute HeadersTimeoutError.
+    // Heavy JSON payloads (like 6-file mega apps) can take >300s to generate completely. 
+    // Streaming starts receiving headers instantly, keeping the TCP connection alive.
+    const chatStreamResponse = await mistralClient.chat.stream({
       model: 'mistral-large-latest',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -97,19 +120,25 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
       responseFormat: jsonMode ? { type: 'json_object' } : undefined
     });
 
-    const content = chatResponse.choices[0].message.content;
+    let content = '';
+    for await (const chunk of chatStreamResponse) {
+      const deltaContent = chunk?.data?.choices?.[0]?.delta?.content;
+      if (deltaContent) {
+        content += deltaContent;
+      }
+    }
     
     if (jsonMode) {
       JSON.parse(content); // Validate parseable
     }
 
-    console.log(`[Mistral Fallback] Success!`);
+    console.log(`[Mistral] Generation succeeded! (${content.length} characters)`);
     return content;
 
   } catch (mistralError) {
     console.error(`[Mistral Error]:`, mistralError);
-    throw new Error(`Both Local Qwen and Mistral Fallback failed. Last error: ${mistralError.message}`);
+    throw new Error(`Mistral generation failed: ${mistralError.message}`);
   }
 }
 
-module.exports = { generateWithQwen };
+module.exports = { generateWithQwen, generateWithMistral };

@@ -103,7 +103,7 @@ export default function ProjectsPage() {
                         )}
                         
                         {renderedProjects.map(proj => (
-                            <Link to={`/editor/${proj.id}`} key={proj.id} className="pp-card">
+                            <Link to={`/chat/${proj.id}`} key={proj.id} className="pp-card">
                                 <div className="pp-card-thumbnail">
                                     <div className="pp-thumbnail-placeholder">
                                         <div className="pp-mock-browser">

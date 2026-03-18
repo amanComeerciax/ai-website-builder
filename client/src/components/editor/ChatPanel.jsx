@@ -4,7 +4,7 @@ import {
     Send, Bot, User, Lightbulb, RefreshCw, Package, 
     FileEdit, FilePlus, Bookmark, ThumbsUp, ThumbsDown, 
     Copy, MoreHorizontal, Plus, MousePointer2, MessageSquare, 
-    Mic, ArrowUp, ChevronRight, ChevronDown
+    Mic, ArrowUp, ChevronRight, ChevronDown, Cpu, Cloud
 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import './ChatPanel.css'
@@ -14,8 +14,8 @@ export default function ChatPanel() {
     const { 
         messages, isGenerating, generationPhase, generationLogs, 
         generationSummary, generationTaskName, isDetailsExpanded,
-        isIdeVisible,
-        addMessage, startGeneration, setDetailsExpanded, setIdeVisible
+        isIdeVisible, selectedModel,
+        addMessage, startGeneration, setDetailsExpanded, setIdeVisible, setSelectedModel
     } = useChatStore()
     
     const [input, setInput] = useState('')
@@ -207,13 +207,20 @@ export default function ChatPanel() {
                         }}
                     />
                     
-                    <div className="cp-input-toolbar">
+                <div className="cp-input-toolbar">
                         <div className="cp-toolbar-left">
                             <button className="cp-tiny-btn"><Plus size={18} /></button>
-                            <button className="cp-visual-btn">
-                                <MousePointer2 size={13} />
-                                Visual edits
-                            </button>
+                            <div className="cp-model-selector">
+                                <select 
+                                    value={selectedModel} 
+                                    onChange={(e) => setSelectedModel(e.target.value)}
+                                    className="cp-model-dropdown"
+                                    disabled={isGenerating}
+                                >
+                                    <option value="qwen">⚡ Qwen (Local)</option>
+                                    <option value="mistral">☁️ Mistral (Cloud)</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="cp-toolbar-right">
                             <button className="cp-tiny-btn"><MessageSquare size={18} /></button>

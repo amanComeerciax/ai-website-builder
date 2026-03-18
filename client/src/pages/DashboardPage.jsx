@@ -74,7 +74,7 @@ export default function DashboardPage() {
     const trimmed = promptValue.trim()
     if (trimmed) {
       const newProjectId = createProject(trimmed)
-      navigate(`/editor/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`)
+      navigate(`/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`)
     }
   }
 

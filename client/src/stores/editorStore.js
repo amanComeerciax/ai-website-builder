@@ -1,62 +1,77 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-// Demo files to render when no project is loaded yet
-const DEMO_FILES = {
-    'App.jsx': {
-        content: `import React from 'react';
-
-export default function App() {
-  return (
-    <div style={{ 
-      height: '100vh', 
-      display: 'flex', 
-      flexDirection: 'column',
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      background: '#0a0a0a', 
-      color: 'white',
-      fontFamily: 'sans-serif'
-    }}>
-      <h1 style={{ 
-        fontSize: '3rem', 
-        background: 'linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent'
-      }}>
-        Welcome to StackForge
-      </h1>
-      <p style={{ color: '#888', marginTop: '1rem' }}>Built with StackForge AI ⚡</p>
-      <button 
-        onClick={() => alert('Ready to build!')}
-        style={{
-          marginTop: '2rem',
-          padding: '12px 32px',
-          background: '#3b82f6',
-          border: 'none',
-          borderRadius: '8px',
-          color: 'white',
-          fontWeight: '600',
-          cursor: 'pointer'
-        }}
-      >
-        Get Started
-      </button>
-    </div>
-  );
-}`,
-    },
-}
+// Empty default — no files until AI generates them.
+// The right panel is hidden until generation completes, so no demo needed.
+const EMPTY_FILES = {}
 
 export const useEditorStore = create(
     persist(
         (set, get) => ({
+            activeProjectId: null,
+            projectData: {}, // { [projectId]: { files, activeFile, openTabs } }
+
             // ── File System ──
-            files: { ...DEMO_FILES },
+            files: { ...EMPTY_FILES },
 
             // ── Active State ──
             activeFile: 'App.jsx',
             openTabs: ['App.jsx'],
+
+            _sync: (updater) => set((state) => {
+                const updates = typeof updater === 'function' ? updater(state) : updater;
+                const nextState = { ...state, ...updates };
+                if (nextState.activeProjectId) {
+                    const newProjectData = { ...nextState.projectData };
+                    newProjectData[nextState.activeProjectId] = {
+                        files: nextState.files,
+                        activeFile: nextState.activeFile,
+                        openTabs: nextState.openTabs
+                    };
+                    updates.projectData = newProjectData;
+                }
+                return updates;
+            }),
+
+            loadProject: (projectId) => set((state) => {
+                const newProjectData = { ...state.projectData };
+                
+                if (state.activeProjectId && state.activeProjectId !== projectId) {
+                    newProjectData[state.activeProjectId] = {
+                        files: state.files,
+                        activeFile: state.activeFile,
+                        openTabs: state.openTabs,
+                    };
+                }
+                
+                const data = newProjectData[projectId];
+
+                if (data) {
+                    return {
+                        activeProjectId: projectId,
+                        projectData: newProjectData,
+                        files: data.files || { ...EMPTY_FILES },
+                        activeFile: data.activeFile || 'App.jsx',
+                        openTabs: data.openTabs || ['App.jsx'],
+                        isPreviewReady: true,
+                        previewError: null
+                    };
+                } else {
+                    // Safety check for legacy states missing projectData during migration
+                    if (state.activeProjectId === projectId && Object.keys(state.files).length > 1) {
+                        return { projectData: newProjectData };
+                    }
+                    return {
+                        activeProjectId: projectId,
+                        projectData: newProjectData,
+                        files: { ...EMPTY_FILES },
+                        activeFile: 'App.jsx',
+                        openTabs: ['App.jsx'],
+                        isPreviewReady: true,
+                        previewError: null
+                    };
+                }
+            }),
 
             // ── Preview State ──
             isPreviewReady: true,
@@ -64,12 +79,12 @@ export const useEditorStore = create(
 
             // ── Actions: File Management ──
             setFile: (path, content) =>
-                set((state) => ({
+                get()._sync((state) => ({
                     files: { ...state.files, [path]: { content } },
                 })),
 
             deleteFile: (path) =>
-                set((state) => {
+                get()._sync((state) => {
                     const newFiles = { ...state.files }
                     delete newFiles[path]
                     const newTabs = state.openTabs.filter((t) => t !== path)
@@ -80,13 +95,13 @@ export const useEditorStore = create(
                     }
                 }),
 
-            setFiles: (fileMap) => set({ files: fileMap }),
+            setFiles: (fileMap) => get()._sync({ files: fileMap }),
 
             getFileContent: (path) => get().files[path]?.content || '',
 
             // ── Actions: Tab Management ──
             setActiveFile: (path) =>
-                set((state) => ({
+                get()._sync((state) => ({
                     activeFile: path,
                     openTabs: state.openTabs.includes(path)
                         ? state.openTabs
@@ -94,7 +109,7 @@ export const useEditorStore = create(
                 })),
 
             closeTab: (path) =>
-                set((state) => {
+                get()._sync((state) => {
                     const newTabs = state.openTabs.filter((t) => t !== path)
                     return {
                         openTabs: newTabs,
@@ -111,7 +126,7 @@ export const useEditorStore = create(
 
             // ── Actions: Bulk Load (from AI generation) ──
             loadGeneratedFiles: (generatedFiles) =>
-                set((state) => {
+                get()._sync((state) => {
                     const fileMap = {}
                     const tabs = []
                     
@@ -141,8 +156,8 @@ export const useEditorStore = create(
 
             // ── Reset ──
             reset: () =>
-                set({
-                    files: { ...DEMO_FILES },
+                get()._sync({
+                    files: { ...EMPTY_FILES },
                     activeFile: 'App.jsx',
                     openTabs: ['App.jsx'],
                     isPreviewReady: true,

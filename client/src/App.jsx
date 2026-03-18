@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { SignedIn, SignedOut, RedirectToSignIn, ClerkLoaded, ClerkLoading, useUser } from "@clerk/clerk-react"
 import LandingPage from './pages/LandingPage'
 import DashboardPage from './pages/DashboardPage'
-import EditorPage from './pages/EditorPage'
+import ChatPage from './pages/ChatPage'
 import PricingPage from './pages/PricingPage'
 import DashboardLayout from './layouts/DashboardLayout'
 import ProjectsPage from './pages/ProjectsPage'
@@ -70,8 +70,8 @@ function App() {
 
           {/* Editor route */}
           <Route
-            path="/editor/:projectId"
-            element={<ProtectedRoute><EditorPage /></ProtectedRoute>}
+            path="/chat/:projectId"
+            element={<ProtectedRoute><ChatPage /></ProtectedRoute>}
           />
 
           {/* Authentication routes powered by unified Lovable Layout */}

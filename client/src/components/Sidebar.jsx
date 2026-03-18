@@ -122,7 +122,7 @@ export default function Sidebar() {
                 <h3 className="lv-section-label">Recents</h3>
                 {recentProjects.length > 0 ? (
                     recentProjects.map(proj => (
-                        <NavLink key={proj.id} to={`/editor/${proj.id}`} className={({ isActive }) => `lv-nav-link ${isActive ? 'lv-nav-link-active' : ''}`}>
+                        <NavLink key={proj.id} to={`/chat/${proj.id}`} className={({ isActive }) => `lv-nav-link ${isActive ? 'lv-nav-link-active' : ''}`}>
                             <LayoutTemplate size={14} style={{ flexShrink: 0 }} />
                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{proj.name}</span>
                         </NavLink>

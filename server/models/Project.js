@@ -4,26 +4,39 @@ const projectSchema = new mongoose.Schema(
   {
     userId: {
       type: String,
-      required: true
+      required: true,
+      index: true
     },
-    businessName: {
+    name: {
       type: String,
-      required: true
+      default: 'Untitled Project'
     },
-    businessType: {
+    status: {
       type: String,
-      required: true
+      enum: ['idle', 'generating', 'done', 'failed'],
+      default: 'idle'
     },
-    description: {
-      type: String
+    activeVersionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Version',
+      default: null
     },
-    services: {
-      type: [String],
-      default: []
+    currentFileTree: {
+      type: Map,
+      of: String, // Map of path to R2Key string
+      default: new Map()
     },
-    themeColor: {
+    previewUrl: {
       type: String,
-      default: "blue"
+      default: null
+    },
+    netlifySiteId: {
+      type: String,
+      default: null
+    },
+    techStack: {
+      type: String,
+      default: 'react'
     }
   },
   { timestamps: true }

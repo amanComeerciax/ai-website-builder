@@ -4,31 +4,59 @@ const IORedis = require('ioredis');
 // Ensure worker is spawned when routes load
 require('../workers/aiWorker.js');
 
+const Message = require('../models/Message');
+
 const express = require("express")
 const router = express.Router()
 
 // ── POST /api/generate — Start AI generation ──
 router.post("/", async (req, res, next) => {
     try {
-        const { projectId, prompt } = req.body
+        const { projectId, prompt, model, existingFiles } = req.body
 
         if (!projectId || !prompt) {
             return res.status(400).json({ error: "projectId and prompt are required" })
+        }
+
+        let assistantMessageId = null;
+
+        // Skip adding explicitly DB bound messages if using 'local_project' mock IDs in UI early dev 
+        if (projectId !== 'local_project' && projectId !== 'new') {
+            // Document the user's prompt in the DB
+            await Message.create({
+                projectId,
+                role: 'user',
+                content: prompt,
+                status: 'done'
+            });
+
+            // Create a pending slot for the Assistant's reply
+            const assistantMsg = await Message.create({
+                projectId,
+                role: 'assistant',
+                content: 'Generating your code...',
+                status: 'pending'
+            });
+            assistantMessageId = assistantMsg._id;
         }
 
         // Drop the generation request onto the background worker queue instantly
         const job = await generationQueue.add('generate-site', {
             prompt,
             projectId,
+            existingFiles,
+            messageId: assistantMessageId,
+            model: model || 'qwen', // 'qwen' (default with fallback) or 'mistral' (direct)
             userId: "local_test_user"
         });
 
-        console.log(`[API Generate] Job ${job.id} dispatched to BullMQ for project ${projectId}`);
+        console.log(`[API Generate] Job ${job.id} dispatched for project ${projectId} (bound Msg ID: ${assistantMessageId})`);
 
         res.status(202).json({
             message: "Generation queued securely in BullMQ",
             jobId: job.id,
             projectId,
+            messageId: assistantMessageId
         })
     } catch (error) {
         next(error)

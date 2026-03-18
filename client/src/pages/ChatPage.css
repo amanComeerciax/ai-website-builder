@@ -128,41 +128,38 @@
     background: #2a2a2a;
 }
 
-.ep-center-tabs {
+.ep-center-pill-toggle {
     display: flex;
     align-items: center;
-    gap: 16px;
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 2px;
 }
 
-.ep-center-tab {
+.ep-pill-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     background: transparent;
     border: none;
     color: #888;
     font-size: 13px;
-    padding: 4px 0;
-    cursor: pointer;
-    transition: color 0.15s;
-    position: relative;
-}
-
-.ep-center-tab:hover {
-    color: #ccc;
-}
-
-.ep-center-tab.active {
-    color: #3b82f6;
     font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.ep-center-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: -6px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #3b82f6;
-    border-radius: 2px;
+.ep-pill-btn:hover {
+    color: #bbb;
+}
+
+.ep-pill-btn.active {
+    background: #2a2a2a;
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .ep-history-nav {
@@ -281,8 +278,7 @@
     transition: all 0.3s ease;
 }
 
-.ep-workspace.ep-centered .ep-code,
-.ep-workspace.ep-centered .ep-preview {
+.ep-workspace.ep-centered .ep-main-view {
     display: none;
 }
 
@@ -293,24 +289,45 @@
 
 /* Chat Panel */
 .ep-chat {
-    width: 320px;
     flex-shrink: 0;
     border-right: 1px solid rgba(255,255,255,0.06);
     background: #111;
+    overflow: hidden;
 }
 
-/* Code Panel (FileTree + Monaco) */
-.ep-code {
-    flex: 1;
-    min-width: 400px;
-    border-right: 1px solid rgba(255,255,255,0.06);
+/* Custom Draggable Slider */
+.ep-resizer {
+    width: 6px;
+    background: transparent;
+    cursor: col-resize;
+    position: relative;
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    transition: background 0.15s;
 }
 
-/* Preview / Details */
-.ep-preview {
+.ep-resizer:hover, .ep-workspace.resizing .ep-resizer {
+    background: #1a1a1a;
+}
+
+.ep-resizer-line {
+    width: 2px;
+    height: 100%;
+    background: rgba(255,255,255,0.04);
+}
+
+.ep-resizer:hover .ep-resizer-line, .ep-workspace.resizing .ep-resizer-line {
+    background: #3b82f6;
+}
+
+/* Toggleable Dynamic Right Panel */
+.ep-main-view {
     flex: 1;
     min-width: 400px;
     background: #0a0a0a;
+    display: flex;
+    overflow: hidden;
 }
 
 .ep-code-inner {
