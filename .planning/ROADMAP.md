@@ -16,3 +16,13 @@
 - [ ] Handle `Thinking`, `Logs`, and `Complete` events streamed from the worker in real time.
 - [ ] Ingest the raw file data payload on completion into the `editorStore.js` Virtual File System.
 - [ ] Ensure the 3-panel UI expands smoothly based on the `isIdeVisible` rules defined earlier.
+
+### Phase 3: Build advanced context switching and workspace hydration (Lovable Core Workflow)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 2
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 3 to break down)

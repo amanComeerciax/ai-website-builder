@@ -18,3 +18,7 @@ progress:
   "last_phase_executed": 0,
   "is_brownfield": true
 }
+
+## Accumulated Context
+### Roadmap Evolution
+- Phase 3 added: Build advanced context switching and workspace hydration (Lovable Core Workflow)
