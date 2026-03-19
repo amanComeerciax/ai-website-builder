@@ -70,10 +70,10 @@ export default function DashboardPage() {
     }
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmed = promptValue.trim()
     if (trimmed) {
-      const newProjectId = createProject(trimmed)
+      const newProjectId = await createProject(trimmed)
       navigate(`/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`)
     }
   }

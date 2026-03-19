@@ -35,6 +35,7 @@ export default function PreviewPanel() {
     }, [files]);
 
     // Convert VFS from { path: { content } } to Sandpack { path: content }
+    // CRITICAL: Override Sandpack template defaults so AI-generated code actually renders
     const sandpackFiles = useMemo(() => {
         const result = {}
         Object.entries(files).forEach(([path, file]) => {
@@ -43,8 +44,9 @@ export default function PreviewPanel() {
             result[cleanPath] = file.content
         })
         
+        const fileNames = Object.keys(result);
+        
         if (sandpackTemplate === 'vanilla') {
-            // Fix vanilla routing if index is stuck inside public/
             if (!result['/index.html']) {
                 if (result['/public/index.html']) {
                     result['/index.html'] = result['/public/index.html'];
@@ -52,17 +54,81 @@ export default function PreviewPanel() {
                     result['/index.html'] = `<h1>No index.html found at root. Waiting for AI to generate...</h1>`;
                 }
             }
-            // Prevent Sandpack from crashing trying to find an index.js
             if (!result['/index.js']) {
                  result['/index.js'] = `// Suppressing CodeSandbox default boilerplate`;
             }
         } else if (sandpackTemplate === 'react' || sandpackTemplate === 'vite-react') {
-            // Fallback packages if the AI forgot package.json
+            // ─── CRITICAL FIX: Override Sandpack's built-in "Hello world" defaults ───
+            // The react template ships with /App.js = "Hello world" and /index.js importing ./App
+            // We MUST overwrite these so they point to the AI's ACTUAL entry component.
+            
+            // Find the AI's actual App component
+            const appPath = fileNames.find(f => 
+                f === '/src/App.jsx' || f === '/src/App.js' || f === '/src/App.tsx' ||
+                f === '/App.jsx' || f === '/App.js'
+            );
+            
+            // Find the AI's actual entry/index file
+            const entryPath = fileNames.find(f =>
+                f === '/src/index.js' || f === '/src/index.jsx' || 
+                f === '/src/main.jsx' || f === '/src/main.js' ||
+                f === '/index.js' || f === '/index.jsx'
+            );
+
+            // Find the AI's styles file
+            const stylesPath = fileNames.find(f => 
+                f === '/src/styles.css' || f === '/src/index.css' || 
+                f === '/src/styles/global.css' || f === '/styles.css' ||
+                f === '/src/App.css'
+            );
+            
+            if (appPath && appPath !== '/App.js') {
+                // Bridge: Override Sandpack's default /App.js to re-export from AI's actual path
+                // This makes the template's /index.js (import ./App) load the real component
+                const importPath = appPath.replace(/^\//, './').replace(/\.(jsx|tsx)$/, '');
+                result['/App.js'] = `export { default } from '${importPath}';\n`;
+            } else if (appPath === '/App.js') {
+                // AI generated exactly /App.js — it will naturally override the template default
+            } else if (!appPath && Object.keys(result).length > 0) {
+                // No App component found — try to create a minimal bridge from whatever files exist
+                const anyJsx = fileNames.find(f => f.endsWith('.jsx') || f.endsWith('.tsx'));
+                if (anyJsx) {
+                    const importPath = anyJsx.replace(/^\//, './').replace(/\.(jsx|tsx)$/, '');
+                    result['/App.js'] = `export { default } from '${importPath}';\n`;
+                }
+            }
+            
+            // Override /index.js to use proper imports + styles
+            if (entryPath && entryPath !== '/index.js') {
+                // AI has a custom entry (e.g. src/main.jsx) — use its content as /index.js
+                result['/index.js'] = result[entryPath];
+            } else if (!entryPath) {
+                // No entry at all — create one that imports the App bridge + styles
+                const styleImport = stylesPath ? `import '${stylesPath.replace(/^\//, './')}';\n` : '';
+                result['/index.js'] = [
+                    `import React, { StrictMode } from "react";`,
+                    `import { createRoot } from "react-dom/client";`,
+                    styleImport ? styleImport : ``,
+                    `import App from "./App";`,
+                    ``,
+                    `const root = createRoot(document.getElementById("root"));`,
+                    `root.render(<StrictMode><App /></StrictMode>);`
+                ].filter(Boolean).join('\n');
+            }
+            
+            // Override /styles.css so Sandpack's default body styles don't clobber AI themes
+            if (!result['/styles.css'] && stylesPath) {
+                result['/styles.css'] = result[stylesPath];
+            } else if (!result['/styles.css']) {
+                result['/styles.css'] = '/* No global styles generated */';
+            }
+            
+            // Ensure package.json has all dependencies
             if (!result['/package.json']) {
                 result['/package.json'] = JSON.stringify({
                     "name": "stackforge-generated-app",
                     "version": "1.0.0",
-                    "main": "src/main.jsx",
+                    "main": "/index.js",
                     "dependencies": {
                         "react": "^18.2.0",
                         "react-dom": "^18.2.0",
@@ -72,11 +138,6 @@ export default function PreviewPanel() {
                         "tailwind-merge": "latest"
                     }
                 }, null, 2);
-            }
-            
-            // Ensure a minimal entry point if missing
-            if (!result['/src/App.jsx'] && !result['/src/main.jsx'] && !result['/App.jsx'] && !result['/App.js'] && !result['/index.js']) {
-                 result['/App.jsx'] = `import React from 'react';\nexport default function App() { return <div style={{ padding: '20px', color: 'white' }}>Loading entry point...</div>; }`;
             }
         }
         

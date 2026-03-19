@@ -41,50 +41,82 @@ export const useChatStore = create(
                 return updates;
             }),
             
-            loadProject: (projectId) => set((state) => {
-                const newProjectData = { ...state.projectData };
-                
-                // If transitioning away from a different active project, serialize current to storage map
-                if (state.activeProjectId && state.activeProjectId !== projectId) {
-                    newProjectData[state.activeProjectId] = {
-                        messages: state.messages,
-                        generationLogs: state.generationLogs,
-                        generationPhase: state.generationPhase,
-                        generationSummary: state.generationSummary,
-                        generationTaskName: state.generationTaskName
-                    };
-                }
-
-                const data = newProjectData[projectId];
-
-                if (data) {
-                    return {
-                        activeProjectId: projectId,
-                        projectData: newProjectData,
-                        messages: data.messages || [],
-                        generationLogs: data.generationLogs || [],
-                        generationPhase: data.generationPhase || 'idle',
-                        generationSummary: data.generationSummary || '',
-                        generationTaskName: data.generationTaskName || '',
-                        isGenerating: false
-                    };
-                } else {
-                    // Safety check: if we somehow are already active on this ID but projectData is empty (legacy), preserve.
-                    if (state.activeProjectId === projectId && state.messages.length > 0) {
-                        return { projectData: newProjectData };
+            loadProject: async (projectId) => {
+                // Step 1: Instantly restore from localStorage cache (fast UI)
+                set((state) => {
+                    const newProjectData = { ...state.projectData };
+                    
+                    if (state.activeProjectId && state.activeProjectId !== projectId) {
+                        newProjectData[state.activeProjectId] = {
+                            messages: state.messages,
+                            generationLogs: state.generationLogs,
+                            generationPhase: state.generationPhase,
+                            generationSummary: state.generationSummary,
+                            generationTaskName: state.generationTaskName
+                        };
                     }
-                    return {
-                        activeProjectId: projectId,
-                        projectData: newProjectData,
-                        messages: [],
-                        generationLogs: [],
-                        generationPhase: 'idle',
-                        generationSummary: '',
-                        generationTaskName: '',
-                        isGenerating: false
-                    };
+
+                    const data = newProjectData[projectId];
+
+                    if (data) {
+                        return {
+                            activeProjectId: projectId,
+                            projectData: newProjectData,
+                            messages: data.messages || [],
+                            generationLogs: data.generationLogs || [],
+                            generationPhase: data.generationPhase || 'idle',
+                            generationSummary: data.generationSummary || '',
+                            generationTaskName: data.generationTaskName || '',
+                            isGenerating: false
+                        };
+                    } else {
+                        if (state.activeProjectId === projectId && state.messages.length > 0) {
+                            return { projectData: newProjectData };
+                        }
+                        return {
+                            activeProjectId: projectId,
+                            projectData: newProjectData,
+                            messages: [],
+                            generationLogs: [],
+                            generationPhase: 'idle',
+                            generationSummary: '',
+                            generationTaskName: '',
+                            isGenerating: false
+                        };
+                    }
+                });
+
+                // Step 2: Hydrate from DB (skip for timestamp-based fallback IDs)
+                if (projectId && projectId !== 'new' && projectId.length === 24) {
+                    try {
+                        const data = await apiClient.getWorkspace(projectId);
+                        if (data && data.messages && data.messages.length > 0) {
+                            const dbMessages = data.messages.map(m => ({
+                                id: m._id,
+                                role: m.role,
+                                content: m.content,
+                                reasoning: m.reasoning,
+                                timestamp: m.createdAt,
+                                status: m.status
+                            }));
+                            // Only override if DB has real data
+                            set((state) => {
+                                const newProjectData = { ...state.projectData };
+                                newProjectData[projectId] = {
+                                    ...newProjectData[projectId],
+                                    messages: dbMessages
+                                };
+                                return {
+                                    messages: dbMessages,
+                                    projectData: newProjectData
+                                };
+                            });
+                        }
+                    } catch (err) {
+                        console.warn('[ChatStore] DB hydration skipped:', err.message);
+                    }
                 }
-            }),
+            },
             
             // UI View States
             isIdeVisible: false,      // Whether the right panel is open at all

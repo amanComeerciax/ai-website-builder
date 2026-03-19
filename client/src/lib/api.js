@@ -42,6 +42,11 @@ class ApiClient {
         return this.request(`/projects/${id}`, {}, token)
     }
 
+    // Full workspace hydration: returns { project, messages }
+    getWorkspace(id, token) {
+        return this.request(`/projects/${id}`, {}, token)
+    }
+
     createProject(data, token) {
         return this.request('/projects', {
             method: 'POST',
@@ -60,6 +65,18 @@ class ApiClient {
         return this.request(`/projects/${id}`, {
             method: 'DELETE',
         }, token)
+    }
+
+    // ── Messages ──
+    createMessage(projectId, content, role, token) {
+        return this.request(`/projects/${projectId}/messages`, {
+            method: 'POST',
+            body: JSON.stringify({ content, role }),
+        }, token)
+    }
+
+    getMessageLogs(messageId, token) {
+        return this.request(`/messages/${messageId}/logs`, {}, token)
     }
 
     // ── Generation ──

@@ -88,4 +88,23 @@ router.delete("/:id", mockUser, async (req, res, next) => {
     }
 })
 
+// ── POST /api/projects/:id/messages — Add a message to a workspace ──
+router.post("/:id/messages", mockUser, async (req, res, next) => {
+    try {
+        const { content, role } = req.body;
+        if (!content || !role) {
+            return res.status(400).json({ error: "content and role are required" });
+        }
+        const message = await Message.create({
+            projectId: req.params.id,
+            role,
+            content,
+            status: 'done'
+        });
+        res.status(201).json({ message });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router

@@ -4,6 +4,7 @@ const IORedis = require('ioredis');
 // Ensure worker is spawned when routes load
 require('../workers/aiWorker.js');
 
+const mongoose = require('mongoose');
 const Message = require('../models/Message');
 
 const express = require("express")
@@ -20,8 +21,10 @@ router.post("/", async (req, res, next) => {
 
         let assistantMessageId = null;
 
-        // Skip adding explicitly DB bound messages if using 'local_project' mock IDs in UI early dev 
-        if (projectId !== 'local_project' && projectId !== 'new') {
+        // Only create DB messages if projectId is a valid MongoDB ObjectId
+        const isValidObjectId = mongoose.Types.ObjectId.isValid(projectId) && projectId.length === 24;
+
+        if (isValidObjectId) {
             // Document the user's prompt in the DB
             await Message.create({
                 projectId,
@@ -38,6 +41,8 @@ router.post("/", async (req, res, next) => {
                 status: 'pending'
             });
             assistantMessageId = assistantMsg._id;
+        } else {
+            console.log(`[API Generate] Skipping DB message creation — projectId "${projectId}" is not a valid ObjectId`);
         }
 
         // Drop the generation request onto the background worker queue instantly
