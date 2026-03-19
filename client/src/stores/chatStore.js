@@ -223,9 +223,10 @@ export const useChatStore = create(
                             data = { summary: 'Generation complete.' };
                         }
                         
+                        const editorStore = useEditorStore.getState();
+
                         // Inject generated files into the editorStore VFS
                         if (data.files) {
-                            const editorStore = useEditorStore.getState();
                             // Convert { "path": "content" } to VFS format { "path": { content: "..." } }
                             const fileMap = {};
                             for (const [path, content] of Object.entries(data.files)) {
@@ -240,6 +241,11 @@ export const useChatStore = create(
                             }
                         }
 
+                        // Set preview type: 'srcdoc' for Track A HTML, 'sandpack' for Track B React
+                        const previewType = data.previewType || 'sandpack';
+                        const htmlContent = previewType === 'srcdoc' ? data.files?.['index.html'] : null;
+                        editorStore.setPreview(previewType, htmlContent);
+
                         get()._sync({ 
                             generationPhase: 'complete',
                             generationSummary: data.summary || 'Generation complete.',
@@ -251,6 +257,7 @@ export const useChatStore = create(
                         
                         eventSource.close();
                     });
+
 
                     // Handle 'error' events from the worker
                     eventSource.addEventListener('error', (e) => {

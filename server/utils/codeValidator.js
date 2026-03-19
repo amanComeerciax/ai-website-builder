@@ -1,9 +1,52 @@
 /**
  * Code Validator — checks AI-generated file content for quality violations
  * 
- * Export: validateFile(filePath, content) → { valid, violations }
- * Used after Phase 3 generation to catch common LLM code quality issues.
+ * Exports:
+ *   validateFile(filePath, content) → { valid, violations }
+ *   checkPackageImports(content)    → violations[] — catches forbidden npm packages
  */
+
+// The complete allowlist for Track B (React) generation
+const ALLOWED_PACKAGES = new Set([
+  'react', 'react-dom', 'react-router-dom',
+  'react-hook-form', '@tanstack/react-query',
+  'axios', 'lucide-react', 'clsx',
+  'tailwind-merge', 'date-fns', 'framer-motion',
+  '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select',
+  'recharts', 'react-hot-toast', 'zustand', 'zod', '@hookform/resolvers'
+]);
+
+/**
+ * Check for forbidden package imports in JSX/JS files.
+ * Catches things like `import { Link } from 'react-scroll'` before Sandpack errors.
+ *
+ * @param {string} content - File content
+ * @returns {Array<{type, package, fix}>}
+ */
+function checkPackageImports(content) {
+  const importRegex = /from\s+['"]([^'"./][^'"]*)['"]/g;
+  const violations = [];
+  let match;
+
+  while ((match = importRegex.exec(content)) !== null) {
+    const fullPkg = match[1];
+    // Handle scoped packages like @radix-ui/react-dialog
+    const pkg = fullPkg.startsWith('@')
+      ? fullPkg.split('/').slice(0, 2).join('/')
+      : fullPkg.split('/')[0];
+
+    if (!ALLOWED_PACKAGES.has(pkg)) {
+      violations.push({
+        type: 'FORBIDDEN_PACKAGE',
+        package: pkg,
+        detail: `Import of '${pkg}' is not allowed. Implement using native JS or an allowed package instead.`,
+        fix: `Remove: import ... from '${fullPkg}'`
+      });
+    }
+  }
+
+  return violations;
+}
 
 /**
  * Validate a generated file for code quality violations.
@@ -96,4 +139,5 @@ function validateFile(filePath, content) {
   };
 }
 
-module.exports = { validateFile };
+module.exports = { validateFile, checkPackageImports };
+

@@ -34,7 +34,9 @@ try {
 const PHASE_MAP = {
   phase1: ['prompt-parsing-rules.md', 'page-blueprints.md'],
   phase2: ['spacing-system.md', 'component-standards.md', 'responsive-rules.md', 'design-rulebook.md'],
-  phase3_qwen: ['code-quality-rules.md'],  // MUST stay under 800 tokens
+  phase3_qwen: ['code-quality-rules.md', 'package-policy.md'],  // MUST stay under ~1200 tokens
+  track_a: ['code-quality-rules.md', 'package-policy.md'],      // HTML/CDN generation
+  track_b: ['code-quality-rules.md', 'package-policy.md'],      // React/Vite generation
   iteration: ['iteration-rules.md'],
 };
 

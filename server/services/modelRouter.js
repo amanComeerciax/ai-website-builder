@@ -26,8 +26,11 @@ const ROUTING_TABLE = {
   // Chat → Groq (instant responses)
   chat_response:   { model: 'groq', temperature: 0.5, jsonMode: false },
 
-  // Code generation → Qwen local (with Groq fallback)
-  generate_file:   { model: 'qwen', temperature: 0.1, jsonMode: true },
+  // Track A: Single HTML file generation → Qwen (jsonMode: FALSE — HTML is NOT JSON)
+  generate_html:   { model: 'qwen', temperature: 0.1, jsonMode: false, fallbackToGroq: true },
+
+  // Track B: React multi-file JSON generation → Qwen (jsonMode: true — expects JSON wrapper)
+  generate_file:   { model: 'qwen', temperature: 0.1, jsonMode: true, fallbackToGroq: true },
   fix_file:        { model: 'qwen', temperature: 0.1, jsonMode: true, fallbackToGroq: true },
 
   // Direct fallback
@@ -88,7 +91,7 @@ async function callModel(task, userMessage, systemPrompt, options = {}) {
 
   } catch (error) {
     // ─── AUTOMATIC FALLBACK: Qwen → Groq ───
-    if (targetModel === 'qwen' && (route.fallbackToGroq || task === 'generate_file')) {
+    if (targetModel === 'qwen' && (route.fallbackToGroq || task === 'generate_file' || task === 'generate_html')) {
       console.warn(`[Model Router] Qwen failed for "${task}": ${error.message}`);
       console.log(`[Model Router] Auto-escalating to Groq fallback...`);
       

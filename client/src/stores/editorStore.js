@@ -14,6 +14,10 @@ export const useEditorStore = create(
             // ── File System ──
             files: { ...EMPTY_FILES },
 
+            // ── Preview ──
+            previewType: 'sandpack',   // 'srcdoc' (Track A HTML) | 'sandpack' (Track B React)
+            htmlContent: null,         // raw HTML string for srcdoc mode
+
             // ── Active State ──
             activeFile: 'App.jsx',
             openTabs: ['App.jsx'],
@@ -96,6 +100,9 @@ export const useEditorStore = create(
                 }),
 
             setFiles: (fileMap) => get()._sync({ files: fileMap }),
+
+            // Set the preview mode + optional raw HTML (for Track A srcdoc)
+            setPreview: (previewType, htmlContent = null) => get()._sync({ previewType, htmlContent }),
 
             getFileContent: (path) => get().files[path]?.content || '',
 

@@ -37,6 +37,13 @@ Apply these when the user doesn't specify:
 - **Edit requests**: NEVER ask — just do it
 - **Detailed prompts (8+ words)**: NEVER ask — proceed with interpretation
 
+## outputTrack Selection
+This field controls which generation pipeline is used:
+- **"html"**: Landing pages, portfolios, restaurant/bakery/coffee shop sites, blogs, simple one-pagers, any prompt under 15 words about a website or web page. DEFAULT if in doubt.
+- **"react"**: Dashboards, SaaS apps, e-commerce with cart/auth, admin panels, apps with routing or login, any prompt mentioning "app", "dashboard", "admin", "authentication", or "database".
+
+IMPORTANT: When unsure, ALWAYS default to "html". HTML works instantly with zero build errors.
+
 ## Output Format
 Always return valid JSON only. No markdown. No explanation. Shape:
 ```json
@@ -44,9 +51,11 @@ Always return valid JSON only. No markdown. No explanation. Shape:
   "classification": "new_site|edit_existing|add_feature|style_change",
   "siteType": "string",
   "pageType": "landing|dashboard|portfolio|ecommerce|blog|docs",
+  "outputTrack": "html|react",
   "vaguePhrases": [{"phrase": "string", "interpretation": "string"}],
   "assumptions": ["string"],
   "colorPreference": "light|dark|auto",
-  "targetAudience": "string"
+  "targetAudience": "string",
+  "sections": ["hero", "features", "footer"]
 }
 ```
