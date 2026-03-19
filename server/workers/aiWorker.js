@@ -1,6 +1,6 @@
 const { Worker } = require('bullmq');
 const IORedis = require('ioredis');
-const { generateWithQwen } = require('../services/qwen.js');
+const { generateWithQwen } = require('../services/qwenService.js');
 
 // Connection matches the Queue connection setup
 const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0.1:6379', {
