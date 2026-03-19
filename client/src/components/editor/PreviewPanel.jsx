@@ -195,7 +195,11 @@ export default function PreviewPanel() {
                         files={sandpackFiles}
                         options={{
                             recompileMode: "immediate",
-                            recompileDelay: 300,
+                            recompileDelay: 500,
+                            autoReload: true,
+                            externalResources: [
+                                "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+                            ]
                         }}
                     >
                         <SandpackLayout style={{ height: '100%', border: 'none', background: 'transparent' }}>
@@ -203,6 +207,7 @@ export default function PreviewPanel() {
                                 style={{ height: '100%' }} 
                                 showNavigator={false}
                                 showRefreshButton={false}
+                                showOpenInCodeSandbox={false}
                                 loadingAdComponent={() => (
                                     <div className="pp-loading" style={{ 
                                         display: 'flex', 

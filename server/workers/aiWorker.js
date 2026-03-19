@@ -82,11 +82,23 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   });
 
   const codeSystemPrompt = [
-    'You are a code generator. Output ONLY valid JSON with this exact shape:',
+    'You are a senior React code generator. Output ONLY valid JSON with this exact shape:',
     '{ "files": { "src/App.jsx": "file content...", "src/index.css": "file content..." } }',
-    'The keys are file paths and the values are the COMPLETE file contents as strings.',
-    'No markdown fences, no explanations, no comments outside the JSON.',
-    'ONLY output the raw JSON object.'
+    '',
+    'STRICT RULES:',
+    '- The keys are file paths. Values are the COMPLETE file contents as strings.',
+    '- All React components MUST use .jsx extension and valid JSX syntax.',
+    '- All files MUST have proper ES6 imports at the top (import React, useState, etc).',
+    '- NEVER use TypeScript syntax (no : type annotations, no interface, no <T> generics).',
+    '- All JSX must be valid: properly closed tags, no dangling brackets.',
+    '- Use single quotes for JS strings. Escape special characters in string values properly for JSON.',
+    '- Every component MUST have a default export.',
+    '- For styles, use plain CSS files (not Tailwind classes unless explicitly asked).',
+    '- Include a src/App.jsx as the main entry component that imports and renders child components.',
+    '- Include a src/index.css or src/styles.css with global styles for dark theme.',
+    '- Mock all data inline (no API calls, no fetch, no external data sources).',
+    '- No markdown fences, no explanations, no comments outside the JSON.',
+    '- ONLY output the raw JSON object, nothing else.',
   ].join('\n');
 
   const codePrompt = [
@@ -97,7 +109,8 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     ``,
     `Files to create or modify: ${plan.files.join(', ')}`,
     ``,
-    `Output a single JSON object mapping file paths to their full file contents.`
+    `Remember: Output a single JSON object. Every .jsx file must have valid React JSX syntax with proper imports.`,
+    `All data should be mocked inline. Do NOT use TypeScript. Ensure every component has a default export.`
   ].join('\n');
 
   // Strict validation loop — try up to 3 times to get valid parseable output
