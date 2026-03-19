@@ -39,10 +39,10 @@ Apply these when the user doesn't specify:
 
 ## outputTrack Selection
 This field controls which generation pipeline is used:
-- **"html"**: Landing pages, portfolios, restaurant/bakery/coffee shop sites, blogs, simple one-pagers, any prompt under 15 words about a website or web page. DEFAULT if in doubt.
-- **"react"**: Dashboards, SaaS apps, e-commerce with cart/auth, admin panels, apps with routing or login, any prompt mentioning "app", "dashboard", "admin", "authentication", or "database".
+- **"html"**: Landing pages, portfolios, restaurant/bakery/coffee shop sites, blogs, simple one-pagers, any prompt under 15 words about a website or web page. DEFAULT IF NO FRAMEWORK IS SPECIFIED.
+- **"react"**: Dashboards, SaaS apps, e-commerce with cart/auth, admin panels, apps with routing or login, OR IF THE USER EXPLICITLY ASKS FOR REACT, NEXT.JS, VITE, MERN, OR FULL STACK.
 
-IMPORTANT: When unsure, ALWAYS default to "html". HTML works instantly with zero build errors.
+IMPORTANT: If the user explicitly asks for React, Vite, MERN, or full-stack, you MUST select "react". Otherwise, if unsure or for simple sites, ALWAYS default to "html" (it works instantly with zero build errors).
 
 ## Output Format
 Always return valid JSON only. No markdown. No explanation. Shape:
