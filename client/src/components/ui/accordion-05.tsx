@@ -35,7 +35,7 @@ export function Accordion05({
 
   return (
     <div style={{
-      color: "#fff",
+      color: "var(--text-main)",
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
     }} className={`w-full relative z-10 py-12 md:py-24 ${className || ""}`}>
       {/* Outer container — centers everything and caps max width */}
@@ -66,9 +66,10 @@ export function Accordion05({
           <p style={{
             fontSize: "0.95rem",
             lineHeight: 1.65,
-            color: "rgba(255,255,255,0.4)",
+            color: "var(--text-dim)",
             margin: 0,
             maxWidth: "220px",
+            opacity: 0.6
           }}>
             {subtitle}
           </p>
@@ -81,7 +82,7 @@ export function Accordion05({
             return (
               <div
                 key={item.id}
-                style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}
+                style={{ borderTop: "1px solid var(--border-subtle)" }}
               >
                 <button
                   onClick={() => setOpen(isOpen ? null : item.id)}
@@ -104,7 +105,7 @@ export function Accordion05({
                     fontWeight: 700,
                     letterSpacing: "0.05em",
                     minWidth: "22px",
-                    color: isOpen ? "#f97316" : "rgba(255,255,255,0.25)",
+                    color: isOpen ? "var(--accent-main)" : "var(--text-muted)",
                     transition: "color 0.2s",
                     alignSelf: "flex-start",
                     paddingTop: "4px",
@@ -120,7 +121,7 @@ export function Accordion05({
                     fontWeight: 700,
                     letterSpacing: "0.06em",
                     textTransform: "uppercase",
-                    color: isOpen ? "#ffffff" : "rgba(255,255,255,0.28)",
+                    color: isOpen ? "var(--text-main)" : "var(--text-dim)",
                     transition: "color 0.25s ease",
                     lineHeight: 1.2,
                   }}>
@@ -139,7 +140,8 @@ export function Accordion05({
                     padding: "0 0 28px 42px",
                     fontSize: "0.95rem",
                     lineHeight: 1.75,
-                    color: "rgba(255,255,255,0.5)",
+                    color: "var(--text-dim)",
+                    opacity: 0.7
                   }}>
                     {item.content}
                   </p>

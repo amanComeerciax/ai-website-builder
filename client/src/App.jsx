@@ -7,6 +7,7 @@ import PricingPage from './pages/PricingPage'
 import DashboardLayout from './layouts/DashboardLayout'
 import ProjectsPage from './pages/ProjectsPage'
 import AuthPage from './pages/AuthPage'
+import SuccessPage from './pages/SuccessPage'
 
 const ProtectedRoute = ({ children }) => (
   <>
@@ -51,6 +52,7 @@ function App() {
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/success" element={<ProtectedRoute><SuccessPage /></ProtectedRoute>} />
 
           {/* Dashboard routes */}
           <Route

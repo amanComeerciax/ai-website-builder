@@ -68,23 +68,50 @@
 .pp-iframe-container {
     flex: 1;
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     justify-content: center;
     padding: 0;
     overflow: hidden;
-    background: #fff;
+    background: #0a0a0a;
 }
 
 .pp-iframe-wrapper {
     width: 100%;
-    height: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     transition: max-width 0.3s ease;
     margin: 0 auto;
 }
 
-.pp-iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-    background: #fff;
+/* Force Sandpack to stretch and fill the wrapper completely */
+.pp-iframe-wrapper > .sp-wrapper,
+.pp-iframe-wrapper .sp-wrapper {
+    height: 100% !important;
+    min-height: 100% !important;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.pp-iframe-wrapper .sp-layout {
+    height: 100% !important;
+    min-height: 100% !important;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+}
+
+.pp-iframe-wrapper .sp-preview {
+    height: 100% !important;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.pp-iframe-wrapper iframe {
+    height: 100% !important;
 }
