@@ -1,13 +1,15 @@
 import { useParams, Link } from 'react-router-dom'
-import { Search, ChevronDown, LayoutGrid, List, Heart, Users, LayoutTemplate } from 'lucide-react'
+import { Search, ChevronDown, LayoutGrid, List, Heart, Users, LayoutTemplate, FolderPlus } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useProjectStore } from '../stores/projectStore'
+import { useUIStore } from '../stores/uiStore'
 import './ProjectsPage.css'
 
 export default function ProjectsPage() {
     const { type } = useParams() // 'mine', 'starred', 'shared', 'all'
     const { userData } = useAuthStore()
     const { projects } = useProjectStore()
+    const { setCreateFolderOpen } = useUIStore()
 
     // Filter projects based on type
     const renderedProjects = projects.filter(p => {
@@ -71,6 +73,11 @@ export default function ProjectsPage() {
                         <input type="text" placeholder="Search your projects..." className="pp-search-input" />
                     </div>
                     
+                    <button className="pp-filter-btn" onClick={() => setCreateFolderOpen(true)}>
+                        <FolderPlus size={14} style={{ marginRight: '6px' }} />
+                        New Folder
+                    </button>
+
                     <button className="pp-filter-btn">
                         Last edited <ChevronDown size={14} />
                     </button>
