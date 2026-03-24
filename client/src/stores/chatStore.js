@@ -22,6 +22,9 @@ export const useChatStore = create(
             generationLogs: [],
             generationSummary: '',
             generationTaskName: '',
+            generationTheme: '',
+            generationSiteType: '',
+            isConfigured: false,
 
             // Helper to automatically sync project-specific state to projectData
             _sync: (updater) => set((state) => {
@@ -33,15 +36,17 @@ export const useChatStore = create(
                         messages: nextState.messages,
                         generationLogs: nextState.generationLogs,
                         generationPhase: nextState.generationPhase,
-                        generationSummary: nextState.generationSummary,
-                        generationTaskName: nextState.generationTaskName
+                        generationTaskName: nextState.generationTaskName,
+                        generationTheme: nextState.generationTheme,
+                        generationSiteType: nextState.generationSiteType,
+                        isConfigured: nextState.isConfigured
                     };
                     updates.projectData = newProjectData;
                 }
                 return updates;
             }),
             
-            loadProject: async (projectId) => {
+            loadProject: async (projectId, token) => {
                 // Step 1: Instantly restore from localStorage cache (fast UI)
                 set((state) => {
                     const newProjectData = { ...state.projectData };
@@ -67,6 +72,9 @@ export const useChatStore = create(
                             generationPhase: data.generationPhase || 'idle',
                             generationSummary: data.generationSummary || '',
                             generationTaskName: data.generationTaskName || '',
+                            generationTheme: data.generationTheme || '',
+                            generationSiteType: data.generationSiteType || '',
+                            isConfigured: data.isConfigured || false,
                             isGenerating: false
                         };
                     } else {
@@ -81,6 +89,9 @@ export const useChatStore = create(
                             generationPhase: 'idle',
                             generationSummary: '',
                             generationTaskName: '',
+                            generationTheme: '',
+                            generationSiteType: '',
+                            isConfigured: false,
                             isGenerating: false
                         };
                     }
@@ -89,7 +100,10 @@ export const useChatStore = create(
                 // Step 2: Hydrate from DB (skip for timestamp-based fallback IDs)
                 if (projectId && projectId !== 'new' && projectId.length === 24) {
                     try {
-                        const data = await apiClient.getWorkspace(projectId);
+                        const data = await apiClient.getWorkspace(projectId, token);
+                        if (data && data.project) {
+                            set({ isConfigured: !!data.project.isConfigured });
+                        }
                         if (data && data.messages && data.messages.length > 0) {
                             const dbMessages = data.messages.map(m => ({
                                 id: m._id,
@@ -97,7 +111,8 @@ export const useChatStore = create(
                                 content: m.content,
                                 reasoning: m.reasoning,
                                 timestamp: m.createdAt,
-                                status: m.status
+                                status: m.status,
+                                files: m.files || null
                             }));
                             // Only override if DB has real data
                             set((state) => {
@@ -111,6 +126,22 @@ export const useChatStore = create(
                                     projectData: newProjectData
                                 };
                             });
+
+                            // CRITICAL FIXED WORKSPACE HYDRATION
+                            // Find the most recent AI generated codebase and inject it into the Editor Virtual File System
+                            const lastMsgWithFiles = [...dbMessages].reverse().find(m => m.files && Object.keys(m.files).length > 0);
+                            if (lastMsgWithFiles) {
+                                const formattedFiles = {};
+                                Object.entries(lastMsgWithFiles.files).forEach(([path, content]) => {
+                                    formattedFiles[path] = { content: typeof content === 'string' ? content : (content.content || '') };
+                                });
+                                useEditorStore.getState().setFiles(formattedFiles);
+                            } else {
+                                // If the DB has no files (e.g. projects made before the DB fix), 
+                                // FORCE wipe the virtual file system to prevent the currently active
+                                // local storage cache (like FreshCart) from bleeding into old projects.
+                                useEditorStore.getState().setFiles({});
+                            }
                         }
                     } catch (err) {
                         console.warn('[ChatStore] DB hydration skipped:', err.message);
@@ -151,8 +182,33 @@ export const useChatStore = create(
             setGenerationTaskName: (name) => get()._sync({ generationTaskName: name }),
             setDetailsExpanded: (expanded) => set({ isDetailsExpanded: expanded }), // ui state
             
+            // Finalize configuration and start build
+            completeProjectConfig: async (projectId, token, styleOptions) => {
+                try {
+                    // Update project configuration in DB
+                    const config = { ...styleOptions, isConfigured: true };
+                    await apiClient.updateProjectConfig(projectId, config, token);
+                    
+                    set({ isConfigured: true });
+                    
+                    // Add a system message to keep user informed
+                    get().addMessage({ 
+                        role: 'assistant', 
+                        content: `Got it! I'm now building your website using the **${styleOptions.theme}** theme and **${styleOptions.websiteName || 'custom'}** branding.` 
+                    });
+
+                    // Start generation with the first user message as prompt
+                    const firstUserMsg = get().messages.find(m => m.role === 'user');
+                    const prompt = firstUserMsg ? firstUserMsg.content : 'Initial generation';
+                    
+                    await get().startGeneration(prompt, projectId, token, styleOptions);
+                } catch (err) {
+                    console.error('[ChatStore] completeProjectConfig failed:', err);
+                }
+            },
+            
             // ── Real AI Generation via Backend SSE ──
-            startGeneration: async (promptText, projectId) => {
+            startGeneration: async (promptText, projectId, token, styleOptions = {}) => {
                 const currentModel = get().selectedModel || 'qwen';
                 // Reset UI state for new generation
                 get()._sync({ 
@@ -176,7 +232,9 @@ export const useChatStore = create(
                         projectId || 'local_project', 
                         promptText,
                         currentModel,
-                        existingFiles
+                        existingFiles,
+                        styleOptions,
+                        token
                     );
                     
                     const { jobId } = response;
@@ -219,36 +277,44 @@ export const useChatStore = create(
                         let data;
                         try {
                             data = JSON.parse(e.data);
-                        } catch {
+                            // BullMQ sometimes double-serializes: outer parse gives a string
+                            if (typeof data === 'string') {
+                                console.log('[ChatStore] Double-stringified SSE payload detected, parsing again...');
+                                data = JSON.parse(data);
+                            }
+                        } catch (parseErr) {
+                            console.error('[ChatStore] Failed to parse SSE complete data:', parseErr, 'raw:', e.data?.substring(0, 200));
                             data = { summary: 'Generation complete.' };
                         }
+                        
+                        console.log('[ChatStore] Complete event — files:', data.files ? Object.keys(data.files).length : 0, 'previewType:', data.previewType);
                         
                         const editorStore = useEditorStore.getState();
 
                         // Inject generated files into the editorStore VFS
-                        if (data.files) {
-                            // Convert { "path": "content" } to VFS format { "path": { content: "..." } }
-                            const fileMap = {};
-                            for (const [path, content] of Object.entries(data.files)) {
-                                fileMap[path] = { content };
-                            }
-                            editorStore.setFiles(fileMap);
-                            
-                            // Open the first file tab
-                            const firstFile = Object.keys(data.files)[0];
-                            if (firstFile) {
-                                editorStore.setActiveFile(firstFile);
-                            }
+                        if (data.files && Object.keys(data.files).length > 0) {
+                            editorStore.loadGeneratedFiles(data.files);
                         }
 
                         // Set preview type: 'srcdoc' for Track A HTML, 'sandpack' for Track B React
                         const previewType = data.previewType || 'sandpack';
-                        const htmlContent = previewType === 'srcdoc' ? data.files?.['index.html'] : null;
+                        let htmlContent = null;
+                        if (previewType === 'srcdoc' && data.files) {
+                            if (Array.isArray(data.files)) {
+                                const indexFile = data.files.find(f => f.path === 'index.html');
+                                htmlContent = indexFile ? indexFile.content : null;
+                            } else {
+                                htmlContent = data.files['index.html'];
+                                if (typeof htmlContent === 'object') htmlContent = htmlContent.content;
+                            }
+                        }
                         editorStore.setPreview(previewType, htmlContent);
 
                         get()._sync({ 
                             generationPhase: 'complete',
                             generationSummary: data.summary || 'Generation complete.',
+                            generationTheme: data.themeUsed || '',
+                            generationSiteType: data.siteType || '',
                             isGenerating: false,
                         });
                         // Auto-switch to preview so user sees the rendered app
@@ -320,6 +386,8 @@ export const useChatStore = create(
                     generationLogs: [],
                     generationSummary: '',
                     generationTaskName: '',
+                    generationTheme: '',
+                    generationSiteType: '',
                 }),
         }),
         {

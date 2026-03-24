@@ -30,6 +30,7 @@ import { Accordion05 } from '@/components/ui/accordion-05'
 import { GooeyText } from '@/components/ui/gooey-text-morphing'
 import { motion } from 'framer-motion'
 import ThemePicker from '../components/ThemePicker'
+// import WebsiteStylePicker from '../components/editor/WebsiteStylePicker'
 import './LandingPage.css'
 
 // ─── Premium scroll animation variants ───
@@ -284,13 +285,16 @@ export default function LandingPage() {
 
     const handleSend = () => {
         if (inputValue.trim()) {
+            const params = new URLSearchParams({
+                prompt: inputValue.trim()
+            });
+
             if (!isSignedIn) {
-                // Open modal instead of redirecting to /login page
                 clerk.openSignIn({
-                    fallbackRedirectUrl: `/chat/new?prompt=${encodeURIComponent(inputValue.trim())}&model=${encodeURIComponent(selectedModel)}`
+                    fallbackRedirectUrl: `/chat/new?${params.toString()}`
                 });
             } else {
-                navigate(`/chat/new?prompt=${encodeURIComponent(inputValue.trim())}&model=${encodeURIComponent(selectedModel)}`)
+                navigate(`/chat/new?${params.toString()}`)
             }
         }
     }
@@ -388,6 +392,8 @@ export default function LandingPage() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ duration: 0.7, delay: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
                     >
+                        {/* 5-STEP PIPELINE: Style Intake - DEPRECATED here, moved to Dashboard */}
+
                         <div className="hero-prompt-box">
                             <textarea
                                 value={inputValue}

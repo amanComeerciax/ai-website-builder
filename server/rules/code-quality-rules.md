@@ -22,7 +22,7 @@
 - No TODO comments
 - No lorem ipsum text
 - Copyright year: new Date().getFullYear()
-- Every component must have a default export
+- Every component file MUST have exactly one `export default ComponentName;` at the bottom!
 - Use proper ES6 imports at the top of every file
 - No TypeScript syntax (no type annotations, no interfaces)
 - Mock all data inline — no fetch calls, no API requests

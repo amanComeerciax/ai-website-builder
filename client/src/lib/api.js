@@ -61,9 +61,22 @@ class ApiClient {
         }, token)
     }
 
+    updateProjectConfig(id, config, token) {
+        return this.request(`/projects/${id}/config`, {
+            method: 'PATCH',
+            body: JSON.stringify(config),
+        }, token)
+    }
+
     deleteProject(id, token) {
         return this.request(`/projects/${id}`, {
             method: 'DELETE',
+        }, token)
+    }
+
+    toggleStar(id, token) {
+        return this.request(`/projects/${id}/star`, {
+            method: 'PUT',
         }, token)
     }
 
@@ -80,10 +93,16 @@ class ApiClient {
     }
 
     // ── Generation ──
-    startGeneration(projectId, prompt, model, existingFiles = null, token) {
+    startGeneration(projectId, prompt, model, existingFiles = null, styleOptions = {}, token) {
         return this.request('/generate', {
             method: 'POST',
-            body: JSON.stringify({ projectId, prompt, model: model || 'qwen', existingFiles }),
+            body: JSON.stringify({ 
+                projectId, 
+                prompt, 
+                model: model || 'qwen', 
+                existingFiles,
+                ...styleOptions
+            }),
         }, token)
     }
 

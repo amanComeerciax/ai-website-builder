@@ -247,6 +247,16 @@
     margin: 0 auto 3.5rem;
 }
 
+/* Style Picker override for Landing Page */
+.hero-prompt-wrapper .website-style-picker {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+    padding: 1.25rem;
+}
+
 .hero-prompt-box {
     background: var(--bg-landing);
     border: 1px solid var(--border-subtle);

@@ -1,6 +1,7 @@
 const { generationQueue } = require('../services/queue.js');
 const { QueueEvents } = require('bullmq');
 const IORedis = require('ioredis');
+const { getThemeList } = require('../config/themeRegistry.js');
 // Ensure worker is spawned when routes load
 require('../workers/aiWorker.js');
 
@@ -10,10 +11,19 @@ const Message = require('../models/Message');
 const express = require("express")
 const router = express.Router()
 
+// ── GET /api/generate/themes — Return available themes for the frontend picker ──
+router.get("/themes", (req, res) => {
+    res.json({ themes: getThemeList() });
+})
+
 // ── POST /api/generate — Start AI generation ──
 router.post("/", async (req, res, next) => {
     try {
-        const { projectId, prompt, model, existingFiles } = req.body
+        const { 
+            projectId, prompt, model, existingFiles,
+            // New fields for enhanced pipeline
+            theme, websiteName, description, logoUrl, brandColors
+        } = req.body
 
         if (!projectId || !prompt) {
             return res.status(400).json({ error: "projectId and prompt are required" })
@@ -51,8 +61,16 @@ router.post("/", async (req, res, next) => {
             projectId,
             existingFiles,
             messageId: assistantMessageId,
-            model: model || 'qwen', // 'qwen' (default with fallback) or 'mistral' (direct)
-            userId: "local_test_user"
+            model: model || 'qwen',
+            userId: "local_test_user",
+            // Pass enhanced pipeline options to the worker
+            enhanceOptions: {
+                theme: theme || 'modern-dark',
+                websiteName: websiteName || null,
+                description: description || null,
+                logoUrl: logoUrl || null,
+                brandColors: brandColors || null,
+            }
         });
 
         console.log(`[API Generate] Job ${job.id} dispatched for project ${projectId} (bound Msg ID: ${assistantMessageId})`);
@@ -115,8 +133,23 @@ router.get("/stream/:jobId", async (req, res) => {
     // Listen for job completion
     queueEvents.on('completed', ({ jobId: id, returnvalue }) => {
         if (id === req.params.jobId) {
-            // returnvalue is a JavaScript Object in BullMQ v5, so we MUST JSON.stringify it for SSE
-            const stringifiedData = typeof returnvalue === 'object' ? JSON.stringify(returnvalue) : (returnvalue || '"done"');
+            // BullMQ v5: returnvalue can be an Object, a JSON string, or undefined.
+            // We must ensure we send a valid JSON string to SSE exactly once.
+            let stringifiedData;
+            if (typeof returnvalue === 'string') {
+                // Already a string — check if it's valid JSON, if so use directly
+                try {
+                    JSON.parse(returnvalue); // validate
+                    stringifiedData = returnvalue;
+                } catch {
+                    stringifiedData = JSON.stringify({ summary: returnvalue });
+                }
+            } else if (returnvalue && typeof returnvalue === 'object') {
+                stringifiedData = JSON.stringify(returnvalue);
+            } else {
+                stringifiedData = JSON.stringify({ summary: 'Generation complete.' });
+            }
+            console.log(`[SSE] Sending complete event (${stringifiedData.length} chars) for job ${id}`);
             res.write(`event: complete\ndata: ${stringifiedData}\n\n`);
             cleanup();
         }

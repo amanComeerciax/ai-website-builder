@@ -37,7 +37,21 @@ const projectSchema = new mongoose.Schema(
     techStack: {
       type: String,
       default: 'react'
-    }
+    },
+    isStarred: {
+      type: Boolean,
+      default: false
+    },
+    // 5-STEP PIPELINE CONFIG
+    isConfigured: {
+      type: Boolean,
+      default: false
+    },
+    theme: { type: String, default: null },
+    websiteName: { type: String, default: null },
+    description: { type: String, default: null },
+    logoUrl: { type: String, default: null },
+    brandColors: { type: [String], default: [] }
   },
   { timestamps: true }
 );

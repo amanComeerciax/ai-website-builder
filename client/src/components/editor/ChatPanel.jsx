@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { useAuth } from '@clerk/clerk-react'
 import { 
     Send, Bot, User, Lightbulb, RefreshCw, Package, 
     FileEdit, FilePlus, Bookmark, ThumbsUp, ThumbsDown, 
     Copy, MoreHorizontal, Plus, MousePointer2, MessageSquare, 
-    Mic, ArrowUp, ChevronRight, ChevronDown, Cpu, Cloud
+    Mic, ArrowUp, ArrowRight, ChevronRight, ChevronDown, Cpu, Cloud,
+    Palette, ExternalLink, Sparkles
 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
+import WebsiteStylePicker from './WebsiteStylePicker'
 import './ChatPanel.css'
 
 export default function ChatPanel() {
@@ -14,12 +17,22 @@ export default function ChatPanel() {
     const { 
         messages, isGenerating, generationPhase, generationLogs, 
         generationSummary, generationTaskName, isDetailsExpanded,
-        isIdeVisible, selectedModel,
-        addMessage, startGeneration, setDetailsExpanded, setIdeVisible, setSelectedModel
+        isIdeVisible, selectedModel, generationTheme, generationSiteType,
+        isConfigured, addMessage, startGeneration, setDetailsExpanded, 
+        setIdeVisible, setSelectedModel, completeProjectConfig
     } = useChatStore()
+    const { getToken } = useAuth()
     
     const [input, setInput] = useState('')
     const [isThoughtExpanded, setIsThoughtExpanded] = useState(false)
+    const [configStep, setConfigStep] = useState(0)
+    const [styleOptions, setStyleOptions] = useState({ 
+        theme: 'modern-dark', 
+        websiteName: '', 
+        description: '', 
+        logoUrl: '', 
+        brandColors: [] 
+    })
     const messagesEndRef = useRef(null)
 
     useEffect(() => {
@@ -32,7 +45,33 @@ export default function ChatPanel() {
 
         addMessage({ role: 'user', content: trimmed })
         setInput('')
-        startGeneration(trimmed, projectId)
+        
+        // GATING: Only generate if configured
+        if (!isConfigured) {
+            // Delay for natural feel
+            setTimeout(() => {
+                addMessage({ 
+                    role: 'assistant', 
+                    content: "I'm still waiting for you to complete the design setup above! Please finish the steps so I can start building your site correctly. 😊" 
+                });
+            }, 600);
+            return;
+        }
+
+        // CHATBOT LOGIC: Don't build for simple greetings
+        const greetings = ['hi', 'hello', 'hey', 'yo', 'sup', 'hola'];
+        if (greetings.includes(trimmed.toLowerCase().replace(/[?.,!]/g, ''))) {
+            setTimeout(() => {
+                addMessage({ 
+                    role: 'assistant', 
+                    content: "Hello! I'm your AI builder. How can I help you with your website today?" 
+                });
+            }, 600);
+            return;
+        }
+
+        // Pass the style options (theme + brand info) to the generator
+        startGeneration(trimmed, projectId, null, styleOptions)
     }
 
     const actionChips = [
@@ -57,6 +96,37 @@ export default function ChatPanel() {
             case 'Creating': return <FilePlus size={16} className="cp-log-icon cp-teal" />
             default: return null
         }
+    }
+
+    const handleNextStep = async () => {
+        const token = await getToken();
+        
+        // 1. Add User "Message" reflecting the choice
+        let userContent = "";
+        let assistantNext = "";
+        
+        if (configStep === 0) {
+            userContent = `I choose the **${styleOptions.theme}** theme.`;
+            assistantNext = "Great! What should we name your website?";
+        } else if (configStep === 1) {
+            userContent = `The name is **${styleOptions.websiteName}**.`;
+            assistantNext = "Nice name! Can you give me a short description of what your website or business is about?";
+        } else if (configStep === 2) {
+            userContent = `Description: ${styleOptions.description}`;
+            assistantNext = "Perfect. Lastly, do you have a logo URL or specific hex colors you'd like to use? (Optional)";
+        } else if (configStep === 3) {
+            // Finalize!
+            completeProjectConfig(projectId, token, styleOptions);
+            return;
+        }
+
+        addMessage({ role: 'user', content: userContent });
+        
+        // Delay assistant message slightly for more natural feel
+        setTimeout(() => {
+            addMessage({ role: 'assistant', content: assistantNext });
+            setConfigStep(prev => prev + 1);
+        }, 600);
     }
 
     return (
@@ -131,7 +201,14 @@ export default function ChatPanel() {
                         {generationPhase === 'complete' && (
                             <div className="cp-completion-card">
                                 <div className="cp-cc-header">
-                                    <span className="cp-cc-title">{generationTaskName}</span>
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="cp-cc-title">{generationTaskName}</span>
+                                        {generationTheme && (
+                                            <span className="text-[10px] text-[#888] flex items-center gap-1">
+                                                <Palette size={10} className="text-[#3a3aff]" /> {generationTheme} • {generationSiteType || 'Website'}
+                                            </span>
+                                        )}
+                                    </div>
                                     <button className="cp-icon-btn"><Bookmark size={18} /></button>
                                 </div>
 
@@ -187,6 +264,65 @@ export default function ChatPanel() {
 
             {/* INPUT AREA */}
             <div className="cp-input-area">
+                {/* CONVERSATIONAL PIPELINE: Multi-step Intake */}
+                {!isConfigured && !isGenerating && (
+                    <div style={{ marginBottom: '16px' }}>
+                        <div className="website-style-picker-container">
+                            <WebsiteStylePicker 
+                                step={configStep} 
+                                value={styleOptions} 
+                                onChange={setStyleOptions} 
+                            />
+                        </div>
+                        <button 
+                            style={{
+                                width: '100%', padding: '14px 20px',
+                                background: configStep === 3 
+                                    ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' 
+                                    : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                                color: '#fff', border: 'none',
+                                borderRadius: '14px', fontSize: '14px', fontWeight: '600',
+                                cursor: 'pointer', display: 'flex',
+                                alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                boxShadow: configStep === 3 
+                                    ? '0 4px 20px rgba(139,92,246,0.3)' 
+                                    : '0 4px 20px rgba(59,130,246,0.25)',
+                                transition: 'all 0.3s ease',
+                                marginTop: '12px',
+                                letterSpacing: '-0.01em',
+                            }}
+                            onClick={handleNextStep}
+                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.filter = 'brightness(1.1)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.filter = 'brightness(1)'; }}
+                        >
+                            {configStep === 3 ? (
+                                <><Sparkles size={16} /> Build Your Website</>
+                            ) : (
+                                <>Continue <ArrowRight size={16} /></>
+                            )}
+                        </button>
+                        
+                        {configStep > 0 && (
+                            <button 
+                                style={{
+                                    width: '100%', padding: '10px',
+                                    background: 'transparent', color: 'rgba(255,255,255,0.35)',
+                                    border: 'none', borderRadius: '10px',
+                                    fontSize: '12px', fontWeight: '500',
+                                    cursor: 'pointer', marginTop: '6px',
+                                    transition: 'all 0.2s',
+                                    letterSpacing: '-0.01em',
+                                }}
+                                onClick={() => setConfigStep(prev => prev - 1)}
+                                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+                            >
+                                ← Back to previous step
+                            </button>
+                        )}
+                    </div>
+                )}
+
                 <div className="cp-input-tabs">
                     <button className="cp-input-tab-left">&larr; Back to Preview</button>
                     <button className="cp-input-tab-right active">Details</button>

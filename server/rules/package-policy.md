@@ -39,13 +39,14 @@ If NO → there is a dependency violation. Fix it before returning.
 
 ### ALLOWED packages — ONLY these, nothing else:
 ```
+next
 react
 react-dom
-react-router-dom
 react-hook-form
 @tanstack/react-query
 axios
-lucide-react
+lucide-react     (WARNING: use exact icon names! NEVER use CartIcon, MenuIcon. Use ShoppingCart, Menu, etc.)
+react-router-dom
 clsx
 tailwind-merge
 date-fns
@@ -54,6 +55,7 @@ framer-motion
 @radix-ui/react-dropdown-menu
 @radix-ui/react-select
 recharts
+react-is
 react-hot-toast
 zustand
 zod
@@ -62,7 +64,7 @@ zod
 
 ### PERMANENTLY BLOCKED packages — NEVER import these:
 ```
-react-scroll     (use scrollIntoView() instead)
+next             (use react-router-dom for routing instead)
 react-slick      (use CSS scroll snap instead)
 react-spring     (use framer-motion instead)
 moment           (use date-fns instead)

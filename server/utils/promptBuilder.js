@@ -25,10 +25,10 @@ function buildPhase1Prompt(userPrompt) {
     'IMPORTANT — outputTrack field:',
     '  Set outputTrack to "html" for: landing pages, portfolios, restaurant/bakery/coffee shop sites,',
     '  blogs, simple websites, any single-page or "simple" request without explicit framework.',
-    '  Set outputTrack to "react" for: dashboards, SaaS apps, e-commerce with cart/auth,',
-    '  admin panels, multi-page apps with routing, AND anytime the user explicitly asks for React, Vite, Next.js, full-stack, or MERN.',
+    '  Set outputTrack to "nextjs" for: dashboards, SaaS apps, e-commerce with cart/auth,',
+    '  admin panels, multi-page apps with routing, AND anytime the user explicitly asks for React, Next.js, full-stack, or MERN.',
     '',
-    'If the user explicitly requests React/Vite/full-stack, you MUST use "react".',
+    'If the user explicitly requests React/Next.js/full-stack, you MUST use "nextjs".',
     'Otherwise, when in doubt or for simple sites, default to "html". It is faster and previews instantly.',
     '',
     'Return ONLY valid JSON with this shape (no markdown fences, no explanations):',
@@ -36,7 +36,7 @@ function buildPhase1Prompt(userPrompt) {
     '  "classification": "new_site|edit_existing|add_feature|style_change",',
     '  "siteType": "string",',
     '  "pageType": "landing|dashboard|portfolio|ecommerce|blog|docs",',
-    '  "outputTrack": "html|react",',
+    '  "outputTrack": "html|nextjs",',
     '  "vaguePhrases": [{"phrase": "string", "interpretation": "string"}],',
     '  "assumptions": ["string"],',
     '  "colorPreference": "light|dark|auto",',
@@ -54,14 +54,26 @@ function buildPhase1Prompt(userPrompt) {
  * Phase 2: Plan the file structure (Mistral)
  * Takes Phase 1 output and produces a file tree + design decisions.
  */
-function buildPhase2Prompt(phase1JSON) {
+function buildPhase2Prompt(spec) {
   const rules = getRulesForPhase('phase2');
 
   const systemPrompt = [
     'You are a senior frontend architect.',
-    'Given an analyzed request, plan the complete file structure and design system.',
+    'Given an analyzed request and theme specification, plan the complete file structure and design system.',
     '',
     rules,
+    '',
+    '=== DESIGN SYSTEM CONSTRAINTS ===',
+    `Theme: ${spec.themeName || 'Modern Dark'}`,
+    `Colors: ${JSON.stringify(spec.colorScheme || {})}`,
+    `Fonts: ${JSON.stringify(spec.fontPair || {})}`,
+    '',
+    '=== CRITICAL FILE LIMIT CONSTRAINT ===',
+    'You MUST restrict the fileTree to the absolute core. STRICTLY MAXIMUM 12 FILES TOTAL.',
+    'Do NOT use TypeScript. All files must use .jsx or .js extensions.',
+    'Do NOT create separate files for simple components like Button, Input, Card, or Modals. Use standard HTML tags or inline them.',
+    'Do NOT create separate Context files if not strictly necessary.',
+    'Combine logic where possible. IMPORTANT: Use standard React Vite conventions (e.g. src/App.jsx, src/index.css).',
     '',
     'Return ONLY valid JSON with this shape:',
     '{',
@@ -74,7 +86,16 @@ function buildPhase2Prompt(phase1JSON) {
     'No markdown fences, no explanations.'
   ].join('\n');
 
-  const userMessage = `Plan the file structure for this analyzed request:\n\n${JSON.stringify(phase1JSON, null, 2)}`;
+  const userMessage = [
+    `Plan the file structure for this enriched request:`,
+    '',
+    `Business Name: ${spec.businessName || 'App'}`,
+    `Site Type: ${spec.siteType || 'website'}`,
+    `Requested Sections: ${(spec.sections || []).join(', ')}`,
+    '',
+    `Technical Spec:`,
+    JSON.stringify(spec, null, 2)
+  ].join('\n');
 
   return { systemPrompt, userMessage };
 }
@@ -108,27 +129,45 @@ function buildTrackAPrompt(sitePlan) {
   ].join('\n');
 
   const sections = (sitePlan.sections || ['hero', 'features', 'about', 'contact', 'footer']).join(', ');
-  const isDark = sitePlan.colorPreference === 'dark';
-  const colorTheme = isDark 
-    ? 'dark theme: background #0f0f0f, surface #1a1a1a, text #e8e8e8, accent a vibrant color' 
-    : 'light theme: background #f8f8f6, surface #ffffff, text #1a1a1a, accent a vibrant color';
+  
+  // Use enriched spec for colors and fonts if available
+  const colors = sitePlan.colorScheme || {};
+  const fontPair = sitePlan.fontPair || {};
+  
+  const colorTheme = sitePlan.themeName 
+    ? `THEME: ${sitePlan.themeName.toUpperCase()}
+       Background: ${colors.bg || '#09090b'}, Surface: ${colors.surface || '#18181b'}, 
+       Text: ${colors.text || '#fafafa'}, Accent: ${colors.accent || '#3b82f6'}`
+    : (sitePlan.colorPreference === 'dark'
+        ? 'ELITE DARK: background #09090b (Zinc-950), surface #18181b (Zinc-900) with subtle borders, text #fafafa, accent: use a vibrant sapphire or emerald'
+        : 'ELITE LIGHT: background #fafafa (Zinc-50), surface #ffffff with soft shadows, text #09090b, accent: use a premium professional blue or violet');
 
   const userMessage = [
     `Build a complete, stunning, responsive ${sitePlan.siteType || 'website'} as a single HTML file.`,
     '',
-    `Color theme: ${colorTheme}`,
+    colorTheme,
+    fontPair.heading ? `Typography: ${fontPair.heading} for headings, ${fontPair.body} for body text` : '',
+    sitePlan.styleKeywords?.length ? `Style notes: ${sitePlan.styleKeywords.join('; ')}` : '',
     `Target audience: ${sitePlan.targetAudience || 'general audience'}`,
     `Sections: ${sections}`,
-    sitePlan.vaguePhrases?.length ? `Style notes: ${sitePlan.vaguePhrases.map(v => v.interpretation).join('; ')}` : '',
+    sitePlan.vaguePhrases?.length ? `Additional notes: ${sitePlan.vaguePhrases.map(v => v.interpretation).join('; ')}` : '',
     '',
-    'QUALITY REQUIREMENTS:',
+    'CONTENT DENSITY REQUIREMENTS (CRITICAL):',
+    '- EVERY section MUST have fully rendered content — NOT just a heading with empty space',
+    '- Cards/grids: minimum 3 items per section, ideally 4-6',
+    '- For images: use https://placehold.co/600x400/1a1a2e/ffffff?text=Section+Name format',
+    '- Use CSS gradients as decorative backgrounds: background: linear-gradient(135deg, #1a1a2e, #16213e)',
+    '- Each card MUST include: an icon or image, a title, and description text',
+    '- Testimonials: include 3 review cards with quote, name, and star rating',
+    '- Gallery: include 6-8 image cards using placehold.co URLs in a responsive grid',
+    '- NEVER create a section with only a heading and blank space below it',
+    '',
+    'VISUAL QUALITY REQUIREMENTS:',
     '- Use Tailwind CSS classes for all styling (loaded from CDN)',
     '- Load Google Fonts via <link> tag for professional typography',
     '- Add smooth hover effects and subtle CSS transitions on interactive elements',
     '- Make navigation links use scrollIntoView for smooth scrolling (NO react-scroll)',
-    '- Use placehold.co URLs for any images',
     '- Include real, meaningful content (not lorem ipsum)',
-    '- All sections must be fully implemented — not just skeleton/placeholder',
     '',
     'YOUR RESPONSE MUST START WITH: <!DOCTYPE html>',
     'YOUR RESPONSE MUST END WITH: </html>',

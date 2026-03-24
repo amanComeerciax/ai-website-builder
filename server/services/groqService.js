@@ -9,7 +9,7 @@
  */
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MAX_RETRIES = 2;
 
@@ -48,6 +48,7 @@ async function callGroq(systemPrompt, userMessage, options = {}) {
             { role: 'user', content: userMessage }
           ],
           temperature,
+          max_tokens: 8192,
           response_format: jsonMode ? { type: 'json_object' } : undefined
         })
       });

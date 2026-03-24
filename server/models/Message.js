@@ -26,6 +26,10 @@ const messageSchema = new mongoose.Schema(
       ref: 'Version',
       default: null
     },
+    files: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    },
     filesChanged: [{
       path: String,
       action: { type: String, enum: ['create', 'edit', 'delete'] }

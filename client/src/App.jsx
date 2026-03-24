@@ -7,6 +7,7 @@ import PricingPage from './pages/PricingPage'
 import DashboardLayout from './layouts/DashboardLayout'
 import ProjectsPage from './pages/ProjectsPage'
 import AuthPage from './pages/AuthPage'
+import { Toaster } from 'react-hot-toast'
 
 const ProtectedRoute = ({ children }) => (
   <>
@@ -30,6 +31,7 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <>
+      <Toaster position="top-center" reverseOrder={false} />
       {/* Fallback full-screen dark loading spinner before Clerk calculates session payload. 
           Stops FOUC (flash of unauthenticated content) on deep links */}
       <ClerkLoading>

@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Plus, Mic, ArrowUp, MessageSquare } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import { useAuthStore } from '../stores/authStore'
 import { useProjectStore } from '../stores/projectStore'
+import WebsiteStylePicker from '../components/editor/WebsiteStylePicker'
 import './DashboardPage.css'
 
 // Rotating placeholder
@@ -18,12 +19,14 @@ const PROMPTS = [
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { isLoaded, isSignedIn, getToken } = useAuth()
+  const { user: clerkUser } = useUser()
   const { userData, fetchUserData } = useAuthStore()
   const [promptValue, setPromptValue] = useState('')
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
   const [placeholder, setPlaceholder] = useState('')
   const [charIdx, setCharIdx] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [styleOptions, setStyleOptions] = useState(null)
   const textareaRef = useRef(null)
   
   const { createProject } = useProjectStore()
@@ -61,7 +64,7 @@ export default function DashboardPage() {
     return () => clearTimeout(timeout)
   }, [charIdx, isDeleting, placeholderIdx])
 
-  const userName = userData?.email ? userData.email.split('@')[0] : 'User';
+  const userName = userData?.name || clerkUser?.fullName || clerkUser?.username || userData?.email?.split('@')[0] || 'User';
 
   const handleInput = () => {
     if (textareaRef.current) {
@@ -70,13 +73,17 @@ export default function DashboardPage() {
     }
   }
 
-  const handleSend = async () => {
-    const trimmed = promptValue.trim()
-    if (trimmed) {
-      const newProjectId = await createProject(trimmed)
-      navigate(`/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`)
+    const handleSend = async () => {
+        const trimmed = promptValue.trim()
+        if (trimmed) {
+            const token = await getToken();
+            const newProjectId = await createProject(trimmed, token);
+            
+            // Redirect to the real project URL — no more style params here!
+            const url = `/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`;
+            navigate(url);
+        }
     }
-  }
 
   if (!isLoaded) {
     return null

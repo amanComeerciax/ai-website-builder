@@ -35,8 +35,20 @@ app.use("/api/", apiLimiter)
 // ── Body Parsing ──
 app.use(express.json({ limit: "10mb" }))
 
-// Clerk middleware intentionally removed from global scope to prevent hanging
-// on public routes like /health and /generate.
+// ── Global Middleware ──
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+        console.log(`[Request] ${req.method} ${req.path} | Auth: ${req.headers.authorization ? 'Bearer Present' : 'NONE'}`);
+    }
+    next();
+});
+
+console.log(`[Server] Clerk Secret Key present: ${!!process.env.CLERK_SECRET_KEY}`);
+app.use(clerkMiddleware({
+    publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+    secretKey: process.env.CLERK_SECRET_KEY,
+    debug: true
+}))
 
 // ── Routes ──
 app.use("/api/auth", authRoutes)

@@ -1,6 +1,7 @@
 const { Worker } = require('bullmq');
 const IORedis = require('ioredis');
 const { callModel } = require('../services/modelRouter.js');
+const { enhance } = require('../services/promptEnhancer.js');
 const { 
   buildPhase1Prompt, 
   buildPhase2Prompt, 
@@ -10,6 +11,7 @@ const {
 } = require('../utils/promptBuilder.js');
 const { validateFile } = require('../utils/codeValidator.js');
 const { getRulesForPhase } = require('../utils/ruleLoader.js');
+const { sanitizeReactCode } = require('../utils/codeFixer.js');
 
 const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0.1:6379', {
   maxRetriesPerRequest: null,
@@ -31,7 +33,7 @@ const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0
  */
 const aiWorker = new Worker('AI_Generation_Queue', async job => {
   console.log(`[Worker] Job ${job.id} started for project: ${job.data.projectId}`);
-  const { prompt, model, existingFiles } = job.data;
+  const { prompt, model, existingFiles, enhanceOptions } = job.data;
   if (!prompt) throw new Error("Missing 'prompt' in job data");
 
   // Build existing files context string for edit/iterate requests
@@ -44,41 +46,50 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     }
   }
 
-  // ─── PHASE 1: PARSE PROMPT (Mistral) ─────────────────────────────
+  // ─── STEP 1 & 2: INTAKE + ENHANCE (PromptEnhancer) ──────────────
   await job.updateProgress({
     event: 'thinking',
     payload: { message: 'Understanding your request...' }
   });
 
-  let sitePlan;
+  let enhanced;
   try {
-    const { systemPrompt, userMessage } = buildPhase1Prompt(prompt);
-    const fullMessage = contextString ? `${userMessage}\n\n${contextString}` : userMessage;
-    const result = await callModel('parse_prompt', fullMessage, systemPrompt);
-    sitePlan = JSON.parse(result.content);
-    console.log(`[Worker] Phase 1 ✅ — ${result.model} — track: ${sitePlan.outputTrack || 'html'}, type: ${sitePlan.siteType}`);
+    enhanced = await enhance(prompt, enhanceOptions || {});
+    console.log(`[Worker] PromptEnhancer ✅ — site: ${enhanced.siteType}, theme: ${enhanced.themeName}, track: ${enhanced.outputTrack}`);
   } catch (e) {
-    console.warn(`[Worker] Phase 1 failed, using defaults:`, e.message);
-    sitePlan = {
-      classification: 'new_site',
-      siteType: 'website',
-      pageType: 'landing',
-      outputTrack: 'html', // ← default to HTML (always works, always previews)
-      vaguePhrases: [],
-      assumptions: [],
-      colorPreference: 'dark',
-      targetAudience: 'general',
-      sections: ['hero', 'features', 'about', 'contact', 'footer']
+    console.warn(`[Worker] PromptEnhancer failed, using legacy Phase 1:`, e.message);
+    // Fallback to legacy Phase 1 if enhancer fails
+    let sitePlan;
+    try {
+      const { systemPrompt, userMessage } = buildPhase1Prompt(prompt);
+      const fullMessage = contextString ? `${userMessage}\n\n${contextString}` : userMessage;
+      const result = await callModel('parse_prompt', fullMessage, systemPrompt);
+      sitePlan = JSON.parse(result.content);
+    } catch (_) {
+      sitePlan = {
+        classification: 'new_site', siteType: 'website', pageType: 'landing',
+        outputTrack: 'html', vaguePhrases: [], assumptions: [],
+        colorPreference: 'dark', targetAudience: 'general',
+        sections: ['hero', 'features', 'about', 'contact', 'footer']
+      };
+    }
+    enhanced = {
+      enrichedSpec: sitePlan,
+      enhancedPrompt: prompt,
+      siteType: sitePlan.siteType || 'website',
+      themeName: 'Modern Dark',
+      outputTrack: sitePlan.outputTrack === 'nextjs' ? 'react' : 'html',
     };
   }
 
-  // Default to Track A (HTML) if Mistral doesn't return a track
-  const outputTrack = sitePlan.outputTrack === 'react' ? 'react' : 'html';
+  const sitePlan = enhanced.enrichedSpec;
+
+  const outputTrack = enhanced.outputTrack === 'react' ? 'react' : 'html';
   console.log(`[Worker] ▶ Using Track ${outputTrack === 'html' ? 'A (HTML/instant preview)' : 'B (React/Sandpack)'}`);
 
   await job.updateProgress({
     event: 'log',
-    payload: { type: 'Reading', file: 'prompt analysis', message: `${sitePlan.siteType} → Track ${outputTrack === 'html' ? 'A' : 'B'}` }
+    payload: { type: 'Reading', file: 'prompt analysis', message: `${enhanced.siteType} (${enhanced.themeName}) → Track ${outputTrack === 'html' ? 'A' : 'B'}` }
   });
 
   // ════════════════════════════════════════════
@@ -87,7 +98,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   if (outputTrack === 'html') {
     await job.updateProgress({
       event: 'thinking',
-      payload: { message: 'Generating your website...' }
+      payload: { message: `Generating ${enhanced.siteType} website with ${enhanced.themeName} theme...` }
     });
 
     await job.updateProgress({
@@ -96,12 +107,21 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     });
 
     let htmlContent = null;
-    const { systemPrompt, userMessage } = buildTrackAPrompt(sitePlan);
+    // Use the enriched spec for Track A prompt building
+    const trackASpec = {
+      ...enhanced.enrichedSpec,
+      siteType: enhanced.siteType,
+      colorPreference: enhanced.enrichedSpec.colorPreference || 'dark',
+    };
+    const { systemPrompt, userMessage } = buildTrackAPrompt(trackASpec);
+    
+    // Prepend the enhanced prompt to give the LLM our full technical spec
+    const enhancedUserMessage = `${enhanced.enhancedPrompt}\n\n---\n\n${userMessage}`;
     
     // Build user message with any context (for edit requests)
     const fullUserMessage = contextString 
-      ? `${userMessage}\n\nExisting files to update:\n${contextString}`
-      : userMessage;
+      ? `${enhancedUserMessage}\n\nExisting files to update:\n${contextString}`
+      : enhancedUserMessage;
 
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
@@ -159,7 +179,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
     // Phase 4: Summarize
     let summary = 'Generated your website successfully.';
-    let appName = sitePlan.siteType || 'Website';
+    let appName = sitePlan.businessName || sitePlan.siteType || 'Website';
     let suggestedActions = ['Make it dark mode', 'Add more sections', 'Change the color scheme', 'Add animations'];
 
     try {
@@ -173,7 +193,23 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
       console.warn(`[Worker] Phase 4 summary failed (non-fatal):`, e.message);
     }
 
-    console.log(`[Worker] Job ${job.id} complete — Track A — "${appName}"`);
+    console.log(`[Worker] Job ${job.id} complete — Track A — "${appName}" — Theme: ${enhanced.themeName}`);
+
+    const finalFiles = { 'index.html': htmlContent };
+
+    if (job.data.messageId) {
+      try {
+        const Message = require('../models/Message');
+        await Message.findByIdAndUpdate(job.data.messageId, {
+          status: 'done',
+          content: summary,
+          files: finalFiles
+        });
+        console.log(`[Worker] Saved Track A HTML to DB Message ${job.data.messageId}`);
+      } catch (saveErr) {
+        console.error(`[Worker] Failed to save HTML to DB for Message ${job.data.messageId}:`, saveErr.message);
+      }
+    }
 
     // Return Track A result: previewType tells the frontend to use srcdoc
     return {
@@ -182,9 +218,9 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
       suggestedActions,
       outputTrack: 'html',
       previewType: 'srcdoc',  // ← frontend uses iframe srcdoc for instant preview
-      files: {
-        'index.html': htmlContent
-      }
+      files: finalFiles,
+      themeUsed: enhanced.themeName,
+      siteType: enhanced.siteType,
     };
   }
 
@@ -192,15 +228,20 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   // ── TRACK B: React multi-file (Sandpack preview)
   // ════════════════════════════════════════════
 
-  // Phase 2: Plan structure (Mistral)
+  // Phase 2: Plan structure (Mistral) — enhanced spec provides colors/fonts
   await job.updateProgress({
     event: 'thinking',
-    payload: { message: 'Planning structure...' }
+    payload: { message: `Planning ${enhanced.siteType} app structure (${enhanced.themeName} theme)...` }
   });
 
   let filePlan;
   try {
-    const { systemPrompt, userMessage } = buildPhase2Prompt(sitePlan);
+    const phase2Input = {
+      ...enhanced.enrichedSpec,
+      siteType: enhanced.siteType,
+      outputTrack: 'react',
+    };
+    const { systemPrompt, userMessage } = buildPhase2Prompt(phase2Input);
     const result = await callModel('plan_structure', userMessage, systemPrompt);
     filePlan = JSON.parse(result.content);
     if (!Array.isArray(filePlan.fileTree)) {
@@ -217,10 +258,10 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
         { path: 'src/App.jsx', purpose: 'Main entry component', imports: [], exports: ['default'] },
         { path: 'src/index.css', purpose: 'Global styles' }
       ],
-      sections: sitePlan.sections || ['hero', 'features', 'footer'],
-      colorScheme: { bg: '#0f0f0f', surface: '#1a1a1a', text: '#e8e8e8', accent: '#3b82f6' },
-      fontPair: { heading: 'Syne', body: 'DM Sans' },
-      projectGlossary: { AppName: 'App' }
+      sections: enhanced.enrichedSpec.sections || ['hero', 'features', 'footer'],
+      colorScheme: enhanced.enrichedSpec.colorScheme || { bg: '#0f0f0f', surface: '#1a1a1a', text: '#e8e8e8', accent: '#3b82f6' },
+      fontPair: enhanced.enrichedSpec.fontPair || { heading: 'Syne', body: 'DM Sans' },
+      projectGlossary: { AppName: enhanced.enrichedSpec.businessName || 'App' }
     };
   }
 
@@ -229,15 +270,13 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     payload: { type: 'Reading', file: 'project structure', message: `Planned ${filePlan.fileTree.length} files` }
   });
 
-  for (const file of filePlan.fileTree) {
-    await job.updateProgress({
-      event: 'log',
-      payload: { type: 'Creating', file: file.path }
-    });
-    await new Promise(r => setTimeout(r, 150));
-  }
+  // Show planned files as a summary (not individual fake "Creating" logs)
+  await job.updateProgress({
+    event: 'thinking',
+    payload: { message: `Generating ${filePlan.fileTree.length} files...` }
+  });
 
-  // Phase 3: Generate React code (Qwen → Groq fallback)
+  // Phase 3: Generate React code (Mistral → Groq fallback)
   await job.updateProgress({
     event: 'log',
     payload: { type: 'Editing', file: 'all files', message: 'Generating code...' }
@@ -247,7 +286,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   const codeRules = getRulesForPhase('phase3_qwen');
 
   const codeSystemPrompt = [
-    'You are a senior React code generator. Output ONLY valid JSON:',
+    'You are a senior React (Vite) code generator. Output ONLY valid JSON:',
     '{ "files": { "src/App.jsx": "file content...", "src/index.css": "file content..." } }',
     '',
     codeRules,
@@ -256,6 +295,8 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     `Font pair: ${JSON.stringify(filePlan.fontPair || {})}`,
     `App name: ${glossary.AppName || 'App'}`,
     '',
+    `SAFE LUCIDE ICONS (ONLY use these): ArrowRight, ArrowLeft, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Menu, X, Search, Bell, Settings, User, Mail, Phone, Github, Twitter, Facebook, Instagram, Linkedin, Globe, Check, AlertCircle, Info, HelpCircle, Home, Layout, ShoppingBag, ShoppingCart, Zap, Star, Heart, Trash2, Plus, Minus, Download, Upload, ExternalLink, Eye, EyeOff, Lock, Unlock, Power, RefreshCw, Play, Pause, SkipBack, SkipForward`,
+    '',
     'ONLY output the raw JSON object. No markdown fences.'
   ].join('\n');
 
@@ -263,37 +304,94 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     contextString ? 'Apply this update to the existing codebase:' : 'Generate the complete code for:',
     `"${prompt}"`,
     '',
+    enhanced.enhancedPrompt ? `=== ENHANCED SPECIFICATION ===\n${enhanced.enhancedPrompt}\n` : '',
     contextString || '',
     '',
     `Files to create: ${filePlan.fileTree.map(f => f.path).join(', ')}`,
     `File purposes: ${filePlan.fileTree.map(f => `${f.path} (${f.purpose})`).join(', ')}`,
     `Sections: ${(filePlan.sections || []).join(', ')}`,
     '',
-    'Every .jsx MUST have valid React JSX with ES6 imports. Mock all data inline.',
-    'No TypeScript. Every component needs default export. ONLY allowed packages.'
+    'Every file MUST be plain JavaScript (.jsx/.js). NO TYPESCRIPT ALLOWED (no type annotations, no interfaces). Mock all data inline.',
+    'Every component file MUST have a `export default function ComponentName() { ... }`. Mixed or named exports often cause runtime errors.',
+    'CRITICAL: ALL React hooks (useState, useEffect, useRef, etc.) MUST be explicitly imported from \'react\' at the top of EVERY file that uses them. Forgetting imports causes fatal ReferenceErrors.',
+    `ALLOWED PACKAGES: react, react-dom, react-router-dom, lucide-react, framer-motion, axios, zod, react-hook-form, @tanstack/react-query, recharts, zustand.`,
+    'CRITICAL: When using `lucide-react`, only use common icons (e.g. Github, Twitter, Mail, ExternalLink, ArrowRight, Check, X, Menu). If you are unsure if an icon exists, do not use it.',
+    'CRITICAL: NEVER use next.js features. NO next/link, NO next/image, NO next/font. Use standard React components and <img /> tags.',
+    'CRITICAL: NEVER use unescaped double quotes inside JSX className strings (e.g. DO NOT write className="font-["DM Sans"]"). Use single quotes and underscores: className="font-[\'DM_Sans\']".',
+    'CRITICAL: ALWAYS use `recharts` for ANY charts or graphs. NEVER draw charts manually using <canvas> or SVG paths.',
+    'CRITICAL: Write FULL implementations for every file. NEVER write "// placeholder" or "// implement later".'
   ].join('\n');
 
+  const esbuild = require('esbuild');
   let generatedFiles = {};
+  let currentCodePrompt = codePrompt;
+
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const result = await callModel('generate_file', codePrompt, codeSystemPrompt);
+      const result = await callModel('generate_file', currentCodePrompt, codeSystemPrompt);
       const parsed = JSON.parse(result.content);
 
       if (!parsed.files || typeof parsed.files !== 'object') {
-        throw new Error('Missing "files" key in response');
+        throw new Error('Missing "files" key in JSON response');
       }
       for (const [path, content] of Object.entries(parsed.files)) {
-        if (typeof content !== 'string') throw new Error(`File "${path}" is not a string`);
+        if (typeof content !== 'string') throw new Error(`File "${path}" content is not a string`);
       }
 
       generatedFiles = parsed.files;
+
+      // --- NEW: EXACT SYNTAX VALIDATION (SELF-HEALING LOOP) ---
+      let syntaxError = null;
+      for (const [path, content] of Object.entries(generatedFiles)) {
+        if (path.endsWith('.jsx') || path.endsWith('.js') || path.endsWith('.tsx') || path.endsWith('.ts')) {
+          try {
+            esbuild.transformSync(content, { loader: 'jsx', jsx: 'automatic' });
+          } catch (err) {
+            // Get the specific error message from esbuild
+            const errorMsg = err.errors && err.errors.length > 0 ? err.errors[0].text : err.message;
+            const errorLine = err.errors && err.errors.length > 0 && err.errors[0].location ? ` at line ${err.errors[0].location.line}` : '';
+            syntaxError = `Syntax Error in ${path}${errorLine}:\n${errorMsg}`;
+            break;
+          }
+        }
+      }
+
+      if (syntaxError) {
+        throw new Error(syntaxError);
+      }
+
+      // --- NEW: SANITIZE CODE (ICON FIXES & EXPORT ENFORCEMENT) ---
+      const sanitized = {};
+      for (const [path, content] of Object.entries(generatedFiles)) {
+        sanitized[path] = sanitizeReactCode(path, content);
+      }
+      generatedFiles = sanitized;
+      // --------------------------------------------------------
+
       console.log(`[Worker] Track B Phase 3 ✅ — attempt ${attempt}/3 — ${Object.keys(generatedFiles).length} files`);
       break;
     } catch (e) {
       console.error(`[Worker] Track B Phase 3 attempt ${attempt}/3 failed:`, e.message);
-      if (attempt === 3) throw new Error(`React code generation failed: ${e.message}`);
+      if (attempt === 3) throw new Error(`React code generation consistently failed: ${e.message}`);
+      
+      // Auto-Feedback: Teach the AI what it did wrong so it can self-heal on the next loop
+      currentCodePrompt += `\n\n### FEEDBACK FROM ATTEMPT ${attempt} ###\nYour previous JSON output or React code failed validation with the following error:\n${e.message}\nPlease carefully fix this error and output the complete JSON object again. Ensure valid Javascript/JSX syntax and proper JSON string escaping.`;
+      
+      await job.updateProgress({
+        event: 'log',
+        payload: { type: 'Investigating', file: 'syntax error', message: 'Auto-correcting AI hallucination...' }
+      });
+
       await new Promise(r => setTimeout(r, 1000 * attempt));
     }
+  }
+
+  // Log REAL files that were actually created
+  for (const filePath of Object.keys(generatedFiles)) {
+    await job.updateProgress({
+      event: 'log',
+      payload: { type: 'Creating', file: filePath }
+    });
   }
 
   // Run code validator
@@ -306,7 +404,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
   // Phase 4: Summarize
   let summary = `Generated ${Object.keys(generatedFiles).length} files`;
-  let appName = glossary.AppName || 'App';
+  let appName = sitePlan.businessName || glossary.AppName || 'App';
   let suggestedActions = ['Verify it works', 'Add authentication', 'Make it mobile responsive', 'Add dark mode'];
 
   try {
@@ -323,13 +421,30 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
   console.log(`[Worker] Job ${job.id} complete — Track B — "${appName}" — ${Object.keys(generatedFiles).length} files`);
 
+  // Persist files to Database if messageId is attached to the job
+  if (job.data.messageId) {
+    try {
+      const Message = require('../models/Message');
+      await Message.findByIdAndUpdate(job.data.messageId, {
+        status: 'done',
+        content: summary,
+        files: generatedFiles
+      });
+      console.log(`[Worker] Saved ${Object.keys(generatedFiles).length} files to DB Message ${job.data.messageId}`);
+    } catch (saveErr) {
+      console.error(`[Worker] Failed to save files to DB for Message ${job.data.messageId}:`, saveErr.message);
+    }
+  }
+
   return {
     summary,
     appName,
     suggestedActions,
     outputTrack: 'react',
     previewType: 'sandpack', // ← frontend uses Sandpack for React preview
-    files: generatedFiles
+    files: generatedFiles,
+    themeUsed: enhanced.themeName,
+    siteType: enhanced.siteType,
   };
 
 }, {

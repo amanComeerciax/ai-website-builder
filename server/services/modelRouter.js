@@ -26,12 +26,12 @@ const ROUTING_TABLE = {
   // Chat → Groq (instant responses)
   chat_response:   { model: 'groq', temperature: 0.5, jsonMode: false },
 
-  // Track A: Single HTML file generation → Qwen (jsonMode: FALSE — HTML is NOT JSON)
-  generate_html:   { model: 'qwen', temperature: 0.1, jsonMode: false, fallbackToGroq: true },
+  // Track A: Single HTML file generation → Mistral (rules are ~85KB, exceeds Qwen's 14K limit)
+  generate_html:   { model: 'mistral', temperature: 0.1, jsonMode: false, fallbackToGroq: true },
 
-  // Track B: React multi-file JSON generation → Qwen (jsonMode: true — expects JSON wrapper)
-  generate_file:   { model: 'qwen', temperature: 0.1, jsonMode: true, fallbackToGroq: true },
-  fix_file:        { model: 'qwen', temperature: 0.1, jsonMode: true, fallbackToGroq: true },
+  // Track B: React multi-file JSON generation → Mistral (rules ~85KB, exceeds Qwen's 14K limit)
+  generate_file:   { model: 'mistral', temperature: 0.1, jsonMode: true, fallbackToGroq: true },
+  fix_file:        { model: 'mistral', temperature: 0.1, jsonMode: true, fallbackToGroq: true },
 
   // Direct fallback
   fallback_file:   { model: 'groq', temperature: 0.2, jsonMode: true },
@@ -90,9 +90,9 @@ async function callModel(task, userMessage, systemPrompt, options = {}) {
     throw new Error(`[Model Router] Unknown model target: "${targetModel}"`);
 
   } catch (error) {
-    // ─── AUTOMATIC FALLBACK: Qwen → Groq ───
-    if (targetModel === 'qwen' && (route.fallbackToGroq || task === 'generate_file' || task === 'generate_html')) {
-      console.warn(`[Model Router] Qwen failed for "${task}": ${error.message}`);
+    // ─── AUTOMATIC FALLBACK: Qwen/Mistral → Groq ───
+    if (route.fallbackToGroq && (targetModel === 'qwen' || targetModel === 'mistral')) {
+      console.warn(`[Model Router] ${targetModel} failed for "${task}": ${error.message}`);
       console.log(`[Model Router] Auto-escalating to Groq fallback...`);
       
       try {
@@ -103,7 +103,7 @@ async function callModel(task, userMessage, systemPrompt, options = {}) {
         return { ...result, fallbackUsed: true };
       } catch (groqError) {
         console.error(`[Model Router] Groq fallback also failed:`, groqError.message);
-        throw new Error(`All models failed for task "${task}". Qwen: ${error.message}. Groq: ${groqError.message}`);
+        throw new Error(`All models failed for task "${task}". ${targetModel}: ${error.message}. Groq: ${groqError.message}`);
       }
     }
 

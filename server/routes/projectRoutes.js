@@ -3,14 +3,10 @@ const router = express.Router()
 const Project = require("../models/Project")
 const Message = require("../models/Message")
 
-// Mock Auth wrapper for now until Clerk is fully engaged
-const mockUser = (req, res, next) => {
-    req.auth = { userId: "local_test_user" };
-    next();
-};
+const { requireAuth } = require('../middleware/requireAuth');
 
 // ── GET /api/projects — List user's projects ──
-router.get("/", mockUser, async (req, res, next) => {
+router.get("/", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
         const projects = await Project.find({ userId }).sort({ createdAt: -1 });
@@ -21,7 +17,7 @@ router.get("/", mockUser, async (req, res, next) => {
 });
 
 // ── POST /api/projects — Create a new workspace ──
-router.post("/", mockUser, async (req, res, next) => {
+router.post("/", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
         const project = await Project.create({
@@ -36,7 +32,7 @@ router.post("/", mockUser, async (req, res, next) => {
 });
 
 // ── GET /api/projects/:id — Get full workspace context (HYDRATION) ──
-router.get("/:id", mockUser, async (req, res, next) => {
+router.get("/:id", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
         const project = await Project.findOne({ _id: req.params.id, userId })
@@ -54,11 +50,11 @@ router.get("/:id", mockUser, async (req, res, next) => {
 })
 
 // ── PUT /api/projects/:id — Rename or update workspace ──
-router.put("/:id", mockUser, async (req, res, next) => {
+router.put("/:id", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
         const { name, previewUrl, netlifySiteId, activeVersionId } = req.body
-
+ 
         const project = await Project.findOneAndUpdate(
             { _id: req.params.id, userId },
             { $set: { name, previewUrl, netlifySiteId, activeVersionId } },
@@ -72,8 +68,53 @@ router.put("/:id", mockUser, async (req, res, next) => {
     }
 })
 
+// ── PATCH /api/projects/:id/config — Update style configuration ──
+router.patch("/:id/config", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId
+        const { theme, websiteName, description, logoUrl, brandColors, isConfigured } = req.body
+
+        const project = await Project.findOneAndUpdate(
+            { _id: req.params.id, userId },
+            { 
+                $set: { 
+                    theme, 
+                    websiteName, 
+                    description, 
+                    logoUrl, 
+                    brandColors, 
+                    isConfigured 
+                } 
+            },
+            { new: true, runValidators: true }
+        )
+
+        if (!project) return res.status(404).json({ error: "Project not found" })
+        res.json({ project })
+    } catch (error) {
+        next(error)
+    }
+})
+
+// ── PUT /api/projects/:id/star — Toggle star status ──
+router.put("/:id/star", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const project = await Project.findOne({ _id: req.params.id, userId });
+        
+        if (!project) return res.status(404).json({ error: "Project not found" });
+
+        project.isStarred = !project.isStarred;
+        await project.save();
+        
+        res.json({ project });
+    } catch (error) {
+        next(error);
+    }
+})
+
 // ── DELETE /api/projects/:id — Delete workspace ──
-router.delete("/:id", mockUser, async (req, res, next) => {
+router.delete("/:id", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
         const project = await Project.findOneAndDelete({ _id: req.params.id, userId })
@@ -89,7 +130,7 @@ router.delete("/:id", mockUser, async (req, res, next) => {
 })
 
 // ── POST /api/projects/:id/messages — Add a message to a workspace ──
-router.post("/:id/messages", mockUser, async (req, res, next) => {
+router.post("/:id/messages", requireAuth, async (req, res, next) => {
     try {
         const { content, role } = req.body;
         if (!content || !role) {

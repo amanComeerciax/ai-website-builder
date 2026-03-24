@@ -32,11 +32,19 @@ try {
  * Phase-to-rules mapping
  */
 const PHASE_MAP = {
-  phase1: ['prompt-parsing-rules.md', 'page-blueprints.md'],
-  phase2: ['spacing-system.md', 'component-standards.md', 'responsive-rules.md', 'design-rulebook.md'],
-  phase3_qwen: ['code-quality-rules.md', 'package-policy.md'],  // MUST stay under ~1200 tokens
-  track_a: ['code-quality-rules.md', 'package-policy.md'],      // HTML/CDN generation
-  track_b: ['code-quality-rules.md', 'package-policy.md'],      // React/Vite generation
+  // Phase 1: Classification only — just needs prompt parsing rules (~4KB)
+  // Removed page-blueprints.md (45KB) — classification doesn't need layout examples
+  phase1: ['prompt-parsing-rules.md'],
+
+  // Phase 2: Planning — structural rules only (~6KB)
+  // Removed design-rulebook.md (52KB) — design tokens are communicated inline via prompt
+  phase2: ['spacing-system.md', 'component-standards.md', 'responsive-rules.md', 'SKILL.md'],
+
+  // Phase 3 & Track rules: compact essentials (~4KB)
+  phase3_qwen: ['code-quality-rules.md', 'package-policy.md'],
+  track_a: ['code-quality-rules.md', 'package-policy.md'],
+  track_b: ['code-quality-rules.md', 'package-policy.md'],
+
   iteration: ['iteration-rules.md'],
 };
 

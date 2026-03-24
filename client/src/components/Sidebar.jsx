@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { useClerk, useAuth } from "@clerk/clerk-react"
+import { useClerk, useAuth, useUser } from "@clerk/clerk-react"
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '../stores/authStore'
 import { useUIStore } from '../stores/uiStore'
@@ -18,31 +18,43 @@ import {
     Share, 
     Zap,
     FolderPlus,
+    LogOut,
     LayoutTemplate
 } from 'lucide-react'
 import './Sidebar.css'
 
 export default function Sidebar() {
     const { isLoaded, isSignedIn, getToken } = useAuth()
+    const { user: clerkUser } = useUser()
     const { signOut } = useClerk()
-    const { userData, fetchUserData } = useAuthStore()
+    const { userData, fetchUserData, syncUser } = useAuthStore()
     const { toggleSidebar, toggleWorkspaceDropdown, setCreateFolderOpen, isWorkspaceDropdownOpen } = useUIStore()
-    const { projects } = useProjectStore()
+    const { projects, fetchProjects } = useProjectStore()
     const navigate = useNavigate()
     const [isProjectsExpanded, setIsProjectsExpanded] = useState(false)
 
-    // Get up to 3 most recently edited projects
-    const recentProjects = projects.slice(0, 3)
-
     useEffect(() => {
-        if (isLoaded && isSignedIn && !userData) {
-            fetchUserData(getToken)
-        }
-    }, [isLoaded, isSignedIn, fetchUserData, getToken, userData])
+        if (isLoaded && isSignedIn && clerkUser) {
+            const sync = async () => {
+                const token = await getToken();
+                
+                // Sync user metadata to backend
+                await syncUser(getToken, {
+                    email: clerkUser.primaryEmailAddress?.emailAddress,
+                    name: clerkUser.fullName || clerkUser.username || "",
+                    avatar: clerkUser.imageUrl || ""
+                });
 
-    const userEmail = userData?.email || 'User'
-    const userInitial = userData?.email ? userData.email[0].toUpperCase() : 'U';
-    const userName = userData?.email ? userData.email.split('@')[0] : 'User';
+                fetchProjects(token)
+            }
+            sync()
+        }
+    }, [isLoaded, isSignedIn, clerkUser, syncUser, fetchProjects, getToken])
+
+    const userEmail = userData?.email || clerkUser?.primaryEmailAddress?.emailAddress || 'User'
+    const userName = userData?.name || clerkUser?.fullName || clerkUser?.username || userEmail.split('@')[0] || 'User';
+    const userInitial = userName[0].toUpperCase();
+    const userAvatar = userData?.avatar || clerkUser?.imageUrl;
 
     return (
         <aside className="lv-sidebar">
@@ -57,7 +69,11 @@ export default function Sidebar() {
 
             <div className="lv-workspace-selector" onClick={toggleWorkspaceDropdown}>
                 <div className="lv-workspace-left">
-                    <div className="lv-workspace-avatar">{userInitial}</div>
+                    {userAvatar ? (
+                        <img src={userAvatar} alt="" className="lv-workspace-avatar" style={{ objectFit: 'cover' }} />
+                    ) : (
+                        <div className="lv-workspace-avatar">{userInitial}</div>
+                    )}
                     <span className="lv-workspace-name">{userName}'s Lovable</span>
                 </div>
                 <ChevronDown 
@@ -120,9 +136,9 @@ export default function Sidebar() {
 
             <div className="lv-nav-section lv-recents-section">
                 <h3 className="lv-section-label">Recents</h3>
-                {recentProjects.length > 0 ? (
-                    recentProjects.map(proj => (
-                        <NavLink key={proj.id} to={`/chat/${proj.id}`} className={({ isActive }) => `lv-nav-link ${isActive ? 'lv-nav-link-active' : ''}`}>
+                {projects.length > 0 ? (
+                    projects.slice(0, 5).map(proj => (
+                        <NavLink key={proj._id || proj.id} to={`/chat/${proj._id || proj.id}`} className={({ isActive }) => `lv-nav-link ${isActive ? 'lv-nav-link-active' : ''}`}>
                             <LayoutTemplate size={14} style={{ flexShrink: 0 }} />
                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{proj.name}</span>
                         </NavLink>
@@ -148,9 +164,18 @@ export default function Sidebar() {
                     <span>Upgrade to Pro</span>
                 </button>
 
-                <div className="lv-user-row" onClick={() => signOut(() => navigate("/"))}>
-                    <div className="lv-user-avatar">{userInitial}</div>
-                    <span className="lv-user-name" style={{ maxWidth: '120px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userName}</span>
+                <div className="lv-user-row">
+                    {userAvatar ? (
+                        <img src={userAvatar} alt="" className="lv-user-avatar" style={{ objectFit: 'cover' }} />
+                    ) : (
+                        <div className="lv-user-avatar">{userInitial}</div>
+                    )}
+                    <div className="lv-user-info">
+                        <span className="lv-user-name" title={userEmail}>{userName}</span>
+                    </div>
+                    <button className="lv-logout-btn" onClick={() => signOut(() => navigate("/"))} title="Sign Out">
+                        <LogOut size={16} />
+                    </button>
                 </div>
             </div>
         </aside>

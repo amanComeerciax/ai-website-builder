@@ -6,10 +6,13 @@ import {
     SandpackPreview, 
 } from "@codesandbox/sandpack-react"
 import { useEditorStore } from '../../stores/editorStore'
+import { useChatStore } from '../../stores/chatStore'
+import { ErrorBoundary } from '../ErrorBoundary'
 import './PreviewPanel.css'
 
 export default function PreviewPanel() {
     const { files, previewType, htmlContent } = useEditorStore()
+    const { isGenerating, generationPhase } = useChatStore()
     const [viewMode, setViewMode] = useState('desktop')
     const [refreshKey, setRefreshKey] = useState(0)
 
@@ -25,13 +28,14 @@ export default function PreviewPanel() {
 
     // ── TRACK B: Sandpack template detection ──────────────────────────
     const sandpackTemplate = useMemo(() => {
-        if (isSrcdoc) return 'vanilla'; // won't be used but set a safe default
+        if (isSrcdoc) return 'vanilla';
         const fileNames = Object.keys(files).map(k => k.startsWith('/') ? k : `/${k}`);
-        const hasReactFiles = fileNames.some(k => k.endsWith('.jsx') || k.endsWith('.tsx'));
-        const hasViteConfig = fileNames.some(k => k.includes('vite.config'));
-        if (hasReactFiles || hasViteConfig) return 'react';
-        if (fileNames.includes('/index.html')) return 'vanilla';
-        return 'react';
+        if (fileNames.includes('/index.html') && !fileNames.some(k => k.endsWith('.jsx') || k.endsWith('.tsx'))) {
+            return 'vanilla';
+        }
+        // Force 'react' template universally! Sandpack's nextjs template implies WebContainers which randomly OOM 
+        // crash, trigger node worker bugs, and break on CI. Pure react transpiles fast in browser.
+        return 'react'; 
     }, [files, isSrcdoc])
 
     // ── TRACK B: Build Sandpack file map with AI file overrides ──────
@@ -50,74 +54,222 @@ export default function PreviewPanel() {
             if (!result['/index.html'] && result['/public/index.html']) {
                 result['/index.html'] = result['/public/index.html'];
             }
-        } else {
-            // ── Override Sandpack react template's built-in "Hello world" defaults ──
-            const appPath = fileNames.find(f => 
-                f === '/src/App.jsx' || f === '/src/App.js' || 
-                f === '/App.jsx' || f === '/App.js'
-            );
-            const entryPath = fileNames.find(f =>
-                f === '/src/index.js' || f === '/src/index.jsx' || 
-                f === '/src/main.jsx' || f === '/src/main.js'
-            );
-            const stylesPath = fileNames.find(f => 
-                f === '/src/styles.css' || f === '/src/index.css' || 
-                f === '/src/App.css' || f === '/styles.css'
-            );
+        } else if (sandpackTemplate === 'react') {
+            const isNextRouterApp = fileNames.some(f => f.startsWith('/app/') || f.startsWith('/pages/'));
             
-            // Bridge: make Sandpack's /App.js re-export the AI's actual component
-            if (appPath && appPath !== '/App.js') {
-                const importPath = appPath.replace(/^\//, './').replace(/\.(jsx|tsx)$/, '');
-                result['/App.js'] = `export { default } from '${importPath}';\n`;
-            } else if (!appPath) {
-                const anyJsx = fileNames.find(f => f.endsWith('.jsx') || f.endsWith('.tsx'));
-                if (anyJsx) {
-                    result['/App.js'] = `export { default } from '${anyJsx.replace(/^\//, './').replace(/\.(jsx|tsx)$/, '')}';\n`;
-                }
-            }
+            // ── MAGIC PURE REACT BRIDGE ──
+            // Intercepts AI files and ensures they run perfectly in the Sandpack React template.
             
-            // Override /index.js entry point
-            if (!entryPath) {
-                const styleImport = stylesPath ? `import '${stylesPath.replace(/^\//, './')}';\n` : '';
-                result['/index.js'] = [
-                    `import React, { StrictMode } from "react";`,
-                    `import { createRoot } from "react-dom/client";`,
-                    styleImport,
-                    `import App from "./App";`,
-                    `const root = createRoot(document.getElementById("root"));`,
-                    `root.render(<StrictMode><App /></StrictMode>);`
-                ].filter(Boolean).join('\n');
-            }
+            // ── PERMANENT FIX: Runtime-safe lucide-react wrapper ──
+            // Instead of maintaining a static whitelist (impossible to keep in sync with
+            // the version Sandpack loads), we inject a wrapper module that dynamically
+            // re-exports icons and returns safe fallbacks for any that don't exist.
             
-            // Ensure styles don't get clobbered
-            if (!result['/styles.css']) {
-                result['/styles.css'] = stylesPath ? result[stylesPath] : '/* styles */';
-            }
+            // Step 1: Inject the safe wrapper module into the Sandpack file system
+            result['/lucide-safe.js'] = `
+import * as LucideIcons from 'lucide-react';
 
-            // Package.json with only allowed packages
-            if (!result['/package.json']) {
-                result['/package.json'] = JSON.stringify({
-                    name: "stackforge-app",
-                    version: "1.0.0",
-                    main: "/index.js",
-                    dependencies: {
-                        "react": "^18.2.0",
-                        "react-dom": "^18.2.0",
-                        "lucide-react": "^0.263.1",
-                        "framer-motion": "latest",
-                        "clsx": "latest",
-                        "tailwind-merge": "latest",
-                        "date-fns": "latest",
-                        "recharts": "latest",
-                        "zustand": "latest",
-                        "react-hot-toast": "latest",
+// Create a Proxy that returns a safe fallback SVG for any icon that doesn't exist
+const SafeIcon = (name) => {
+  const Icon = LucideIcons[name];
+  if (Icon) return Icon;
+  // Return a tiny empty SVG placeholder instead of undefined
+  const Fallback = ({ size = 24, ...props }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <circle cx="12" cy="12" r="10" opacity="0.3"/>
+    </svg>
+  );
+  Fallback.displayName = name + 'Fallback';
+  return Fallback;
+};
+
+// Re-export everything that exists
+export * from 'lucide-react';
+
+// Export the SafeIcon helper for dynamic access
+export { SafeIcon };
+`.trim();
+
+            // Step 2: Process all files
+            Object.keys(result).forEach(name => {
+                if (name === '/lucide-safe.js') return; // skip our own wrapper
+                if (name.endsWith('.jsx') || name.endsWith('.js') || name.endsWith('.tsx') || name.endsWith('.ts')) {
+                    if (typeof result[name] === 'string') {
+                        let content = result[name];
+                        
+                        // Auto-correct Tailwind unescaped double quotes inside JSX strings
+                        content = content.replace(/-\["([^"]+)"\]/g, (match, p1) => `-['${p1.replace(/\s+/g, '_')}']`);
+                        content = content.replace(/-\['([^']+)'\]/g, (match, p1) => `-['${p1.replace(/\s+/g, '_')}']`);
+                        
+                        // Auto-correct `@/` imports
+                        content = content.replace(/from\s+['"]@\//g, "from '/src/");
+                        content = content.replace(/import\s+['"]@\//g, "import '/src/");
+                        
+                        // ── PERMANENT ICON FIX ──
+                        // Rewrite ALL lucide-react imports to use our safe wrapper
+                        const lucideImportRegex = /import\s+{([^}]+)}\s+from\s+['"]lucide-react['"]/g;
+                        content = content.replace(lucideImportRegex, (match, iconList) => {
+                            const icons = iconList.split(',').map(s => s.trim()).filter(Boolean);
+                            
+                            // Strip common AI suffix hallucinations
+                            const cleanedIcons = icons.map(icon => {
+                                return icon.replace(/(Icon|Logo|Outline|Filled|Solid)$/i, '');
+                            });
+                            
+                            // Build safe import: import from our wrapper + add SafeIcon fallbacks
+                            const safeImport = `import { SafeIcon, ${[...new Set(cleanedIcons)].join(', ')} } from '/lucide-safe.js'`;
+                            
+                            // For each icon, add a local fallback reassignment after the import  
+                            // This handles the case where the icon exists in our wrapper's re-export
+                            // but might be undefined in the actual lucide-react version
+                            const fallbacks = cleanedIcons.map(icon => {
+                                // Also fix JSX usage if name was cleaned
+                                const originalIcon = icons[cleanedIcons.indexOf(icon)];
+                                if (originalIcon !== icon) {
+                                    content = content.replace(new RegExp(`<${originalIcon}\\b`, 'g'), `<${icon}`);
+                                    content = content.replace(new RegExp(`</${originalIcon}\\b`, 'g'), `</${icon}`);
+                                }
+                                return `const _${icon} = typeof ${icon} !== 'undefined' ? ${icon} : SafeIcon('${icon}');`;
+                            });
+                            
+                            // Replace each icon usage in JSX with the safe version
+                            cleanedIcons.forEach(icon => {
+                                // Replace <IconName with <_IconName (the safe version)
+                                content = content.replace(new RegExp(`<${icon}(\\s|\\/)`, 'g'), `<_${icon}$1`);
+                                content = content.replace(new RegExp(`</${icon}>`, 'g'), `</_${icon}>`);
+                            });
+                            
+                            return safeImport + ';\n' + fallbacks.join('\n');
+                        });
+                        
+                        result[name] = content;
                     }
-                }, null, 2);
+                }
+            });
+
+            // 2. Build the synthetic React entry point for Vite React apps
+            const appPath = fileNames.find(f => f === '/src/App.jsx' || f === '/src/App.js' || f === '/App.jsx' || f === '/App.js');
+            const entryPath = fileNames.find(f => f === '/src/index.js' || f === '/src/index.jsx' || f === '/src/main.jsx' || f === '/src/main.js');
+            const stylesPath = fileNames.find(f => f === '/src/styles.css' || f === '/src/index.css' || f === '/src/App.css' || f === '/styles.css');
+                
+                if (appPath && appPath !== '/App.js') {
+                    const importPath = appPath.replace(/^\//, './').replace(/\.(jsx|tsx)$/, '');
+                    result['/App.js'] = `export { default } from '${importPath}';\n`;
+                } else if (!appPath) {
+                    const anyJsx = fileNames.find(f => f.endsWith('.jsx') || f.endsWith('.tsx'));
+                    if (anyJsx) {
+                        result['/App.js'] = `export { default } from '${anyJsx.replace(/^\//, './').replace(/\.(jsx|tsx)$/, '')}';\n`;
+                    }
+                }
+                
+                if (entryPath && entryPath !== '/index.js') {
+                    const importPath = entryPath.replace(/^\//, './').replace(/\.(jsx|tsx|js|ts)$/, '');
+                    result['/index.js'] = `import '${importPath}';\n`;
+                } else if (!entryPath) {
+                    const styleImport = stylesPath ? `import '${stylesPath.replace(/^\//, './')}';\n` : '';
+                    const appImport = appPath ? appPath.replace(/^\//, './').replace(/\.(jsx|tsx|js|ts)$/, '') : './App';
+                    
+                    result['/index.js'] = [
+                        `import React, { StrictMode } from "react";`,
+                        `import { createRoot } from "react-dom/client";`,
+                        styleImport,
+                        `import App from "${appImport}";`,
+                        `const root = createRoot(document.getElementById("root"));`,
+                        `root.render(<StrictMode><App /></StrictMode>);`
+                    ].filter(Boolean).join('\n');
+                }
+
+                if (appPath && !result['/App.js'] && !result['/App.jsx']) {
+                     const importPath = appPath.replace(/^\//, './').replace(/\.(jsx|tsx)$/, '');
+                     result['/App.js'] = `export { default } from '${importPath}';\n`;
+                }
+            
+            // Robust package.json validation for Pure React fallback
+            const defaultPackageJson = {
+                name: "stackforge-react-app",
+                version: "1.0.0",
+                main: "/index.js",
+                dependencies: {
+                    "react": "^18.2.0",
+                    "react-dom": "^18.2.0",
+                    "react-router-dom": "latest",
+                    "lucide-react": "0.263.1",
+                    "framer-motion": "latest",
+                    "clsx": "latest",
+                    "tailwind-merge": "latest",
+                    "axios": "latest",
+                    "react-hook-form": "latest",
+                    "@hookform/resolvers": "latest",
+                    "zod": "latest",
+                    "@tanstack/react-query": "latest",
+                    "date-fns": "latest",
+                    "recharts": "latest",
+                    "react-is": "latest",
+                    "zustand": "latest",
+                    "react-hot-toast": "latest"
+                }
+            };
+
+            if (!result['/package.json']) {
+                result['/package.json'] = JSON.stringify(defaultPackageJson, null, 2);
+            } else {
+                try {
+                    const parsedPkg = JSON.parse(result['/package.json']);
+                    if (parsedPkg.dependencies) {
+                        parsedPkg.dependencies['react-is'] = 'latest';
+                        delete parsedPkg.dependencies['next']; // Purge next completely to ensure vanilla react execution
+                        result['/package.json'] = JSON.stringify(parsedPkg, null, 2);
+                    }
+                } catch (e) {
+                    console.warn('[PreviewPanel] AI generated a malformed package.json. Falling back to default.', e);
+                    result['/package.json'] = JSON.stringify(defaultPackageJson, null, 2);
+                }
             }
         }
         
         return result
     }, [files, sandpackTemplate, isSrcdoc])
+
+    // Automatically discover any unapproved/hallucinated NPM imports and inject them into Sandpack
+    const dynamicDependencies = useMemo(() => {
+        const deps = {
+            "lucide-react": "0.263.1",
+            "framer-motion": "latest",
+            "recharts": "latest",
+            "clsx": "latest",
+            "tailwind-merge": "latest",
+            "@tanstack/react-query": "latest",
+            "zustand": "latest"
+        };
+        
+        if (!sandpackFiles) return deps;
+        
+        Object.values(sandpackFiles).forEach(content => {
+            if (typeof content !== 'string') return;
+            // Use [\s\S]*? instead of .*? to correctly capture multi-line destructured imports!
+            const importRegex = /import\s+[\s\S]*?\s+from\s+['"]([^'".]+)['"]/g;
+            let match;
+            while ((match = importRegex.exec(content)) !== null) {
+                let pkgName = match[1];
+                // Ignore relative/absolute path imports and Next.js internal modules
+                if (!pkgName.startsWith('.') && !pkgName.startsWith('/') && !pkgName.startsWith('@/') && !pkgName.startsWith('next')) {
+                    // Extract root NPM package name handling scopes (e.g. '@hello-pangea/dnd' -> '@hello-pangea/dnd')
+                    if (pkgName.startsWith('@')) {
+                        const parts = pkgName.split('/');
+                        pkgName = parts.length >= 2 ? `${parts[0]}/${parts[1]}` : parts[0];
+                    } else {
+                        pkgName = pkgName.split('/')[0];
+                    }
+                    
+                    // Don't auto-fetch React since Sandpack handles it
+                    if (pkgName !== 'react' && pkgName !== 'react-dom') {
+                        deps[pkgName] = "latest";
+                    }
+                }
+            }
+        });
+        return deps;
+    }, [sandpackFiles]);
 
     return (
         <div className="preview-panel">
@@ -169,45 +321,60 @@ export default function PreviewPanel() {
                             style={{ width: '100%', height: '100%', border: 'none' }}
                             title="Generated website preview"
                         />
+                    ) : Object.keys(files).length === 0 ? (
+                        /* ── No files yet: show placeholder instead of Sandpack Hello World ── */
+                        <div style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center',
+                            justifyContent: 'center', height: '100%', gap: '1rem',
+                            color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter, sans-serif',
+                            textAlign: 'center', padding: '2rem'
+                        }}>
+                            {(isGenerating || generationPhase === 'thinking' || generationPhase === 'streaming_logs') ? (
+                                <>
+                                    <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
+                                    <p style={{ fontSize: '0.9rem' }}>Generating your website...</p>
+                                    <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+                                </>
+                            ) : (
+                                <>
+                                    <Monitor size={40} strokeWidth={1.2} />
+                                    <p style={{ fontSize: '0.95rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
+                                        No preview yet
+                                    </p>
+                                    <p style={{ fontSize: '0.8rem', maxWidth: '260px' }}>
+                                        Send a prompt to generate your website
+                                    </p>
+                                </>
+                            )}
+                        </div>
                     ) : (
                         /* ── TRACK B: Sandpack React preview ── */
-                        <SandpackProvider
-                            template={sandpackTemplate}
-                            theme="dark"
-                            files={sandpackFiles}
-                            options={{
-                                recompileMode: "immediate",
-                                recompileDelay: 500,
-                                autoReload: true,
-                                externalResources: [
-                                    "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
-                                    "https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap",
-                                ]
-                            }}
-                        >
-                            <SandpackLayout style={{ height: '100%', border: 'none', background: 'transparent' }}>
-                                <SandpackPreview 
-                                    style={{ height: '100%' }} 
-                                    showNavigator={false}
-                                    showRefreshButton={false}
-                                    showOpenInCodeSandbox={false}
-                                    loadingAdComponent={() => (
-                                        <div style={{ 
-                                            display: 'flex', 
-                                            flexDirection: 'column', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center', 
-                                            height: '100%',
-                                            gap: '12px',
-                                            color: '#888'
-                                        }}>
-                                            <Loader2 className="animate-spin" size={24} />
-                                            <span>Compiling...</span>
-                                        </div>
-                                    )}
-                                />
-                            </SandpackLayout>
-                        </SandpackProvider>
+                        <ErrorBoundary>
+                            <SandpackProvider
+                                template={sandpackTemplate}
+                                theme="dark"
+                                files={sandpackFiles}
+                                options={{
+                                    recompileMode: "immediate",
+                                    recompileDelay: 500,
+                                    autoReload: true,
+                                    externalResources: [
+                                        "https://cdn.tailwindcss.com",
+                                        "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+                                        "https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap",
+                                    ]
+                                }}
+                            >
+                                <SandpackLayout style={{ height: '100%', border: 'none', background: 'transparent' }}>
+                                    <SandpackPreview 
+                                        style={{ height: '100%' }} 
+                                        showNavigator={false}
+                                        showRefreshButton={false}
+                                        showOpenInCodeSandbox={false}
+                                    />
+                                </SandpackLayout>
+                            </SandpackProvider>
+                        </ErrorBoundary>
                     )}
                 </div>
             </div>

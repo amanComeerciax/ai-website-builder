@@ -46,6 +46,7 @@ async function callMistral(systemPrompt, userMessage, options = {}) {
           { role: 'user', content: userMessage }
         ],
         temperature,
+        maxTokens: 16384,
         responseFormat: jsonMode ? { type: 'json_object' } : undefined
       });
 

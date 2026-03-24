@@ -11,6 +11,7 @@ import PreviewPanel from '../components/editor/PreviewPanel'
 import DetailsPanel from '../components/editor/DetailsPanel'
 import ProjectPopover from '../components/editor/ProjectPopover'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '@clerk/clerk-react'
 import { useChatStore } from '../stores/chatStore'
 import { useProjectStore } from '../stores/projectStore'
 import { useEditorStore } from '../stores/editorStore'
@@ -18,6 +19,7 @@ import './ChatPage.css'
 
 export default function ChatPage() {
     const { projectId } = useParams()
+    const { isLoaded: isAuthLoaded, getToken } = useAuth()
     const location = useLocation()
     const navigate = useNavigate()
     const { getProjectById } = useProjectStore()
@@ -81,24 +83,68 @@ export default function ChatPage() {
 
     // Switch completely isolated IDE workspaces when the URL changes
     useEffect(() => {
-        if (projectId) {
-            useChatStore.getState().loadProject(projectId);
-            useEditorStore.getState().loadProject(projectId);
+        if (projectId && isAuthLoaded) {
+            const sync = async () => {
+                const token = await getToken();
+                useChatStore.getState().loadProject(projectId, token);
+                useEditorStore.getState().loadProject(projectId);
+            }
+            sync()
         }
-    }, [projectId]);
+    }, [projectId, isAuthLoaded, getToken]);
 
-    // Auto-execute prompt from URL on load
+    // Auto-create project if navigated with /chat/new?prompt=...
+    // This handles the LandingPage flow where no DB project exists yet
     useEffect(() => {
         const params = new URLSearchParams(location.search)
         const prompt = params.get('prompt')
         
-        if (prompt && messages.length === 0 && !isGenerating) {
-            addMessage({ role: 'user', content: prompt })
-            startGeneration(prompt, projectId)
-            // Remove prompt from URL to avoid re-triggering
-            navigate(location.pathname, { replace: true })
+        if (projectId === 'new' && prompt && isAuthLoaded) {
+            const createAndRedirect = async () => {
+                const token = await getToken();
+                const { createProject } = useProjectStore.getState();
+                const newId = await createProject(prompt, token);
+                if (newId) {
+                    // Redirect to the real project URL — include all style params
+                    navigate(`/chat/${newId}${location.search}`, { replace: true });
+                }
+            }
+            createAndRedirect();
+            return; // Don't proceed with generation until redirect
         }
-    }, [location.search, messages.length, isGenerating, addMessage, startGeneration, navigate, location.pathname, projectId])
+    }, [projectId, location.search, isAuthLoaded, getToken, navigate])
+
+    // Auto-execute prompt from URL on load (after project is created with real ID)
+    useEffect(() => {
+        const params = new URLSearchParams(location.search)
+        const prompt = params.get('prompt')
+        
+        if (prompt && projectId !== 'new' && messages.length === 0 && !isGenerating && isAuthLoaded) {
+            const run = async () => {
+                const token = await getToken();
+                const { isConfigured } = useChatStore.getState();
+                
+                // Add the user's initial prompt as the first message
+                addMessage({ role: 'user', content: prompt })
+
+                if (isConfigured) {
+                    // If already configured (e.g. returning to project), just build
+                    startGeneration(prompt, projectId, token, {})
+                } else {
+                    // NEW FLOW: Wait for style config!
+                    // Add an assistant response as the "voice" of the builder
+                    addMessage({ 
+                        role: 'assistant', 
+                        content: `Hi! I'm excited to build your website for **"${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"**. \n\nTo get started, **please select a theme** from the options below.` 
+                    });
+                }
+
+                // Remove all params from URL to avoid re-triggering
+                navigate(location.pathname, { replace: true })
+            }
+            run()
+        }
+    }, [location.search, messages.length, isGenerating, addMessage, startGeneration, navigate, location.pathname, projectId, isAuthLoaded, getToken])
     
     // Always show center controls for the full IDE experience
 

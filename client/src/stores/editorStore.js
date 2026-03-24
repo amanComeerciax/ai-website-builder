@@ -30,7 +30,9 @@ export const useEditorStore = create(
                     newProjectData[nextState.activeProjectId] = {
                         files: nextState.files,
                         activeFile: nextState.activeFile,
-                        openTabs: nextState.openTabs
+                        openTabs: nextState.openTabs,
+                        previewType: nextState.previewType,
+                        htmlContent: nextState.htmlContent
                     };
                     updates.projectData = newProjectData;
                 }
@@ -45,6 +47,8 @@ export const useEditorStore = create(
                         files: state.files,
                         activeFile: state.activeFile,
                         openTabs: state.openTabs,
+                        previewType: state.previewType,
+                        htmlContent: state.htmlContent
                     };
                 }
                 
@@ -57,6 +61,8 @@ export const useEditorStore = create(
                         files: data.files || { ...EMPTY_FILES },
                         activeFile: data.activeFile || 'App.jsx',
                         openTabs: data.openTabs || ['App.jsx'],
+                        previewType: data.previewType || 'sandpack',
+                        htmlContent: data.htmlContent || null,
                         isPreviewReady: true,
                         previewError: null
                     };
@@ -71,6 +77,8 @@ export const useEditorStore = create(
                         files: { ...EMPTY_FILES },
                         activeFile: 'App.jsx',
                         openTabs: ['App.jsx'],
+                        previewType: 'sandpack',
+                        htmlContent: null,
                         isPreviewReady: true,
                         previewError: null
                     };
@@ -134,7 +142,7 @@ export const useEditorStore = create(
             // ── Actions: Bulk Load (from AI generation) ──
             loadGeneratedFiles: (generatedFiles) =>
                 get()._sync((state) => {
-                    const fileMap = {}
+                    const fileMap = { ...state.files } // VERY IMPORTANT: Merge with existing files!
                     const tabs = []
                     
                     // Input can be { path: content } or { path: { content } }
@@ -152,10 +160,13 @@ export const useEditorStore = create(
                         })
                     }
 
+                    // Keep existing activeTab if we didn't generate a new one, else switch to the first newly generated file
+                    const newOpenTabs = Array.from(new Set([...state.openTabs, ...tabs]))
+
                     return {
                         files: fileMap,
-                        openTabs: tabs.length > 0 ? [tabs[0]] : [],
-                        activeFile: tabs[0] || null,
+                        openTabs: newOpenTabs.length > 0 ? newOpenTabs : ['App.jsx'],
+                        activeFile: tabs[0] || state.activeFile || 'App.jsx',
                         isPreviewReady: true,
                         previewError: null,
                     }
@@ -167,6 +178,8 @@ export const useEditorStore = create(
                     files: { ...EMPTY_FILES },
                     activeFile: 'App.jsx',
                     openTabs: ['App.jsx'],
+                    previewType: 'sandpack',
+                    htmlContent: null,
                     isPreviewReady: true,
                     previewError: null,
                 }),

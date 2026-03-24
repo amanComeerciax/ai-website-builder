@@ -12,7 +12,7 @@ const router = express.Router();
  */
 router.post('/sync', requireAuth, async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, name, avatar } = req.body;
     
     if (!email) {
       return res.status(400).json({ error: "Email is required for syncing" });
@@ -20,7 +20,11 @@ router.post('/sync', requireAuth, async (req, res) => {
 
     const user = await User.findOneAndUpdate(
       { clerkId: req.user.clerkId },
-      { email },
+      { 
+        email, 
+        name: name || "", 
+        avatar: avatar || "" 
+      },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
@@ -39,17 +43,29 @@ router.post('/sync', requireAuth, async (req, res) => {
  */
 router.get('/me', requireAuth, async (req, res) => {
   try {
-    const user = await User.findOne({ clerkId: req.user.clerkId });
+    // Auto-create user if not found (handles first-time login without sync)
+    let user = await User.findOne({ clerkId: req.user.clerkId });
     
     if (!user) {
-      return res.status(404).json({ error: "User not found in database" });
+      // Auto-create using Clerk session data
+      const email = req.auth?.sessionClaims?.email || 
+                    req.auth?.sessionClaims?.primary_email_address || 
+                    `user_${req.user.clerkId}@clerk.dev`;
+      
+      user = await User.findOneAndUpdate(
+        { clerkId: req.user.clerkId },
+        { email, tier: 'free', usage: { generationsThisMonth: 0 } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      console.log(`[Auth] Auto-created user: ${user.email} (${req.user.clerkId})`);
     }
 
-    // Safely extract tier (falling back to subscription object if legacy data)
     const tier = user.tier || user.subscription?.tier || 'free';
 
     return res.status(200).json({
       email: user.email,
+      name: user.name || "",
+      avatar: user.avatar || "",
       tier,
       usage: user.usage || { generationsThisMonth: 0 }
     });
