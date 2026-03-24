@@ -18,8 +18,10 @@ import {
     Share, 
     Zap,
     FolderPlus,
+    Folder,
     LayoutTemplate
 } from 'lucide-react'
+import { useFolderStore } from '../stores/folderStore'
 import './Sidebar.css'
 
 export default function Sidebar() {
@@ -28,6 +30,7 @@ export default function Sidebar() {
     const { userData, fetchUserData } = useAuthStore()
     const { toggleSidebar, toggleWorkspaceDropdown, setCreateFolderOpen, isWorkspaceDropdownOpen } = useUIStore()
     const { projects } = useProjectStore()
+    const { folders, fetchFolders } = useFolderStore()
     const navigate = useNavigate()
     const [isProjectsExpanded, setIsProjectsExpanded] = useState(false)
 
@@ -35,10 +38,11 @@ export default function Sidebar() {
     const recentProjects = projects.slice(0, 3)
 
     useEffect(() => {
-        if (isLoaded && isSignedIn && !userData) {
-            fetchUserData(getToken)
+        if (isLoaded && isSignedIn) {
+            if (!userData) fetchUserData(getToken);
+            fetchFolders(getToken);
         }
-    }, [isLoaded, isSignedIn, fetchUserData, getToken, userData])
+    }, [isLoaded, isSignedIn, fetchUserData, fetchFolders, getToken, userData])
 
     const userEmail = userData?.email || 'User'
     const userInitial = userData?.email ? userData.email[0].toUpperCase() : 'U';
@@ -86,13 +90,32 @@ export default function Sidebar() {
             <div className="lv-nav-section">
                 <h3 className="lv-section-label">Projects</h3>
                 <nav className="lv-nav-group">
-                    <NavLink 
-                        to="/projects/all"
-                        className={({ isActive }) => `lv-nav-link ${isActive ? 'lv-nav-link-active' : ''}`}
-                    >
-                        <Grid size={14} />
-                        <span>All projects</span>
-                    </NavLink>
+                    <div className="lv-nav-item-with-toggle">
+                        <NavLink 
+                            to="/projects/all"
+                            className={({ isActive }) => `lv-nav-link ${isActive ? 'lv-nav-link-active' : ''}`}
+                        >
+                            <Grid size={14} />
+                            <span>All projects</span>
+                        </NavLink>
+                        <button 
+                            className="lv-item-toggle"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setIsProjectsExpanded(!isProjectsExpanded);
+                            }}
+                        >
+                            <ChevronDown 
+                                size={14} 
+                                style={{ 
+                                    transform: isProjectsExpanded ? 'rotate(180deg)' : 'none', 
+                                    transition: 'transform 0.2s',
+                                    color: isProjectsExpanded ? '#fff' : '#666'
+                                }} 
+                            />
+                        </button>
+                    </div>
 
                     {isProjectsExpanded && (
                         <div className="lv-sub-nav">
@@ -100,6 +123,17 @@ export default function Sidebar() {
                                 <FolderPlus size={14} />
                                 <span>New folder</span>
                             </button>
+                            
+                            {folders.map(folder => (
+                                <NavLink 
+                                    key={folder.id} 
+                                    to={`/projects/folder/${folder.id}`}
+                                    className={({ isActive }) => `lv-nav-link lv-indented ${isActive ? 'lv-nav-link-active' : ''}`}
+                                >
+                                    <Folder size={14} />
+                                    <span>{folder.name}</span>
+                                </NavLink>
+                            ))}
                         </div>
                     )}
                     

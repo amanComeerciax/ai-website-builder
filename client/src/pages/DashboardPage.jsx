@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { Plus, Mic, ArrowUp, MessageSquare } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import { useAuthStore } from '../stores/authStore'
 import { useProjectStore } from '../stores/projectStore'
 import './DashboardPage.css'
+import TemplateGallery from '../components/dashboard/TemplateGallery'
+
 
 // Rotating placeholder
 const PROMPTS = [
@@ -17,6 +19,8 @@ const PROMPTS = [
 
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const folderId = searchParams.get('folderId') || null
   const { isLoaded, isSignedIn, getToken } = useAuth()
   const { userData, fetchUserData } = useAuthStore()
   const [promptValue, setPromptValue] = useState('')
@@ -73,7 +77,8 @@ export default function DashboardPage() {
   const handleSend = async () => {
     const trimmed = promptValue.trim()
     if (trimmed) {
-      const newProjectId = await createProject(trimmed)
+      // Pass folderId so the project is created inside the folder
+      const newProjectId = await createProject(trimmed, folderId)
       navigate(`/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`)
     }
   }
@@ -120,10 +125,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="lv-bottom-bar">
-        <div className="lv-bottom-bar-left">Templates</div>
-        <button className="lv-bottom-bar-right" onClick={() => navigate('/templates')}>Browse all →</button>
-      </div>
+      <TemplateGallery folderId={folderId} />
     </div>
   )
 }

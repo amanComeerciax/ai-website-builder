@@ -21,6 +21,38 @@
     margin: 0;
 }
 
+.pp-heading-area {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pp-folder-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #666;
+}
+
+.pp-breadcrumb-link {
+    color: #666;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.pp-breadcrumb-link:hover { color: #aaa; }
+
+.pp-breadcrumb-sep {
+    color: #444;
+}
+
+.pp-loading {
+    color: #555;
+    font-size: 14px;
+    padding: 40px;
+    text-align: center;
+}
+
 .pp-controls {
     display: flex;
     align-items: center;

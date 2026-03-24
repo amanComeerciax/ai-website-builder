@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { apiClient } from '../lib/api'
+import { useEditorStore } from './editorStore'
 
 export const useProjectStore = create(
     persist(
@@ -8,12 +9,37 @@ export const useProjectStore = create(
             projects: [],
             
             // Create a new project via API — returns a real MongoDB ObjectId
-            createProject: async (prompt) => {
+            createProject: async (prompt, folderId = null, templateId = null) => {
                 try {
                     const data = await apiClient.createProject({ 
-                        name: prompt.substring(0, 40) 
+                        name: prompt.substring(0, 40),
+                        folderId,
+                        templateId
                     });
                     const dbProject = data.project;
+                    
+                    // If this was a template instantiation, load template files into the editor VFS
+                    if (data.templateFiles && Object.keys(data.templateFiles).length > 0) {
+                        const editorStore = useEditorStore.getState();
+                        
+                        // Convert { "path": "content" } to VFS format { "path": { content: "..." } }
+                        const fileMap = {};
+                        for (const [path, content] of Object.entries(data.templateFiles)) {
+                            fileMap[path] = { content };
+                        }
+                        editorStore.setFiles(fileMap);
+                        
+                        // Open the first file tab
+                        const firstFile = Object.keys(data.templateFiles)[0];
+                        if (firstFile) {
+                            editorStore.setActiveFile(firstFile);
+                        }
+
+                        // Set preview type based on track
+                        const previewType = data.previewType || 'sandpack';
+                        const htmlContent = previewType === 'srcdoc' ? data.templateFiles['index.html'] : null;
+                        editorStore.setPreview(previewType, htmlContent);
+                    }
                     
                     const newProject = {
                         id: dbProject._id,
@@ -22,7 +48,8 @@ export const useProjectStore = create(
                         time: 'Just now',
                         lastEdited: Date.now(),
                         isStarred: false,
-                        isShared: false
+                        isShared: false,
+                        folderId: dbProject.folderId || null
                     };
                     
                     set((state) => ({
@@ -41,7 +68,8 @@ export const useProjectStore = create(
                         time: 'Just now',
                         lastEdited: Date.now(),
                         isStarred: false,
-                        isShared: false
+                        isShared: false,
+                        folderId: folderId || null
                     };
                     set((state) => ({
                         projects: [newProject, ...state.projects]

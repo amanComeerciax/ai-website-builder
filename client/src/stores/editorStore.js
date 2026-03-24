@@ -15,8 +15,9 @@ export const useEditorStore = create(
             files: { ...EMPTY_FILES },
 
             // ── Preview ──
-            previewType: 'sandpack',   // 'srcdoc' (Track A HTML) | 'sandpack' (Track B React)
+            previewType: 'sandpack',   // 'srcdoc' (Track A HTML) | 'sandpack' (Track B Next.js)
             htmlContent: null,         // raw HTML string for srcdoc mode
+            tunnelUrl: null,           // live URL from CLI tunnel
 
             // ── Active State ──
             activeFile: 'App.jsx',
@@ -103,6 +104,8 @@ export const useEditorStore = create(
 
             // Set the preview mode + optional raw HTML (for Track A srcdoc)
             setPreview: (previewType, htmlContent = null) => get()._sync({ previewType, htmlContent }),
+
+            setTunnelUrl: (url) => set({ tunnelUrl: url }),
 
             getFileContent: (path) => get().files[path]?.content || '',
 

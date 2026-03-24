@@ -1,12 +1,32 @@
 import { useState } from 'react'
-import { Folder, Lock, Users, X } from 'lucide-react'
+import { Folder, Lock, Users, X, Loader2 } from 'lucide-react'
 import { useUIStore } from '../stores/uiStore'
+import { useFolderStore } from '../stores/folderStore'
+import { useAuth } from '@clerk/clerk-react'
 import './CreateFolderModal.css'
 
 export default function CreateFolderModal() {
   const { isCreateFolderOpen, setCreateFolderOpen } = useUIStore()
+  const { createFolder, isLoading, error: folderError } = useFolderStore()
+  const { getToken } = useAuth()
+  
   const [folderName, setFolderName] = useState('')
   const [visibility, setVisibility] = useState('personal')
+  const [error, setError] = useState(null)
+
+  const handleCreate = async () => {
+    if (!folderName.trim()) return;
+    
+    try {
+      setError(null);
+      const token = await getToken();
+      await createFolder(folderName.trim(), visibility, token);
+      setFolderName('');
+      setCreateFolderOpen(false);
+    } catch (err) {
+      setError(err.message || 'Failed to create folder');
+    }
+  }
 
   if (!isCreateFolderOpen) return null
 
@@ -31,9 +51,16 @@ export default function CreateFolderModal() {
               placeholder="e.g. Side Projects" 
               value={folderName}
               onChange={e => setFolderName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleCreate()}
               autoFocus
             />
           </div>
+
+          {(error || folderError) && (
+            <div className="lv-modal-error">
+              {error || folderError}
+            </div>
+          )}
 
           <div className="lv-visibility-section">
             <label className="lv-vis-label">Visibility</label>
@@ -72,7 +99,13 @@ export default function CreateFolderModal() {
 
         <div className="lv-modal-footer">
           <button className="lv-btn-cancel" onClick={() => setCreateFolderOpen(false)}>Cancel</button>
-          <button className="lv-btn-create" disabled={!folderName.trim()}>Create</button>
+          <button 
+            className="lv-btn-create" 
+            disabled={!folderName.trim() || isLoading}
+            onClick={handleCreate}
+          >
+            {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Create'}
+          </button>
         </div>
       </div>
     </div>

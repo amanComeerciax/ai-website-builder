@@ -1,96 +1,88 @@
 /**
  * Groq Cloud AI Service
  * 
- * Used for: fallback code generation (when Qwen fails), instant chat responses
- * Routes: fallback_file, fix_file (after Qwen retries), chat_response
- * 
- * Model: llama-3.1-8b-instant (OpenAI-compatible API)
- * Extremely fast — typically <2s response time
+ * Target: Fast inference, chat fallbacks, user feedback.
+ * Uses Llama-3.1-8b.
  */
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MAX_RETRIES = 2;
 
 /**
- * Generate a response from Groq Cloud API (OpenAI-compatible).
+ * Call Groq Cloud API via native `fetch`.
  * 
  * @param {string} systemPrompt - System instructions
- * @param {string} userMessage - User message
- * @param {object} options
- * @param {boolean} options.jsonMode - Request JSON output format
- * @param {number} options.temperature - 0.2 for code fallback, 0.5 for chat
- * @returns {{ content: string, model: string, durationMs: number }}
+ * @param {string} userPrompt - Current message / task
+ * @param {object} options - Options containing temperature and JSON format override (if applicable)
+ * @returns {Promise<{ content: string, model: string, durationMs: number }>}
  */
-async function callGroq(systemPrompt, userMessage, options = {}) {
+async function callGroq(systemPrompt, userPrompt, options = {}) {
   if (!GROQ_API_KEY) {
-    throw new Error('GROQ_API_KEY is not configured.');
+    throw new Error('GROQ_API_KEY is not configured in the environment.');
   }
 
-  const { jsonMode = false, temperature = 0.2 } = options;
+  const model = options.model || process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+  const temperature = options.temperature || 0.5;
+  const jsonMode = options.jsonMode || false;
+
+  console.log(`[Groq Service] Calling ${model} (temp: ${temperature}, json: ${jsonMode})`);
   const startTime = Date.now();
 
-  for (let attempt = 1; attempt <= GROQ_MAX_RETRIES; attempt++) {
-    try {
-      console.log(`[Groq Service] Attempt ${attempt}/${GROQ_MAX_RETRIES} — model: ${GROQ_MODEL}, temp: ${temperature}`);
+  try {
+    const payload = {
+      model: model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: temperature,
+    };
 
-      const response = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-          ],
-          temperature,
-          response_format: jsonMode ? { type: 'json_object' } : undefined
-        })
-      });
-
-      if (response.status === 429) {
-        if (attempt < GROQ_MAX_RETRIES) {
-          console.warn(`[Groq Service] 429 Rate limited — backing off 5s...`);
-          await new Promise(r => setTimeout(r, 5000));
-          continue;
-        }
-        throw new Error('Groq rate limited after all retries');
-      }
-
-      if (!response.ok) {
-        const errBody = await response.text();
-        throw new Error(`Groq HTTP ${response.status}: ${errBody.substring(0, 200)}`);
-      }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-
-      if (!content || content.trim().length === 0) {
-        throw new Error('Groq returned empty response');
-      }
-
-      if (jsonMode) {
-        JSON.parse(content); // Validate parseable
-      }
-
-      const durationMs = Date.now() - startTime;
-      console.log(`[Groq Service] ✅ Completed in ${(durationMs / 1000).toFixed(1)}s (${content.length} chars)`);
-
-      return { content, model: GROQ_MODEL, durationMs };
-
-    } catch (error) {
-      if (attempt === GROQ_MAX_RETRIES) {
-        console.error(`[Groq Service] ❌ Failed after ${GROQ_MAX_RETRIES} attempts:`, error.message);
-        throw new Error(`Groq generation failed: ${error.message}`);
-      }
-
-      console.warn(`[Groq Service] Attempt ${attempt} failed: ${error.message}. Retrying in 2s...`);
-      await new Promise(r => setTimeout(r, 2000));
+    // Note: Groq expects raw JSON parsing rules but optionally accepts response_format natively.
+    if (jsonMode) {
+      payload.response_format = { type: 'json_object' };
     }
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Groq HTTP Error: ${response.status} ${response.statusText} — ${errText}`);
+    }
+
+    const json = await response.json();
+    const content = json.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new Error('Groq returned malformed response body');
+    }
+
+    if (jsonMode) {
+      try {
+        JSON.parse(content);
+      } catch (e) {
+        throw new Error(`Groq generation returned invalid JSON structure: ${e.message}`);
+      }
+    }
+
+    const durationMs = Date.now() - startTime;
+    console.log(`[Groq Service] ✅ Generation succeeded in ${(durationMs / 1000).toFixed(1)}s (${content.length} chars)`);
+
+    return {
+      content,
+      model,
+      durationMs
+    };
+
+  } catch (error) {
+    console.error(`[Groq Error] Request failed:`, error);
+    throw new Error(`Groq API generation failed: ${error.message}`);
   }
 }
 

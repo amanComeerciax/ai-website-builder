@@ -1,0 +1,163 @@
+/* ContextChips.css — V3.0 Context Collection UI Styles */
+
+.ctx-container {
+  background: var(--sf-surface, #1e1e2e);
+  border: 1px solid var(--sf-border, rgba(255,255,255,0.08));
+  border-radius: 12px;
+  padding: 16px;
+  margin: 8px 0;
+  animation: ctx-slide-in 0.3s cubic-bezier(0.0, 0.0, 0.2, 1.0);
+}
+
+@keyframes ctx-slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ctx-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--sf-text-muted, #9ca3af);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 14px;
+}
+
+.ctx-header-icon {
+  color: #f59e0b; /* amber — "thinking" indicator */
+}
+
+.ctx-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ctx-question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ctx-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sf-text, #e2e8f0);
+  line-height: 1.4;
+}
+
+/* Chip select */
+.ctx-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.ctx-chip {
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--sf-border, rgba(255,255,255,0.1));
+  background: transparent;
+  color: var(--sf-text-muted, #9ca3af);
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.ctx-chip:hover {
+  border-color: #6366f1;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.ctx-chip.ctx-chip-active {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+/* Text inputs */
+.ctx-text-input,
+.ctx-custom-input {
+  width: 100%;
+  background: var(--sf-bg, #111827);
+  border: 1px solid var(--sf-border, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--sf-text, #e2e8f0);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.ctx-custom-input {
+  width: auto;
+  flex: 1;
+  min-width: 120px;
+}
+
+.ctx-text-input:focus,
+.ctx-custom-input:focus {
+  border-color: #6366f1;
+}
+
+.ctx-text-input::placeholder,
+.ctx-custom-input::placeholder {
+  color: var(--sf-text-hint, #4b5563);
+}
+
+/* Action row */
+.ctx-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sf-border, rgba(255,255,255,0.06));
+}
+
+.ctx-skip-btn {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sf-text-muted, #6b7280);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.15s;
+}
+
+.ctx-skip-btn:hover {
+  color: var(--sf-text, #e2e8f0);
+}
+
+.ctx-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: #6366f1;
+  color: #fff;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.ctx-submit-btn:hover {
+  background: #4f46e5;
+}
+
+.ctx-submit-btn:active {
+  transform: scale(0.97);
+}

@@ -1,36 +1,44 @@
-# Project Definition
+# STACKFORGE AI — MASTER PROJECT PLAN V3.0
+# Version 3.0 | Complete Rebuild Plan
 
-## Context
-StackForge AI is transitioning from a mock AI generation frontend to a fully functional, local LLM-powered backend. The goal of this milestone is to connect the isolated `aiWorker.js` thread (running Qwen 2.5 via HTTP) to the `ChatPanel` using Server-Sent Events (SSE) and BullMQ.
+## THE PRODUCT IN ONE SENTENCE
+StackForge AI is a website builder where non-technical users type a plain prompt, answer a few questions, and receive a professional working website — with real UI components, version history, live preview, and the ability to refine it through chat — without ever touching code.
 
-## Core Value Proposition
-Real-time, persistent code generation powered by a local AI that streams file changes directly into the user's Virtual File System (VFS) without locking up the Express API or the user's browser.
+## THE CORE PROBLEM THIS PLAN SOLVES
+- LLM generates generic boilerplate with bland Tailwind components.
+- No context about the business (name, colors, tone).
+- Output looks AI-generated and amateur.
+- Import errors break the preview.
+- User has no way to refine it iteratively.
+- No version history.
 
-## Key Decisions
+## THE 6 LAYERS OF EVERY PROJECT
+1.  **Context Collection**: Chat agent asks clarifying questions (Mistral/Groq).
+2.  **Dynamic Code Generation with Agentic Loop**: Template-referenced or Fully dynamic modes.
+3.  **Model Selection and Planning**:
+    - Mistral: Code generation (Phase 3), Logic fixes.
+    - Groq: Reasoning, Planning, Chat, Context analysis.
+    - Qwen 2.5 Coder (Local): Fallback for all tasks.
+4.  **Creation and Preview**: CLI agent for Next.js (npm install, next dev, localtunnel).
+5.  **Agentic Refinement Loop**: Auto-fix build errors (max 3 iterations).
+6.  **Professional UI Components**: Library of polished components injected into prompts.
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| **Server-Sent Events (SSE)** | SSE is lightweight, native to HTTP, and perfectly suited for unidirectional streaming of LLM tokens and status updates from the Express API to the React frontend. | — Pending |
-| **Strict LLM Validation** | Local smaller models (like Qwen 2.5 32b/14b) can hallucinate format boundaries. The `aiWorker.js` will explicitly parse and guarantee structural schemas (JSON file maps) before releasing updates to the UI, retrying natively if parsing fails. | — Pending |
-| **BullMQ Job Tracking** | The AI worker executes out-of-band. The Express API will map the SSE connection to the specific `jobId` in Redis, listening for progress events emitted by the Node Worker thread. | — Pending |
+## TECH STACK
+### Builder App
+- **Frontend**: React + Vite, Tailwind CSS, shadcn/ui, Zustand, Monaco Editor, Clerk, Axios, WebSocket, Stripe.js
+- **Backend**: Node.js + Express, MongoDB Atlas, BullMQ + Upstash Redis, Clerk SDK, Zod, Winston, ws (Socket.IO used currently), archiver, jsdiff, child_process
 
-## Requirements
+### AI Models
+- **Mistral API**: code generation, fixing.
+- **Groq API**: reasoning, planning, fallback.
+- **Qwen 2.5 Coder (Ollama)**: fallback for all.
 
-### Validated
-- ✓ Monorepo initialization and environment configurations are set.
-- ✓ MongoDB integration for users and project states.
-- ✓ `ChatPanel`, `DetailsPanel`, and `EditorPage` layouts are built and ready to receive streaming data.
-- ✓ `BullMQ` connection and queue setup are scaffolded in `/services/queue.js`.
+### Generated Website Stack
+- **HTML**: index.html + Tailwind CDN + AOS.
+- **Next.js**: Next.js 14 App Router + Tailwind + framer-motion + lucide-react.
 
-### Active
-- [ ] Refactor `/api/generate` to return an SSE stream connection.
-- [ ] Connect the `aiWorker.js` thread to emit real-time logs and tokens via `BullMQ` progress updates.
-- [ ] Build the Strict Parser in the worker to extract target files and code blocks from the raw LLM string.
-- [ ] Refactor `chatStore.js` to ingest real SSE events instead of the `setTimeout` simulation.
-
-### Out of Scope
-- [ ] WebSockets — too heavy, bidirectional not needed since the generation is server-driven.
-- [ ] Third-party model APIs (OpenAI / Anthropic) — this milestone focuses strictly on the local Qwen HTTP bridge first.
+## INFRASTRUCTURE
+- MongoDB Atlas (Free), Upstash Redis, Cloudflare R2, Netlify API, Clerk, Stripe (Test), Render.com, Vercel, Mistral, Groq, Ollama (Local).
 
 ---
-*Last updated: March 17, 2026 after initialization*
+*Last updated: March 24, 2026 based on Master Plan V3.0*

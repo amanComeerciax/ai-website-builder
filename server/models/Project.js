@@ -22,9 +22,8 @@ const projectSchema = new mongoose.Schema(
       default: null
     },
     currentFileTree: {
-      type: Map,
-      of: String, // Map of path to R2Key string
-      default: new Map()
+      type: mongoose.Schema.Types.Mixed, // Map of path to R2Key string
+      default: {}
     },
     previewUrl: {
       type: String,
@@ -37,6 +36,11 @@ const projectSchema = new mongoose.Schema(
     techStack: {
       type: String,
       default: 'react'
+    },
+    folderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Folder',
+      default: null
     }
   },
   { timestamps: true }

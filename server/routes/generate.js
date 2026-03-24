@@ -68,7 +68,7 @@ router.post("/", async (req, res, next) => {
     }
 })
 
-// ── GET /api/generate/stream/:jobId — SSE stream of generation progress ──
+    // ── GET /api/generate/stream/:jobId — SSE stream of generation progress ──
 router.get("/stream/:jobId", async (req, res) => {
     // Set SSE headers
     res.writeHead(200, {
@@ -85,12 +85,12 @@ router.get("/stream/:jobId", async (req, res) => {
 
     const queueEvents = new QueueEvents('AI_Generation_Queue', { connection });
 
-    let cleaned = false;
+    let isCleanedUp = false;
 
     // Cleanup function to prevent Redis connection leaks
     function cleanup() {
-        if (cleaned) return;
-        cleaned = true;
+        if (isCleanedUp) return;
+        isCleanedUp = true;
         clearInterval(keepAlive);
         queueEvents.close().catch(() => {});
         connection.disconnect();
@@ -99,13 +99,14 @@ router.get("/stream/:jobId", async (req, res) => {
 
     // Keep-alive ping every 15 seconds to prevent browser/proxy timeouts
     const keepAlive = setInterval(() => {
-        res.write(': keep-alive\n\n');
+        if (!isCleanedUp) res.write(': keep-alive\n\n');
     }, 15000);
+
+    const jobId = req.params.jobId;
 
     // Listen for progress events from the AI worker
     queueEvents.on('progress', ({ jobId: id, data }) => {
-        if (id === req.params.jobId) {
-            // Forward the worker's progress event shape directly to SSE
+        if (id === jobId && !isCleanedUp) {
             const eventName = data.event || 'progress';
             const payload = data.payload || data;
             res.write(`event: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`);
@@ -114,19 +115,19 @@ router.get("/stream/:jobId", async (req, res) => {
 
     // Listen for job completion
     queueEvents.on('completed', ({ jobId: id, returnvalue }) => {
-        if (id === req.params.jobId) {
-            // returnvalue is a JavaScript Object in BullMQ v5, so we MUST JSON.stringify it for SSE
+        if (id === jobId && !isCleanedUp) {
             const stringifiedData = typeof returnvalue === 'object' ? JSON.stringify(returnvalue) : (returnvalue || '"done"');
             res.write(`event: complete\ndata: ${stringifiedData}\n\n`);
-            cleanup();
+            // Add a small delay before cleanup to ensure the buffer flushes
+            setTimeout(cleanup, 500);
         }
     });
 
     // Listen for job failure
     queueEvents.on('failed', ({ jobId: id, failedReason }) => {
-        if (id === req.params.jobId) {
+        if (id === jobId && !isCleanedUp) {
             res.write(`event: error\ndata: ${JSON.stringify({ error: failedReason })}\n\n`);
-            cleanup();
+            setTimeout(cleanup, 500);
         }
     });
 
@@ -134,7 +135,7 @@ router.get("/stream/:jobId", async (req, res) => {
     req.on('close', cleanup);
 
     // Send initial connection event
-    res.write(`event: connected\ndata: ${JSON.stringify({ jobId: req.params.jobId, status: 'listening' })}\n\n`);
+    res.write(`event: connected\ndata: ${JSON.stringify({ jobId, status: 'listening' })}\n\n`);
 })
 
 // ── GET /api/generate/status/:jobId — Check generation status (legacy) ──

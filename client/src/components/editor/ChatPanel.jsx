@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { 
     Send, Bot, User, Lightbulb, RefreshCw, Package, 
     FileEdit, FilePlus, Bookmark, ThumbsUp, ThumbsDown, 
@@ -7,10 +7,13 @@ import {
     Mic, ArrowUp, ChevronRight, ChevronDown, Cpu, Cloud
 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
+import ContextChips from './ContextChips'
 import './ChatPanel.css'
 
 export default function ChatPanel() {
     const { projectId } = useParams()
+    const location = useLocation()
+    const navigate = useNavigate()
     const { 
         messages, isGenerating, generationPhase, generationLogs, 
         generationSummary, generationTaskName, isDetailsExpanded,
@@ -22,17 +25,103 @@ export default function ChatPanel() {
     const [isThoughtExpanded, setIsThoughtExpanded] = useState(false)
     const messagesEndRef = useRef(null)
 
+    // V3.0: Context Collection State
+    const [contextState, setContextState] = useState('idle')
+    const [contextQuestions, setContextQuestions] = useState([])
+    const [pendingPrompt, setPendingPrompt] = useState('')
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages, generationPhase, generationLogs])
+    }, [messages, generationPhase, generationLogs, contextState])
 
+    // Extracted prompt logic so URL params and manual inputs use the exact same flow
+    const processPrompt = async (promptText) => {
+        if (!promptText || isGenerating) return
+
+        // Check if this is the first message BEFORE mutating state
+        const isFirstMessage = messages.length === 0
+
+        addMessage({ role: 'user', content: promptText })
+
+        if (isFirstMessage) {
+            setContextState('loading')
+            setPendingPrompt(promptText)
+            try {
+                // Ensure API_BASE works correctly (fallback to relative path)
+                const fetchUrl = API_BASE ? `${API_BASE}/api/context/questions` : '/api/context/questions'
+                
+                const res = await fetch(fetchUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: promptText })
+                })
+                
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+                const data = await res.json()
+
+                if (data.questions && data.questions.length > 0) {
+                    // Show the chips UI — user must answer (or skip)
+                    setContextQuestions(data.questions)
+                    setContextState('awaiting_answers')
+                    return // ← pause here until ContextChips onSubmit/onSkip fires
+                }
+            } catch (err) {
+                console.warn('[ChatPanel] Context fetch failed, skipping:', err.message)
+            }
+            // No questions needed (or fetch failed) — proceed immediately
+            setContextState('done')
+            startGeneration(promptText, projectId)
+        } else {
+            // Follow-up message — no context needed, generate directly
+            startGeneration(promptText, projectId)
+        }
+    }
+
+    // Step 1: User hits send — check if context questions are needed first
     const handleSend = () => {
         const trimmed = input.trim()
-        if (!trimmed || isGenerating) return
+        if (trimmed) {
+            setInput('')
+            processPrompt(trimmed)
+        }
+    }
 
-        addMessage({ role: 'user', content: trimmed })
-        setInput('')
-        startGeneration(trimmed, projectId)
+    // Auto-execute prompt from URL (e.g. from Home page)
+    useEffect(() => {
+        const params = new URLSearchParams(location.search)
+        const urlPrompt = params.get('prompt')
+        
+        if (urlPrompt && messages.length === 0 && !isGenerating && contextState === 'idle') {
+            processPrompt(urlPrompt)
+            // Remove prompt from URL to avoid re-triggering
+            navigate(location.pathname, { replace: true })
+        }
+    }, [location.search, messages.length, isGenerating, contextState, navigate, location.pathname])
+
+    // Step 2: User answered context questions → enrich prompt and generate
+    const handleContextSubmit = async (answers) => {
+        setContextState('done')
+        setContextQuestions([])
+        
+        let enrichedPrompt = pendingPrompt
+        if (answers && answers.length > 0) {
+            const contextBlock = answers
+                .filter(a => a.answer?.trim())
+                .map(a => `- ${a.question}: ${a.answer}`)
+                .join('\n')
+            if (contextBlock) {
+                enrichedPrompt = `${pendingPrompt}\n\n[User context]\n${contextBlock}`
+            }
+        }
+        startGeneration(enrichedPrompt, projectId)
+    }
+
+    // User skipped context collection → generate with original prompt
+    const handleContextSkip = () => {
+        setContextState('done')
+        setContextQuestions([])
+        startGeneration(pendingPrompt, projectId)
     }
 
     const actionChips = [
@@ -184,6 +273,21 @@ export default function ChatPanel() {
 
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* V3.0: CONTEXT CHIPS — shown between message and generation */}
+            {contextState === 'loading' && (
+                <div className="cp-ctx-loading">
+                    <Lightbulb size={14} className="cp-amber cp-pulse" />
+                    <span>Thinking of questions...</span>
+                </div>
+            )}
+            {contextState === 'awaiting_answers' && (
+                <ContextChips
+                    questions={contextQuestions}
+                    onSubmit={handleContextSubmit}
+                    onSkip={handleContextSkip}
+                />
+            )}
 
             {/* INPUT AREA */}
             <div className="cp-input-area">

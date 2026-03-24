@@ -96,6 +96,28 @@ class ApiClient {
         return `${this.baseUrl}/generate/stream/${jobId}`
     }
 
+    // ── Folders ──
+    getFolders(token) {
+        return this.request('/folders', {}, token)
+    }
+
+    getFolderProjects(folderId, token) {
+        return this.request(`/folders/${folderId}/projects`, {}, token)
+    }
+
+    createFolder(data, token) {
+        return this.request('/folders', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, token)
+    }
+
+    deleteFolder(id, token) {
+        return this.request(`/folders/${id}`, {
+            method: 'DELETE',
+        }, token)
+    }
+
     // ── Health ──
     healthCheck() {
         return this.request('/health')

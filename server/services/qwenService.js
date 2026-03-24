@@ -1,48 +1,33 @@
 /**
- * Qwen Local AI Service (REFACTORED)
+ * Qwen Local AI Service (Strict Resiliency) — V3.0 FALLBACK ONLY
  * 
  * Interacts with Ollama HTTP API using qwen2.5-coder:latest.
+ * This service is now the FALLBACK for all tasks — primary routing goes to
+ * Mistral (code gen) and Groq (reasoning/planning).
  * 
- * Key fixes over the original qwen.js:
- * 1. stream: true — reads NDJSON chunks instead of waiting for full response
- * 2. num_ctx: 4096 — hard cap prevents OOM on CPU Macs
- * 3. Token-level timeout — 30s per token, resets on each received token
- * 4. Input length guard — rejects prompts over 14000 chars before sending
- * 5. Mistral fallback preserved for when local fails
+ * Strict Controls (V3.0):
+ * 1. MAX_INPUT_CHARS = 3500 -> Hard cap to prevent local OOM.
+ * 2. num_ctx = 4096 -> Caps Ollama's KV cache strictly.
+ * 3. stream: true -> Enables chunk reading.
+ * 4. 30s token timeout -> Prevents silent hangs by resetting on every chunk.
  */
-
-const { Mistral } = require('@mistralai/mistralai');
 
 const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:latest';
-const QWEN_TIMEOUT_MS = parseInt(process.env.QWEN_TIMEOUT_MS) || 30000; // 30s per token
-const QWEN_MAX_RETRIES = parseInt(process.env.QWEN_MAX_RETRIES) || 3;
-const MAX_INPUT_CHARS = 14000;
-
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
-const mistralClient = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY }) : null;
+const QWEN_TIMEOUT_MS = 30000;  // 30s per-token timeout (V3.0 strict)
+const MAX_INPUT_CHARS = 3500;   // 3.5k chars — strict fallback limit (V3.0)
 
 /**
  * Generate code via local Qwen (Ollama) with streaming.
- * Falls back to Mistral on failure.
+ * Note: Fallbacks are now handled by modelRouter.js
  * 
  * @param {string} systemPrompt - System instructions
  * @param {string} userPrompt - User message/code request
  * @param {boolean} jsonMode - Whether to request JSON output format
  * @param {number} retries - Max local retry attempts
- * @param {string} preferredModel - 'qwen' | 'mistral'
- * @returns {string} Generated content
+ * @returns {Promise<string>} Generated content
  */
-async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retries = QWEN_MAX_RETRIES, preferredModel = 'qwen') {
-  // ─── GUARD: Direct Mistral routing ───
-  if (preferredModel === 'mistral') {
-    if (!mistralClient) {
-      throw new Error('Mistral model selected but no MISTRAL_API_KEY is configured.');
-    }
-    console.log(`[Model Router] User selected Mistral — skipping local Ollama, going straight to cloud...`);
-    return await generateWithMistral(systemPrompt, userPrompt, jsonMode);
-  }
-
+async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retries = 3) {
   // ─── GUARD: Input length check ───
   const totalInputLength = (systemPrompt || '').length + (userPrompt || '').length;
   if (totalInputLength > MAX_INPUT_CHARS) {
@@ -58,20 +43,22 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
     model: OLLAMA_MODEL,
     system: systemPrompt,
     prompt: userPrompt,
-    stream: true,                    // FIX 1: Stream NDJSON chunks
+    stream: true,                    
     format: jsonMode ? 'json' : undefined,
     options: {
       temperature: 0.1,
-      num_ctx: 4096,                 // FIX 2: Hard cap context window
+      num_ctx: 4096,                // 4k context — strict V3.0 fallback cap
     }
   };
 
+  console.log(`[Qwen] 🧠 FALLBACK generation: task has ${(systemPrompt||'').length + (userPrompt||'').length} chars | ctx=4096 | json=${jsonMode}`);
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`[Qwen Service] Attempt ${attempt}/${retries} — Streaming from Ollama (num_ctx: 4096)...`);
+      console.log(`[Qwen] Attempt ${attempt}/${retries} — streaming from Ollama...`);
       const startTime = Date.now();
 
-      // FIX 3: Token-level AbortController — resets on each received chunk
+      // Token-level AbortController — resets on each received chunk
       const controller = new AbortController();
       let tokenTimer = setTimeout(() => controller.abort(), QWEN_TIMEOUT_MS);
 
@@ -96,13 +83,13 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
       while (true) {
         const { done, value } = await reader.read();
 
+        // Reset the token-level timeout on each received chunk
+        clearTimeout(tokenTimer);
+
         if (done) {
-          clearTimeout(tokenTimer);
           break;
         }
 
-        // Reset the token-level timeout on each received chunk
-        clearTimeout(tokenTimer);
         tokenTimer = setTimeout(() => controller.abort(), QWEN_TIMEOUT_MS);
 
         buffer += decoder.decode(value, { stream: true });
@@ -117,10 +104,6 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
             const chunk = JSON.parse(line);
             if (chunk.response) {
               fullContent += chunk.response;
-            }
-            // Ollama sends { done: true } on final chunk
-            if (chunk.done) {
-              clearTimeout(tokenTimer);
             }
           } catch (parseErr) {
             // Skip malformed NDJSON lines
@@ -151,68 +134,20 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
       console.warn(`[Qwen Service] ❌ Attempt ${attempt}/${retries} failed: ${isTimeout ? 'TOKEN_TIMEOUT (30s no response)' : error.message}`);
 
       if (attempt === retries) {
-        console.warn(`[Qwen Service] Local generation failed after ${retries} attempts. Escalating to fallback...`);
-        break;
+        console.warn(`[Qwen Service] Local generation failed after ${retries} attempts. Escalating upstream...`);
+        throw error; // Let modelRouter catch and fallback
       }
 
       // If Ollama is down entirely, don't waste time retrying locally
       if (isConnectionDead) {
         console.warn(`[Qwen Service] Ollama server is unreachable. Skipping remaining retries.`);
-        break;
+        throw error; // Let modelRouter catch and fallback
       }
 
       // Backoff before retry
       await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
     }
   }
-
-  // ─── FALLBACK TO MISTRAL CLOUD API ───
-  if (!mistralClient) {
-    throw new Error('Local generation failed and no MISTRAL_API_KEY is configured for fallback.');
-  }
-
-  console.log(`[Mistral Fallback] Local Qwen failed, falling back to Mistral Cloud API...`);
-  return await generateWithMistral(systemPrompt, userPrompt, jsonMode);
 }
 
-/**
- * Direct Mistral Cloud API generation.
- */
-async function generateWithMistral(systemPrompt, userPrompt, jsonMode = false) {
-  if (!mistralClient) {
-    throw new Error('No MISTRAL_API_KEY configured.');
-  }
-
-  try {
-    const chatStreamResponse = await mistralClient.chat.stream({
-      model: process.env.MISTRAL_MODEL || 'mistral-small-latest',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.1,
-      responseFormat: jsonMode ? { type: 'json_object' } : undefined
-    });
-
-    let content = '';
-    for await (const chunk of chatStreamResponse) {
-      const deltaContent = chunk?.data?.choices?.[0]?.delta?.content;
-      if (deltaContent) {
-        content += deltaContent;
-      }
-    }
-
-    if (jsonMode) {
-      JSON.parse(content);
-    }
-
-    console.log(`[Mistral] Generation succeeded! (${content.length} characters)`);
-    return content;
-
-  } catch (mistralError) {
-    console.error(`[Mistral Error]:`, mistralError);
-    throw new Error(`Mistral generation failed: ${mistralError.message}`);
-  }
-}
-
-module.exports = { generateWithQwen, generateWithMistral };
+module.exports = { generateWithQwen };

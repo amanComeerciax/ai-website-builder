@@ -241,7 +241,7 @@ export const useChatStore = create(
                             }
                         }
 
-                        // Set preview type: 'srcdoc' for Track A HTML, 'sandpack' for Track B React
+                        // Set preview type: 'srcdoc' for Track A HTML, 'sandpack' for Track B Next.js
                         const previewType = data.previewType || 'sandpack';
                         const htmlContent = previewType === 'srcdoc' ? data.files?.['index.html'] : null;
                         editorStore.setPreview(previewType, htmlContent);
@@ -278,13 +278,15 @@ export const useChatStore = create(
                     });
 
                     // Handle native EventSource connection errors
-                    eventSource.onerror = () => {
+                    eventSource.onerror = (err) => {
+                        console.warn('[ChatStore] SSE connection interrupted (might reconnect).', err);
+                        // Do NOT instantly kill the generation UI, because EventSource auto-reconnects
+                        // and the backend worker (BullMQ) is likely still running safely.
                         if (eventSource.readyState === EventSource.CLOSED) {
-                            get()._sync({
-                                generationPhase: 'complete',
-                                generationSummary: 'Connection lost. Please try again.',
-                                isGenerating: false,
-                            });
+                            // Only if the browser definitively gives up
+                            console.error('[ChatStore] SSE connection permanently closed.');
+                            // We don't mark isGenerating as false immediately because BullMQ might just be slow
+                            // The user can still see the last phase. We'll rely on the worker to complete.
                             useChatStore.setState({ _eventSource: null });
                         }
                     };

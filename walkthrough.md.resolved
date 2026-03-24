@@ -1,0 +1,71 @@
+# StackForge AI: System Architecture & Data Flow
+
+Welcome to the team. I've mapped out the entire architecture of the StackForge AI Website Builder. Here is how all the pieces – from the browser UI to the local AI engine – communicate.
+
+## 1. High-Level System Design
+
+StackForge AI is built on a modern **MERN stack + AI Workers** architecture. It consists of three primary domains:
+
+1. **Frontend (React/Vite):** The user interface where prompts are entered and live code is previewed.
+2. **Backend Server (Node.js/Express):** The central nervous system that handles APIs, database interactions, and routes AI generation jobs.
+3. **Local CLI Environment:** A secure bridge that pulls generated code to the user's local machine for execution outside the browser sandbox.
+
+## 2. The Core Request Flow: "From Prompt to Preview"
+
+When a user types a prompt (e.g., "Build a coffee shop website") and clicks generate, here is the exact journey of that request:
+
+### Step 1: The Request (Client to Server)
+- **File:** [client/src/pages/ChatPage.jsx](file:///Users/commerciax/Desktop/ai-website-builder/client/src/pages/ChatPage.jsx)
+- The user submits a prompt. The frontend sends a `POST /api/generate` request to the backend.
+- It immediately establishes a **Server-Sent Event (SSE)** connection via `GET /api/generate/stream/:jobId` to listen for real-time progress updates.
+
+### Step 2: The Queue (Server)
+- **File:** [server/routes/generate.js](file:///Users/commerciax/Desktop/ai-website-builder/server/routes/generate.js)
+- The server doesn't process the AI task synchronously. Instead, it adds the request to a **Redis-backed BullMQ Queue**. This prevents the server from hanging when multiple users generate sites.
+- It returns a `jobId` to the client.
+
+### Step 3: The AI Pipeline (The Worker)
+- **File:** [server/workers/aiWorker.js](file:///Users/commerciax/Desktop/ai-website-builder/server/workers/aiWorker.js)
+- The Background Worker picks up the job and executes the **4-Phase AI Pipeline**:
+  - **Phase 1 (Parse):** Determines if the user wants HTML or Next.js.
+  - **Phase 2 (Plan):** Creates the site map, colors, and layout structure.
+  - **Phase 3 (Generate):** Writes the actual code.
+  - **Phase 4 (Validate):** Uses regex ([rules/codeValidator.js](file:///Users/commerciax/Desktop/ai-website-builder/server/rules/codeValidator.js)) to ensure rules like `"use client"` are respected.
+
+### Step 4: The Model Router (Where Ollama lives)
+- **File:** [server/services/modelRouter.js](file:///Users/commerciax/Desktop/ai-website-builder/server/services/modelRouter.js)
+- The worker doesn't call an LLM directly; it asks the `modelRouter`.
+- The router is configured to send **EVERYTHING** to [qwenService.js](file:///Users/commerciax/Desktop/ai-website-builder/server/services/qwenService.js) (your local Ollama). 
+- If your local Ollama crashes, the router automatically fails over to [groqService.js](file:///Users/commerciax/Desktop/ai-website-builder/server/services/groqService.js) (Llama-3.3-70b via Cloud API).
+
+### Step 5: The Sync (Backend to Client/CLI)
+When the worker finishes, it saves the generated code to MongoDB (`Project.currentFileTree`).
+- **File:** [server/workers/aiWorker.js](file:///Users/commerciax/Desktop/ai-website-builder/server/workers/aiWorker.js) & [server/services/websocket.js](file:///Users/commerciax/Desktop/ai-website-builder/server/services/websocket.js)
+- The worker fires a `"job complete"` event. 
+- The WebSocket service broadcasts a `file-update` event containing the new code.
+
+### Step 6: The Render (The Two Previews)
+The updated code is consumed in two completely different ways simultaneously:
+
+**A. The Cloud Sandbox (Sandpack):**
+- **File:** [client/src/components/editor/PreviewPanel.jsx](file:///Users/commerciax/Desktop/ai-website-builder/client/src/components/editor/PreviewPanel.jsx)
+- The browser hears the WebSocket event and injects the new files into `@codesandbox/sandpack-react` (a mini-browser Node environment). This renders the site inside an iframe entirely in the cloud.
+
+**B. The Local CLI (Node.js):**
+- **File:** [cli/src/commands/pull.js](file:///Users/commerciax/Desktop/ai-website-builder/cli/src/commands/pull.js) & [cli/src/utils/fileSync.js](file:///Users/commerciax/Desktop/ai-website-builder/cli/src/utils/fileSync.js)
+- If you ran `stackforge-ai-cli pull`, your local terminal is also connected to that same WebSocket.
+- The CLI receives the code, writes it to your Mac's hard drive using `fs.writeFileSync`.
+- The CLI then automatically runs `npm install` and `npm run dev` ([cli/src/utils/runner.js](file:///Users/commerciax/Desktop/ai-website-builder/cli/src/utils/runner.js)), booting the Next.js server on `localhost:3000`.
+
+## 3. Key API Integrations
+
+- **MongoDB (Mongoose):** Stores User accounts, Projects, Messages, and the `currentFileTree` (the actual code snapshot).
+- **Ollama (`http://localhost:11434`):** Your private AI brain running `qwen2.5-coder`. Handled by [qwenService.js](file:///Users/commerciax/Desktop/ai-website-builder/server/services/qwenService.js).
+- **Groq API:** The lightning-fast emergency fallback model if Ollama is unreachable. Handled by [groqService.js](file:///Users/commerciax/Desktop/ai-website-builder/server/services/groqService.js).
+- **BullMQ / Redis (`UPSTASH_REDIS_URL`):** Manages the heavy lifting. Ensures AI jobs don't crash the Express server.
+
+## 4. Why We Added the Local CLI
+
+You noticed earlier that Sandpack struggled with "installing packages" for Next.js. Browsers have strict memory and file-system limits, making complex Next.js apps crash inside Sandpack.
+
+The **CLI solves this** by bypassing the browser entirely. It pulls the AI-generated code directly to your Mac, uses your actual Node.js installation, and runs a real dev server. The IDE's "Local" toggle just changes the iframe `src` to point to your `localhost:3000`!

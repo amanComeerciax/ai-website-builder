@@ -2,347 +2,485 @@ const { Worker } = require('bullmq');
 const IORedis = require('ioredis');
 const { callModel } = require('../services/modelRouter.js');
 const { 
-  buildPhase1Prompt, 
-  buildPhase2Prompt, 
-  buildPhase3Prompt,
+  buildContextQuestions,
+  buildParsePrompt, 
+  buildPlanPrompt,
   buildTrackAPrompt,
-  buildSummaryPrompt 
-} = require('../utils/promptBuilder.js');
-const { validateFile } = require('../utils/codeValidator.js');
-const { getRulesForPhase } = require('../utils/ruleLoader.js');
+  buildTrackBPrompt,
+  buildSummaryPrompt,
+  buildErrorClassifyPrompt,
+  buildFixFilePrompt
+} = require('../rules/promptBuilder.js');
+const { validateCode } = require('../rules/codeValidator.js');
+const { broadcastFileUpdate } = require('../services/websocket.js');
+const { classifyError } = require('../utils/errorClassifier.js');
+const { fixFile } = require('../utils/autoFixer.js');
+const { matchTemplate } = require('../utils/templateMatcher.js');
 
 const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0.1:6379', {
   maxRetriesPerRequest: null,
 });
 
 /**
- * BullMQ Worker — Dual-Track AI Generation Pipeline
+ * Helper: strip markdown fences from AI JSON responses
+ */
+function stripFences(str) {
+  return str.replace(/^```json?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+}
+
+/**
+ * Helper: parse JSON safely, returns null on failure
+ */
+function safeParseJSON(str) {
+  try { return JSON.parse(stripFences(str)); } catch { return null; }
+}
+
+/**
+ * Normalize AI multi-file response into a flat { "filepath": "code" } map.
+ * Handles all known Mistral response formats.
+ */
+function normalizeFilesResponse(parsed) {
+  // Format 1: { files: { "app/page.js": "code" } }  ← expected
+  if (parsed.files && typeof parsed.files === 'object' && !Array.isArray(parsed.files)) {
+    const entries = Object.entries(parsed.files);
+    if (entries.length > 0 && typeof entries[0][1] === 'string') return parsed.files;
+  }
+  // Format 2: Array of { path, content } objects
+  if (Array.isArray(parsed)) {
+    const result = {};
+    for (const item of parsed) {
+      if (item.path && typeof item.content === 'string') result[item.path] = item.content;
+    }
+    if (Object.keys(result).length > 0) return result;
+  }
+  // Format 3: { files: [{ path, content }] }
+  if (parsed.files && Array.isArray(parsed.files)) {
+    const result = {};
+    for (const item of parsed.files) {
+      if (item.path && typeof item.content === 'string') result[item.path] = item.content;
+    }
+    if (Object.keys(result).length > 0) return result;
+  }
+  // Format 4: Single { path, content }
+  if (parsed.path && typeof parsed.content === 'string') return { [parsed.path]: parsed.content };
+  // Format 5: Flat object where keys look like file paths
+  const result = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (typeof value === 'string' && (key.includes('/') || key.includes('.'))) result[key] = value;
+  }
+  return Object.keys(result).length > 0 ? result : {};
+}
+
+/**
+ * BullMQ Worker — StackForge AI V3.0 6-Layer Pipeline
  * 
- * Track A (HTML): Simple sites → single self-contained index.html → instant srcdoc preview
- * Track B (React): Complex apps → multi-file React → Sandpack preview
- * 
- * Track is decided by Mistral in Phase 1 (outputTrack: "html" | "react").
- * Default is always "html" — instant preview, zero red errors.
- * 
- * Phase 1: PARSE PROMPT  (Mistral) → classifies intent + picks Track A or B
- * Phase 2: PLAN STRUCTURE (Mistral) → only for Track B
- * Phase 3: GENERATE      (Qwen)    → Track A: 1 HTML file, Track B: all React files
- * Phase 4: SUMMARIZE     (Mistral) → summary + 4 suggested actions
+ * LAYER 0: Context passthrough   (enrichedPrompt already built by ChatPanel)
+ * LAYER 1: Parse intent          (Groq → parse_prompt)
+ * LAYER 2: Plan architecture     (Groq → plan_structure)
+ * LAYER 3: Generate code         (Mistral → generate_html / generate_file)
+ * LAYER 4: Validate code         (Local regex → codeValidator)
+ * LAYER 5: Summarize             (Groq → summarize)
  */
 const aiWorker = new Worker('AI_Generation_Queue', async job => {
-  console.log(`[Worker] Job ${job.id} started for project: ${job.data.projectId}`);
-  const { prompt, model, existingFiles } = job.data;
+  const { prompt, projectId, existingFiles } = job.data;
   if (!prompt) throw new Error("Missing 'prompt' in job data");
 
-  // Build existing files context string for edit/iterate requests
-  let contextString = '';
-  if (existingFiles && Object.keys(existingFiles).length > 0) {
-    contextString = '### EXISTING CODEBASE:\n';
-    for (const [path, fileObj] of Object.entries(existingFiles)) {
-      const content = typeof fileObj === 'string' ? fileObj : fileObj.content;
-      contextString += `\n--- ${path} ---\n${content}\n`;
-    }
-  }
+  console.log(`[Worker V3] Job ${job.id} started | project: ${projectId}`);
 
-  // ─── PHASE 1: PARSE PROMPT (Mistral) ─────────────────────────────
-  await job.updateProgress({
-    event: 'thinking',
-    payload: { message: 'Understanding your request...' }
+  // ─── LAYER 1: PARSE INTENT ────────────────────────────────────────
+  await job.updateProgress({ 
+    event: 'thinking', 
+    payload: { message: '🔍 Parsing your request...', phase: 'parse' } 
   });
 
-  let sitePlan;
+  let parsedSitePlan;
   try {
-    const { systemPrompt, userMessage } = buildPhase1Prompt(prompt);
-    const fullMessage = contextString ? `${userMessage}\n\n${contextString}` : userMessage;
-    const result = await callModel('parse_prompt', fullMessage, systemPrompt);
-    sitePlan = JSON.parse(result.content);
-    console.log(`[Worker] Phase 1 ✅ — ${result.model} — track: ${sitePlan.outputTrack || 'html'}, type: ${sitePlan.siteType}`);
-  } catch (e) {
-    console.warn(`[Worker] Phase 1 failed, using defaults:`, e.message);
-    sitePlan = {
-      classification: 'new_site',
-      siteType: 'website',
-      pageType: 'landing',
-      outputTrack: 'html', // ← default to HTML (always works, always previews)
-      vaguePhrases: [],
-      assumptions: [],
-      colorPreference: 'dark',
-      targetAudience: 'general',
-      sections: ['hero', 'features', 'about', 'contact', 'footer']
-    };
-  }
-
-  // Default to Track A (HTML) if Mistral doesn't return a track
-  const outputTrack = sitePlan.outputTrack === 'react' ? 'react' : 'html';
-  console.log(`[Worker] ▶ Using Track ${outputTrack === 'html' ? 'A (HTML/instant preview)' : 'B (React/Sandpack)'}`);
-
-  await job.updateProgress({
-    event: 'log',
-    payload: { type: 'Reading', file: 'prompt analysis', message: `${sitePlan.siteType} → Track ${outputTrack === 'html' ? 'A' : 'B'}` }
-  });
-
-  // ════════════════════════════════════════════
-  // ── TRACK A: Single HTML file (instant preview)
-  // ════════════════════════════════════════════
-  if (outputTrack === 'html') {
-    await job.updateProgress({
-      event: 'thinking',
-      payload: { message: 'Generating your website...' }
-    });
-
-    await job.updateProgress({
-      event: 'log',
-      payload: { type: 'Creating', file: 'index.html' }
-    });
-
-    let htmlContent = null;
-    const { systemPrompt, userMessage } = buildTrackAPrompt(sitePlan);
+    const parseSystemPrompt = buildParsePrompt();
+    const result = await callModel('parse_prompt', prompt, parseSystemPrompt);
+    parsedSitePlan = safeParseJSON(result.content);
     
-    // Build user message with any context (for edit requests)
-    const fullUserMessage = contextString 
-      ? `${userMessage}\n\nExisting files to update:\n${contextString}`
-      : userMessage;
-
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const result = await callModel('generate_html', fullUserMessage, systemPrompt);
-        let html = result.content;
-
-        // Strip markdown code fences if AI wrapped it
-        html = html
-          .replace(/^```html?\s*\n?/i, '')
-          .replace(/\n?```\s*$/i, '')
-          .trim();
-
-        // If whole thing is JSON (model ignored instructions), try extracting HTML from inside
-        if (html.startsWith('{') || html.startsWith('[')) {
-          try {
-            const parsed = JSON.parse(html);
-            const candidate = parsed.html || parsed.content || parsed.code
-              || parsed.files?.['index.html']
-              || Object.values(parsed).find(v => typeof v === 'string' && v.includes('<html'));
-            if (candidate && (candidate.includes('<!DOCTYPE') || candidate.includes('<html'))) {
-              html = candidate;
-              console.log(`[Worker] Extracted HTML from JSON wrapper (attempt ${attempt})`);
-            }
-          } catch (_) { /* not valid JSON — try as-is */ }
-        }
-
-        // Trim to the HTML block if there's preamble text before DOCTYPE
-        const htmlStart = html.search(/<!DOCTYPE\s+html/i);
-        if (htmlStart > 0) {
-          html = html.substring(htmlStart);
-        }
-        // Trim anything after </html>
-        const htmlEnd = html.search(/<\/html>/i);
-        if (htmlEnd !== -1) {
-          html = html.substring(0, htmlEnd + 7);
-        }
-
-        html = html.trim();
-
-        if (!html.includes('<!DOCTYPE') && !html.includes('<html')) {
-          throw new Error('Response does not look like valid HTML — no DOCTYPE or <html> tag found');
-        }
-
-        htmlContent = html;
-        console.log(`[Worker] Track A ✅ — ${result.fallbackUsed ? 'Groq fallback' : result.model} — ${html.length} chars (attempt ${attempt}/3)`);
-        break;
-      } catch (e) {
-        console.error(`[Worker] Track A attempt ${attempt}/3 failed:`, e.message);
-        if (attempt === 3) {
-          throw new Error(`HTML generation failed after 3 attempts: ${e.message}`);
-        }
-        await new Promise(r => setTimeout(r, 1000 * attempt));
-      }
+    if (!parsedSitePlan || !parsedSitePlan.outputTrack) {
+      throw new Error('Invalid parse response structure');
     }
-
-    // Phase 4: Summarize
-    let summary = 'Generated your website successfully.';
-    let appName = sitePlan.siteType || 'Website';
-    let suggestedActions = ['Make it dark mode', 'Add more sections', 'Change the color scheme', 'Add animations'];
-
-    try {
-      const { systemPrompt: sp, userMessage: um } = buildSummaryPrompt(['index.html'], sitePlan);
-      const r = await callModel('summarize', um, sp);
-      const s = JSON.parse(r.content);
-      summary = s.summary || summary;
-      appName = s.appName || appName;
-      suggestedActions = s.suggestedActions || suggestedActions;
-    } catch (e) {
-      console.warn(`[Worker] Phase 4 summary failed (non-fatal):`, e.message);
-    }
-
-    console.log(`[Worker] Job ${job.id} complete — Track A — "${appName}"`);
-
-    // Return Track A result: previewType tells the frontend to use srcdoc
-    return {
-      summary,
-      appName,
-      suggestedActions,
+    console.log(`[Worker V3] Layer 1 ✅ Parse: Track=${parsedSitePlan.outputTrack} Site=${parsedSitePlan.siteType}`);
+  } catch (e) {
+    console.warn(`[Worker V3] Layer 1 fallback (${e.message})`);
+    parsedSitePlan = {
+      siteType: 'website',
       outputTrack: 'html',
-      previewType: 'srcdoc',  // ← frontend uses iframe srcdoc for instant preview
-      files: {
-        'index.html': htmlContent
-      }
+      colorPreference: 'light',
+      sections: ['hero', 'about', 'contact', 'footer'],
+      fontMood: 'modern',
+      targetAudience: 'general'
     };
   }
 
-  // ════════════════════════════════════════════
-  // ── TRACK B: React multi-file (Sandpack preview)
-  // ════════════════════════════════════════════
+  let isNextjs = parsedSitePlan.outputTrack === 'nextjs';
 
-  // Phase 2: Plan structure (Mistral)
-  await job.updateProgress({
-    event: 'thinking',
-    payload: { message: 'Planning structure...' }
+  await job.updateProgress({ 
+    event: 'thinking', 
+    payload: { 
+      message: `✅ Understood: ${parsedSitePlan.siteType} (${isNextjs ? 'Next.js' : 'HTML'} track)`,
+      phase: 'parse',
+      track: parsedSitePlan.outputTrack
+    } 
   });
 
-  let filePlan;
-  try {
-    const { systemPrompt, userMessage } = buildPhase2Prompt(sitePlan);
-    const result = await callModel('plan_structure', userMessage, systemPrompt);
-    filePlan = JSON.parse(result.content);
-    if (!Array.isArray(filePlan.fileTree)) {
-      filePlan.fileTree = [
-        { path: 'src/App.jsx', purpose: 'Main entry component' },
-        { path: 'src/index.css', purpose: 'Global styles' }
-      ];
-    }
-    console.log(`[Worker] Phase 2 ✅ — ${result.model} — ${filePlan.fileTree.length} files planned`);
-  } catch (e) {
-    console.warn(`[Worker] Phase 2 failed, using defaults:`, e.message);
-    filePlan = {
-      fileTree: [
-        { path: 'src/App.jsx', purpose: 'Main entry component', imports: [], exports: ['default'] },
-        { path: 'src/index.css', purpose: 'Global styles' }
-      ],
-      sections: sitePlan.sections || ['hero', 'features', 'footer'],
-      colorScheme: { bg: '#0f0f0f', surface: '#1a1a1a', text: '#e8e8e8', accent: '#3b82f6' },
-      fontPair: { heading: 'Syne', body: 'DM Sans' },
-      projectGlossary: { AppName: 'App' }
-    };
-  }
-
-  await job.updateProgress({
-    event: 'log',
-    payload: { type: 'Reading', file: 'project structure', message: `Planned ${filePlan.fileTree.length} files` }
+  // ─── LAYER 1.5: TEMPLATE MATCHING ────────────────────────────────
+  let matchedTemplateFiles = null;
+  
+  await job.updateProgress({ 
+    event: 'thinking', 
+    payload: { message: '🔍 Searching for matching templates...', phase: 'template_match' } 
   });
-
-  for (const file of filePlan.fileTree) {
-    await job.updateProgress({
-      event: 'log',
-      payload: { type: 'Creating', file: file.path }
-    });
-    await new Promise(r => setTimeout(r, 150));
-  }
-
-  // Phase 3: Generate React code (Qwen → Groq fallback)
-  await job.updateProgress({
-    event: 'log',
-    payload: { type: 'Editing', file: 'all files', message: 'Generating code...' }
-  });
-
-  const glossary = filePlan.projectGlossary || {};
-  const codeRules = getRulesForPhase('phase3_qwen');
-
-  const codeSystemPrompt = [
-    'You are a senior React code generator. Output ONLY valid JSON:',
-    '{ "files": { "src/App.jsx": "file content...", "src/index.css": "file content..." } }',
-    '',
-    codeRules,
-    '',
-    `Color scheme: ${JSON.stringify(filePlan.colorScheme || {})}`,
-    `Font pair: ${JSON.stringify(filePlan.fontPair || {})}`,
-    `App name: ${glossary.AppName || 'App'}`,
-    '',
-    'ONLY output the raw JSON object. No markdown fences.'
-  ].join('\n');
-
-  const codePrompt = [
-    contextString ? 'Apply this update to the existing codebase:' : 'Generate the complete code for:',
-    `"${prompt}"`,
-    '',
-    contextString || '',
-    '',
-    `Files to create: ${filePlan.fileTree.map(f => f.path).join(', ')}`,
-    `File purposes: ${filePlan.fileTree.map(f => `${f.path} (${f.purpose})`).join(', ')}`,
-    `Sections: ${(filePlan.sections || []).join(', ')}`,
-    '',
-    'Every .jsx MUST have valid React JSX with ES6 imports. Mock all data inline.',
-    'No TypeScript. Every component needs default export. ONLY allowed packages.'
-  ].join('\n');
-
-  let generatedFiles = {};
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const result = await callModel('generate_file', codePrompt, codeSystemPrompt);
-      const parsed = JSON.parse(result.content);
-
-      if (!parsed.files || typeof parsed.files !== 'object') {
-        throw new Error('Missing "files" key in response');
-      }
-      for (const [path, content] of Object.entries(parsed.files)) {
-        if (typeof content !== 'string') throw new Error(`File "${path}" is not a string`);
-      }
-
-      generatedFiles = parsed.files;
-      console.log(`[Worker] Track B Phase 3 ✅ — attempt ${attempt}/3 — ${Object.keys(generatedFiles).length} files`);
-      break;
-    } catch (e) {
-      console.error(`[Worker] Track B Phase 3 attempt ${attempt}/3 failed:`, e.message);
-      if (attempt === 3) throw new Error(`React code generation failed: ${e.message}`);
-      await new Promise(r => setTimeout(r, 1000 * attempt));
-    }
-  }
-
-  // Run code validator
-  for (const [filePath, content] of Object.entries(generatedFiles)) {
-    const { valid, violations } = validateFile(filePath, content);
-    if (!valid) {
-      console.warn(`[Worker] Validator: ${filePath} — ${violations.length} violations: ${violations.map(v => v.type).join(', ')}`);
-    }
-  }
-
-  // Phase 4: Summarize
-  let summary = `Generated ${Object.keys(generatedFiles).length} files`;
-  let appName = glossary.AppName || 'App';
-  let suggestedActions = ['Verify it works', 'Add authentication', 'Make it mobile responsive', 'Add dark mode'];
 
   try {
-    const { systemPrompt, userMessage } = buildSummaryPrompt(Object.keys(generatedFiles), filePlan);
-    const result = await callModel('summarize', userMessage, systemPrompt);
-    const s = JSON.parse(result.content);
-    summary = s.summary || summary;
-    appName = s.appName || appName;
-    suggestedActions = s.suggestedActions || suggestedActions;
-    console.log(`[Worker] Phase 4 ✅ — "${appName}"`);
-  } catch (e) {
-    console.warn(`[Worker] Phase 4 summary failed (non-fatal):`, e.message);
+    const templateMatch = await matchTemplate(parsedSitePlan);
+    if (templateMatch) {
+      matchedTemplateFiles = templateMatch.files;
+      // Force track to match the template's requirements
+      parsedSitePlan.outputTrack = templateMatch.track;
+      isNextjs = parsedSitePlan.outputTrack === 'nextjs';
+      
+      await job.updateProgress({ 
+        event: 'thinking', 
+        payload: { message: `✨ Matched template: ${templateMatch.name}`, phase: 'template_match' } 
+      });
+      console.log(`[Worker V3] Layer 1.5 ✅ Template Match: ${templateMatch.slug} with ${matchedTemplateFiles?.length || 0} files`);
+    } else {
+      console.log(`[Worker V3] Layer 1.5 ℹ️ Built from scratch (no template match)`);
+    }
+  } catch (err) {
+    console.warn(`[Worker V3] Layer 1.5 fallback (${err.message}) — skipping template matching`);
   }
 
-  console.log(`[Worker] Job ${job.id} complete — Track B — "${appName}" — ${Object.keys(generatedFiles).length} files`);
+  // ─── LAYER 2: PLAN ARCHITECTURE ──────────────────────────────────
+  await job.updateProgress({ 
+    event: 'thinking', 
+    payload: { message: '📐 Drafting the site architecture...', phase: 'plan' } 
+  });
+
+  let planDetails = { 
+    siteType: parsedSitePlan.siteType,
+    sections: parsedSitePlan.sections,
+    colorPreference: parsedSitePlan.colorPreference,
+    fontMood: parsedSitePlan.fontMood
+  };
+  
+  try {
+    const planSystemPrompt = buildPlanPrompt(parsedSitePlan);
+    const result = await callModel('plan_structure', prompt, planSystemPrompt);
+    const parsed = safeParseJSON(result.content);
+
+    if (parsed && typeof parsed === 'object') {
+      planDetails = {
+        ...planDetails,
+        ...parsed,
+        siteType: parsed.siteType || planDetails.siteType,
+        colorScheme: parsed.colorScheme || parsed.colors || { preference: parsedSitePlan.colorPreference }
+      };
+      console.log(`[Worker V3] Layer 2 ✅ Plan: ${Object.keys(planDetails).join(', ')}`);
+    } else {
+      throw new Error('Plan returned non-object');
+    }
+  } catch (e) {
+    console.warn(`[Worker V3] Layer 2 fallback (${e.message}) — using parsed plan as-is`);
+  }
+
+  await job.updateProgress({ 
+    event: 'acting', 
+    payload: { 
+      message: `✍️ Writing ${isNextjs ? 'React components' : 'HTML'}...`,
+      phase: 'generate',
+      track: parsedSitePlan.outputTrack
+    } 
+  });
+
+  // ─── LAYER 3+4: GENERATE + VALIDATE ──────────────────────────────
+  let finalFiles = {};
+
+  if (!isNextjs) {
+    // ─── TRACK A: HTML ────────────────────────────────────
+    const trackAPrompt = buildTrackAPrompt(planDetails, matchedTemplateFiles);
+    let htmlContent = '';
+    let generated = false;
+
+    for (let retry = 0; retry < 2; retry++) {
+      try {
+        if (retry > 0) {
+          await job.updateProgress({ 
+            event: 'acting', 
+            payload: { message: `♻️ Full regeneration (attempt ${retry + 1})...`, phase: 'generate' } 
+          });
+        }
+
+        const result = await callModel('generate_html', prompt, trackAPrompt);
+        htmlContent = result.content
+          .replace(/^```html?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+
+        const validation = validateCode(htmlContent, 'html');
+        if (validation.isValid) {
+          console.log(`[Worker V3] Layer 3+4 ✅ HTML validated (${htmlContent.length} chars)`);
+          generated = true;
+          break;
+        }
+
+        // ── AUTO-FIX LOOP ──
+        console.log(`[Worker V3] HTML validation failed (${validation.code}), entering auto-fix loop...`);
+        await job.updateProgress({ 
+          event: 'acting', 
+          payload: { message: `🔧 Fixing ${validation.code}...`, phase: 'fixing' } 
+        });
+
+        const classified = await classifyError(validation.message, 'index.html');
+        const fixResult = await fixFile({
+          filePath: 'index.html',
+          fileContent: htmlContent,
+          fixInstruction: classified.fixInstruction,
+          outputTrack: 'html',
+          maxAttempts: 2
+        });
+
+        if (fixResult.fixed) {
+          htmlContent = fixResult.content;
+          console.log(`[Worker V3] Layer 3+4 ✅ HTML auto-fixed after ${fixResult.attempts} fix attempt(s)`);
+          generated = true;
+          break;
+        }
+
+        console.warn(`[Worker V3] Auto-fix exhausted for HTML, falling back to full regen`);
+      } catch (err) {
+        console.warn(`[Worker V3] HTML attempt ${retry + 1} failed: ${err.message}`);
+      }
+    }
+
+    if (!generated && !htmlContent) throw new Error('HTML generation failed after all attempts');
+    finalFiles['index.html'] = htmlContent;
+
+  } else {
+    // ─── TRACK B: NEXT.JS ─────────────────────────────────
+    const trackBPrompt = buildTrackBPrompt(planDetails, matchedTemplateFiles);
+    let generated = false;
+
+    for (let retry = 0; retry < 2; retry++) {
+      try {
+        if (retry > 0) {
+          await job.updateProgress({ 
+            event: 'acting', 
+            payload: { message: `♻️ Full Next.js regeneration (attempt ${retry + 1})...`, phase: 'generate' } 
+          });
+        }
+
+        const result = await callModel('generate_file', prompt, trackBPrompt);
+        const rawContent = result.content
+          .replace(/^```json?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+
+        const parsedResponse = safeParseJSON(rawContent);
+        if (!parsedResponse) throw new Error('AI returned non-JSON for Next.js generation');
+        
+        const filesObj = normalizeFilesResponse(parsedResponse);
+        if (Object.keys(filesObj).length === 0) throw new Error('AI returned no recognizable file entries');
+
+        let allPass = true;
+        const batchFiles = {};
+        let failedFile = null;
+        let failedValidation = null;
+
+        for (const [path, content] of Object.entries(filesObj)) {
+          const validation = validateCode(content, 'nextjs');
+          if (!validation.isValid) {
+            allPass = false;
+            failedFile = path;
+            failedValidation = validation;
+            console.warn(`[Worker V3] Validation failed in ${path} (${validation.code})`);
+            break;
+          }
+          batchFiles[path] = content;
+
+          await job.updateProgress({ 
+            event: 'acting', 
+            payload: { 
+              message: `📄 Created ${path}`,
+              phase: 'generate',
+              file: path
+            }
+          });
+        }
+
+        if (allPass) {
+          finalFiles = { ...finalFiles, ...batchFiles };
+          console.log(`[Worker V3] Layer 3+4 ✅ Next.js: ${Object.keys(finalFiles).length} files`);
+          generated = true;
+          break;
+        }
+
+        // ── AUTO-FIX LOOP for the failed file ──
+        if (failedFile && failedValidation) {
+          console.log(`[Worker V3] Next.js validation failed in ${failedFile} (${failedValidation.code}), entering auto-fix loop...`);
+          await job.updateProgress({ 
+            event: 'acting', 
+            payload: { message: `🔧 Fixing ${failedFile} (${failedValidation.code})...`, phase: 'fixing' } 
+          });
+
+          const classified = await classifyError(failedValidation.message, failedFile);
+          const fixResult = await fixFile({
+            filePath: failedFile,
+            fileContent: filesObj[failedFile],
+            fixInstruction: classified.fixInstruction,
+            outputTrack: 'nextjs',
+            maxAttempts: 2
+          });
+
+          if (fixResult.fixed) {
+            // Replace the broken file and accept all others
+            filesObj[failedFile] = fixResult.content;
+            finalFiles = { ...filesObj };
+            console.log(`[Worker V3] Layer 3+4 ✅ Next.js auto-fixed ${failedFile} after ${fixResult.attempts} attempt(s)`);
+            generated = true;
+            break;
+          }
+
+          console.warn(`[Worker V3] Auto-fix exhausted for ${failedFile}, falling back to full regen`);
+        }
+
+      } catch (err) {
+        console.warn(`[Worker V3] Next.js attempt ${retry + 1} failed: ${err.message}`);
+        finalFiles = {};
+      }
+    }
+
+    if (!generated || Object.keys(finalFiles).length === 0) {
+      throw new Error('Next.js generation exhausted after all attempts');
+    }
+  }
+
+  // ─── LAYER 5: SUMMARIZE ──────────────────────────────────────────
+  await job.updateProgress({ 
+    event: 'thinking', 
+    payload: { message: '📝 Writing summary...', phase: 'summarize' } 
+  });
+
+  let summary = `Built your ${parsedSitePlan.siteType} successfully.`;
+  let appName = parsedSitePlan.siteType || 'Your Site';
+  let suggestedActions = [
+    'Make it dark mode',
+    'Add a contact form',
+    'Make it mobile responsive',
+    'Add an about section'
+  ];
+
+  try {
+    const summarySystemPrompt = buildSummaryPrompt(Object.keys(finalFiles), planDetails);
+    const result = await callModel('summarize', prompt, summarySystemPrompt);
+    const summaryData = safeParseJSON(result.content);
+    
+    if (summaryData) {
+      summary = summaryData.summary || summary;
+      appName = summaryData.appName || appName;
+      suggestedActions = summaryData.suggestedActions || suggestedActions;
+      console.log(`[Worker V3] Layer 5 ✅ Summary: "${summary.substring(0, 60)}..."`);
+    }
+  } catch (e) {
+    console.warn(`[Worker V3] Layer 5 summary failed (${e.message}) — using default`);
+  }
+
+  console.log(`[Worker V3] Job ${job.id} ✅ | Track: ${isNextjs ? 'Next.js' : 'HTML'} | Files: ${Object.keys(finalFiles).length}`);
 
   return {
     summary,
     appName,
     suggestedActions,
-    outputTrack: 'react',
-    previewType: 'sandpack', // ← frontend uses Sandpack for React preview
-    files: generatedFiles
+    outputTrack: isNextjs ? 'nextjs' : 'html',
+    previewType: isNextjs ? 'sandpack' : 'srcdoc',
+    files: finalFiles,
+    plan: {
+      siteType: parsedSitePlan.siteType,
+      track: parsedSitePlan.outputTrack,
+      sections: parsedSitePlan.sections
+    }
   };
 
 }, {
   connection,
-  concurrency: 1
+  concurrency: 1,
+  defaultJobOptions: {
+    removeOnComplete: 50,
+    removeOnFail: 20
+  }
 });
 
-aiWorker.on('completed', job => {
-  console.log(`✅ [Worker] Job ${job.id} completed successfully!`);
+// ─── COMPLETION HANDLER ───────────────────────────────────────────────────────
+aiWorker.on('completed', async (job, returnvalue) => {
+  console.log(`✅ [Worker V3] Job ${job.id} completed`);
+  
+  const projectId = job.data.projectId;
+  const messageId = job.data.messageId;
+  
+  if (projectId && returnvalue?.files) {
+    try {
+      const Project = require('../models/Project');
+      const Version = require('../models/Version');
+      
+      let versionId = null;
+      try {
+        const newVersion = await Version.create({
+          projectId: projectId,
+          messageId: messageId || null,
+          name: returnvalue.summary || 'Initial Generation',
+          trigger: 'generation',
+          fileTree: returnvalue.files
+        });
+        versionId = newVersion._id;
+        console.log(`[Worker V3] DB: Created Version snapshot ${versionId}`);
+      } catch (vErr) {
+        console.error(`[Worker V3] DB Version persist failed:`, vErr.message);
+      }
+      
+      await Project.findByIdAndUpdate(projectId, {
+        currentFileTree: returnvalue.files,
+        status: 'done',
+        lastGeneratedAt: new Date(),
+        outputTrack: returnvalue.outputTrack,
+        ...(versionId && { activeVersionId: versionId })
+      });
+      console.log(`[Worker V3] DB: saved ${Object.keys(returnvalue.files).length} files to project ${projectId}`);
+    } catch (dbErr) {
+      console.error(`[Worker V3] DB persist failed:`, dbErr.message);
+    }
+    
+    // Update assistant message in DB with the summary
+    if (messageId) {
+      try {
+        const Message = require('../models/Message');
+        await Message.findByIdAndUpdate(messageId, {
+          content: returnvalue.summary || 'Generated successfully.',
+          status: 'done'
+        });
+      } catch (msgErr) {
+        console.warn(`[Worker V3] Message update failed:`, msgErr.message);
+      }
+    }
+    
+    // Broadcast all files to CLI via WebSocket
+    for (const [path, content] of Object.entries(returnvalue.files)) {
+      broadcastFileUpdate(projectId, path, content);
+    }
+  }
 });
 
-aiWorker.on('failed', (job, err) => {
-  console.error(`❌ [Worker] Job ${job?.id} failed: ${err.message}`);
+// ─── FAILURE HANDLER ─────────────────────────────────────────────────────────
+aiWorker.on('failed', async (job, err) => {
+  console.error(`❌ [Worker V3] Job ${job?.id} failed: ${err.message}`);
+  
+  if (job?.data?.messageId) {
+    try {
+      const Message = require('../models/Message');
+      await Message.findByIdAndUpdate(job.data.messageId, {
+        content: `Generation failed: ${err.message}. Please try again.`,
+        status: 'error'
+      });
+    } catch {}
+  }
 });
 
 module.exports = { aiWorker };
