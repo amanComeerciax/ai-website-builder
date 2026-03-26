@@ -69,3 +69,25 @@
 .ft-dir-header span {
     font-weight: 500;
 }
+
+.ft-cm-btn {
+    background: transparent;
+    border: none;
+    padding: 6px 12px;
+    text-align: left;
+    color: #ddd;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.ft-cm-btn:hover {
+    background: #333;
+    color: #fff;
+}
+
+.ft-cm-danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}

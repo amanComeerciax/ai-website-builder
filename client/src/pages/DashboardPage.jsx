@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Plus, Mic, ArrowUp, MessageSquare } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import { useAuthStore } from '../stores/authStore'
 import { useProjectStore } from '../stores/projectStore'
 import './DashboardPage.css'
@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [searchParams] = useSearchParams()
   const folderId = searchParams.get('folderId') || null
   const { isLoaded, isSignedIn, getToken } = useAuth()
+  const { user: clerkUser } = useUser()
   const { userData, fetchUserData } = useAuthStore()
   const [promptValue, setPromptValue] = useState('')
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
@@ -65,7 +66,9 @@ export default function DashboardPage() {
     return () => clearTimeout(timeout)
   }, [charIdx, isDeleting, placeholderIdx])
 
-  const userName = userData?.email ? userData.email.split('@')[0] : 'User';
+  const userName = userData?.email 
+    ? userData.email.split('@')[0] 
+    : (clerkUser?.firstName || clerkUser?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User');
 
   const handleInput = () => {
     if (textareaRef.current) {

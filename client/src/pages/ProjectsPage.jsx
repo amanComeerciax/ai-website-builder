@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { Search, ChevronDown, LayoutGrid, List, Heart, FolderPlus, Folder } from 'lucide-react'
+import { Search, ChevronDown, LayoutGrid, List, Heart, FolderPlus, Folder, Star } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useProjectStore } from '../stores/projectStore'
 import { useFolderStore } from '../stores/folderStore'
@@ -13,7 +13,7 @@ export default function ProjectsPage() {
     const { type, folderId } = useParams()
     const navigate = useNavigate()
     const { userData } = useAuthStore()
-    const { projects } = useProjectStore()
+    const { projects, toggleStar } = useProjectStore()
     const { folders } = useFolderStore()
     const { setCreateFolderOpen } = useUIStore()
     const { getToken } = useAuth()
@@ -194,12 +194,30 @@ export default function ProjectsPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="pp-card-bottom">
-                                    <div className="pp-avatar bg-pink-600">{userInitial}</div>
-                                    <div className="pp-card-info">
-                                        <h3>{proj.name}</h3>
-                                        <p>{proj.time}</p>
+                                <div className="pp-card-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div className="pp-avatar bg-pink-600" style={{ margin: 0 }}>{userInitial}</div>
+                                        <div className="pp-card-info">
+                                            <h3 style={{ margin: 0 }}>{proj.name}</h3>
+                                            <p style={{ margin: 0 }}>{proj.time}</p>
+                                        </div>
                                     </div>
+                                    <button 
+                                        className="pp-star-btn"
+                                        onClick={(e) => { 
+                                            e.preventDefault(); 
+                                            e.stopPropagation(); 
+                                            toggleStar(proj.id); 
+                                        }}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                                    >
+                                        <Star 
+                                            size={16} 
+                                            fill={proj.isStarred ? '#fbbf24' : 'none'} 
+                                            color={proj.isStarred ? '#fbbf24' : '#666'} 
+                                            className="transition-colors duration-200"
+                                        />
+                                    </button>
                                 </div>
                             </Link>
                         ))}

@@ -1,0 +1,324 @@
+/* ═══════════════════════════════════════════════════════
+   Sidebar Project Modals — Shared Styles
+   Rename / Delete / Move-to-Folder
+   ═══════════════════════════════════════════════════════ */
+
+.sb-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: sbFadeIn 0.15s ease-out;
+}
+
+@keyframes sbFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sb-modal {
+  width: 440px;
+  max-width: 90vw;
+  background: #1a1a1a;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #fff;
+  overflow: hidden;
+  animation: sbSlideUp 0.2s ease-out;
+}
+
+@keyframes sbSlideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.sb-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 12px;
+}
+
+.sb-modal-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.sb-modal-header p {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.sb-modal-close {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.sb-modal-close:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.06);
+}
+
+.sb-modal-body {
+  padding: 0 24px 20px;
+}
+
+.sb-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ── Input Fields ── */
+
+.sb-input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.sb-input:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.sb-input::placeholder {
+  color: #555;
+}
+
+/* ── Buttons ── */
+
+.sb-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.sb-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sb-btn-primary {
+  background: #fff;
+  color: #000;
+}
+
+.sb-btn-primary:hover {
+  background: #e0e0e0;
+}
+
+.sb-btn-primary:disabled {
+  background: #444;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.sb-btn-danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.sb-btn-danger:hover {
+  background: #dc2626;
+}
+
+/* ── Delete Modal Warning ── */
+
+.sb-delete-warning {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #fca5a5;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.sb-delete-name {
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ── Move to Folder — Search ── */
+
+.sb-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.sb-search-wrapper svg {
+  color: #666;
+  flex-shrink: 0;
+}
+
+.sb-search-wrapper input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+
+.sb-search-wrapper input::placeholder {
+  color: #555;
+}
+
+/* ── Move to Folder — List ── */
+
+.sb-folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.sb-folder-list::-webkit-scrollbar { width: 4px; }
+.sb-folder-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+.sb-folder-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #ccc;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.sb-folder-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sb-folder-item.active {
+  background: rgba(59, 130, 246, 0.12);
+  color: #fff;
+}
+
+.sb-folder-item svg {
+  flex-shrink: 0;
+  color: #666;
+}
+
+.sb-folder-item.active svg {
+  color: #60a5fa;
+}
+
+.sb-folder-badge {
+  margin-left: auto;
+  font-size: 11px;
+  color: #888;
+  background: rgba(255,255,255,0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.sb-create-folder-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #888;
+  background: none;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.15s;
+  margin-bottom: 8px;
+}
+
+.sb-create-folder-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ccc;
+}
+
+/* ── Inline new-folder input row ── */
+
+.sb-new-folder-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.sb-new-folder-row input {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+
+.sb-new-folder-row input:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.sb-new-folder-row button {
+  padding: 8px 12px;
+  background: #333;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.sb-new-folder-row button:hover {
+  background: #444;
+}

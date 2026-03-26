@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { SignedIn, SignedOut, RedirectToSignIn, ClerkLoaded, ClerkLoading, useUser } from "@clerk/clerk-react"
+import { SignedIn, SignedOut, RedirectToSignIn, ClerkLoaded, ClerkLoading, useUser, useAuth } from "@clerk/clerk-react"
+import { useEffect } from 'react'
+import { apiClient } from './lib/api'
 import LandingPage from './pages/LandingPage'
 import DashboardPage from './pages/DashboardPage'
 import ChatPage from './pages/ChatPage'
@@ -7,6 +9,32 @@ import PricingPage from './pages/PricingPage'
 import DashboardLayout from './layouts/DashboardLayout'
 import ProjectsPage from './pages/ProjectsPage'
 import AuthPage from './pages/AuthPage'
+import { useProjectStore } from './stores/projectStore'
+
+/**
+ * Injects the Clerk getToken function into the API client
+ * so every API call automatically includes the Bearer token.
+ * Also fetches projects from DB (not localStorage) on first load.
+ */
+function ClerkTokenInjector() {
+  const { getToken, isSignedIn } = useAuth()
+  const fetchProjects = useProjectStore(s => s.fetchProjects)
+
+  useEffect(() => {
+    if (getToken) {
+      apiClient.setTokenGetter(getToken)
+    }
+  }, [getToken])
+
+  // When user signs in, always hydrate projects from DB (not localStorage)
+  useEffect(() => {
+    if (isSignedIn) {
+      fetchProjects()
+    }
+  }, [isSignedIn, fetchProjects])
+
+  return null
+}
 
 const ProtectedRoute = ({ children }) => (
   <>
@@ -47,6 +75,7 @@ function App() {
       </ClerkLoading>
 
       <ClerkLoaded>
+        <ClerkTokenInjector />
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />

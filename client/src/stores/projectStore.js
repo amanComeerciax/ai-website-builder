@@ -91,12 +91,76 @@ export const useProjectStore = create(
                         name: p.name,
                         time: new Date(p.createdAt).toLocaleDateString(),
                         lastEdited: new Date(p.updatedAt).getTime(),
-                        isStarred: false,
-                        isShared: false
+                        isStarred: p.starred || false,
+                        isShared: false,
+                        folderId: p.folderId || null
                     }));
                     set({ projects });
                 } catch (err) {
                     console.error('[ProjectStore] Failed to fetch projects:', err);
+                }
+            },
+
+            renameProject: async (id, newName) => {
+                // Optimistic UI update
+                set((state) => ({
+                    projects: state.projects.map(p => 
+                        p.id === id ? { ...p, name: newName } : p
+                    )
+                }));
+                // Persist via API
+                try {
+                    await apiClient.updateProject(id, { name: newName });
+                } catch (err) {
+                    console.error('[ProjectStore] Failed to rename project:', err);
+                }
+            },
+
+            toggleStar: async (id) => {
+                let currentStarState = false;
+                // Optimistic UI update
+                set((state) => ({
+                    projects: state.projects.map(p => {
+                        if (p.id === id) {
+                            currentStarState = !p.isStarred;
+                            return { ...p, isStarred: currentStarState };
+                        }
+                        return p;
+                    })
+                }));
+                // Persist via API
+                try {
+                    await apiClient.updateProject(id, { starred: currentStarState });
+                } catch (err) {
+                    console.error('[ProjectStore] Failed to toggle star:', err);
+                }
+            },
+
+            deleteProject: async (id) => {
+                // Optimistic UI update
+                set((state) => ({
+                    projects: state.projects.filter(p => p.id !== id)
+                }));
+                // Persist via API
+                try {
+                    await apiClient.deleteProject(id);
+                } catch (err) {
+                    console.error('[ProjectStore] Failed to delete project:', err);
+                }
+            },
+
+            moveToFolder: async (id, folderId) => {
+                // Optimistic UI update
+                set((state) => ({
+                    projects: state.projects.map(p =>
+                        p.id === id ? { ...p, folderId: folderId || null } : p
+                    )
+                }));
+                // Persist via API
+                try {
+                    await apiClient.updateProject(id, { folderId: folderId || null });
+                } catch (err) {
+                    console.error('[ProjectStore] Failed to move project:', err);
                 }
             },
         }),

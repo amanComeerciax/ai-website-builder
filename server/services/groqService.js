@@ -20,7 +20,7 @@ async function callGroq(systemPrompt, userPrompt, options = {}) {
     throw new Error('GROQ_API_KEY is not configured in the environment.');
   }
 
-  const model = options.model || process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+  const model = options.model || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   const temperature = options.temperature || 0.5;
   const jsonMode = options.jsonMode || false;
 

@@ -45,10 +45,10 @@ const ROUTING_TABLE = {
   chat_response:   { model: 'groq',    temperature: 0.7, jsonMode: false, fallbackChain: ['mistral'] },
 
   // ── Code Generation → Mistral (quality code output) ──
-  generate_html:   { model: 'mistral', temperature: 0.2, jsonMode: false, fallbackChain: ['qwen'] },
-  generate_file:   { model: 'mistral', temperature: 0.2, jsonMode: true,  fallbackChain: ['qwen'] },
-  fix_file:        { model: 'mistral', temperature: 0.2, jsonMode: true,  fallbackChain: ['qwen'] },
-  fix_error:       { model: 'mistral', temperature: 0.2, jsonMode: true,  fallbackChain: ['qwen'] },
+  generate_html:   { model: 'mistral', temperature: 0.2, jsonMode: false, fallbackChain: ['groq', 'qwen'] },
+  generate_file:   { model: 'mistral', temperature: 0.2, jsonMode: true,  fallbackChain: ['groq', 'qwen'] },
+  fix_file:        { model: 'mistral', temperature: 0.2, jsonMode: true,  fallbackChain: ['groq', 'qwen'] },
+  fix_error:       { model: 'mistral', temperature: 0.2, jsonMode: true,  fallbackChain: ['groq', 'qwen'] },
 
   // ── Local Fallback → Qwen (when all cloud models fail) ──
   fallback_file:   { model: 'qwen',   temperature: 0.2, jsonMode: true,  fallbackChain: ['groq'] },
@@ -67,7 +67,12 @@ async function dispatchToModel(modelName, systemPrompt, userMessage, config) {
     return await callMistral(systemPrompt, userMessage, config);
   }
   if (modelName === 'groq') {
-    return await callGroq(systemPrompt, userMessage, config);
+    // When Groq is used as a code-gen fallback, use the large 70B model for quality
+    const groqConfig = { ...config };
+    if (config._isCodeFallback) {
+      groqConfig.model = 'llama-3.3-70b-versatile';
+    }
+    return await callGroq(systemPrompt, userMessage, groqConfig);
   }
   throw new Error(`Unknown model: "${modelName}"`);
 }
@@ -111,8 +116,10 @@ async function callModel(task, userMessage, systemPrompt, options = {}) {
     }
 
     try {
+      // Mark code-gen tasks so Groq fallback uses the 70B model
+      const isCodeTask = ['generate_file', 'generate_html', 'fix_file', 'fix_error'].includes(task);
       const fallbackConfig = isFallback 
-        ? { ...config, temperature: Math.min(config.temperature + 0.1, 0.3) }
+        ? { ...config, temperature: Math.min(config.temperature + 0.1, 0.3), _isCodeFallback: isCodeTask }
         : config;
         
       const result = await dispatchToModel(currentModel, systemPrompt, userMessage, fallbackConfig);
@@ -124,12 +131,19 @@ async function callModel(task, userMessage, systemPrompt, options = {}) {
       return { ...result, fallbackUsed: isFallback };
 
     } catch (error) {
+      const is429 = error.message?.includes('429') || error.message?.includes('Rate limit');
       const reason = error.code === 'PROMPT_TOO_LARGE' 
         ? `Prompt too large (${error.message})` 
         : error.message;
       
       console.warn(`[Model Router] ⚠️ ${currentModel} failed for task "${task}": ${reason}`);
       errors.push(`${currentModel}: ${reason}`);
+
+      // If rate-limited, wait a bit before trying the next model in the chain
+      if (is429) {
+        console.log(`[Model Router] ⏳ Rate limit detected, waiting 5s before next fallback...`);
+        await new Promise(r => setTimeout(r, 5000));
+      }
     }
   }
 

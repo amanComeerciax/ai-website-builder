@@ -41,6 +41,10 @@ const projectSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Folder',
       default: null
+    },
+    starred: {
+      type: Boolean,
+      default: false
     }
   },
   { timestamps: true }

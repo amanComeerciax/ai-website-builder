@@ -190,6 +190,7 @@ export default function ChatPage() {
                         <ProjectPopover 
                             isOpen={isPopoverOpen} 
                             onClose={() => setIsPopoverOpen(false)} 
+                            projectId={projectId}
                         />
                     </div>
 

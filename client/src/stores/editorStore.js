@@ -100,6 +100,23 @@ export const useEditorStore = create(
                     }
                 }),
 
+            renameFile: (oldPath, newPath) => 
+                get()._sync((state) => {
+                    const newFiles = { ...state.files }
+                    const content = newFiles[oldPath]?.content
+                    if (content === undefined) return {} // fail safe
+                    
+                    delete newFiles[oldPath]
+                    newFiles[newPath] = { content }
+
+                    const newTabs = state.openTabs.map(t => t === oldPath ? newPath : t)
+                    return {
+                        files: newFiles,
+                        openTabs: newTabs,
+                        activeFile: state.activeFile === oldPath ? newPath : state.activeFile,
+                    }
+                }),
+
             setFiles: (fileMap) => get()._sync({ files: fileMap }),
 
             // Set the preview mode + optional raw HTML (for Track A srcdoc)

@@ -23,6 +23,7 @@ function getClient() {
 
 /**
  * Call Mistral's Cloud API with streaming support for NDJSON chunks locally.
+ * Includes automatic retry-with-backoff for 429 rate limit errors.
  * 
  * @param {string} systemPrompt - System instructions
  * @param {string} userPrompt - Current message / task
@@ -34,51 +35,63 @@ async function callMistral(systemPrompt, userPrompt, options = {}) {
   const model = options.model || process.env.MISTRAL_MODEL || 'mistral-small-latest';
   const temperature = options.temperature || 0.3;
   const jsonMode = options.jsonMode || false;
+  const MAX_RETRIES = 2;
 
-  console.log(`[Mistral Service] Calling ${model} (temp: ${temperature}, json: ${jsonMode})`);
-  const startTime = Date.now();
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    console.log(`[Mistral Service] Calling ${model} (temp: ${temperature}, json: ${jsonMode})${attempt > 1 ? ` [retry ${attempt}/${MAX_RETRIES}]` : ''}`);
+    const startTime = Date.now();
 
-  try {
-    const chatStreamResponse = await client.chat.stream({
-      model: model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: temperature,
-      responseFormat: jsonMode ? { type: 'json_object' } : undefined
-    });
+    try {
+      const chatStreamResponse = await client.chat.stream({
+        model: model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: temperature,
+        responseFormat: jsonMode ? { type: 'json_object' } : undefined
+      });
 
-    let content = '';
-    // Iterate the streaming iterator
-    for await (const chunk of chatStreamResponse) {
-      const deltaContent = chunk?.data?.choices?.[0]?.delta?.content;
-      if (deltaContent) {
-        content += deltaContent;
+      let content = '';
+      // Iterate the streaming iterator
+      for await (const chunk of chatStreamResponse) {
+        const deltaContent = chunk?.data?.choices?.[0]?.delta?.content;
+        if (deltaContent) {
+          content += deltaContent;
+        }
       }
-    }
 
-    // In JSON Mode, we should proactively validate what Mistral returned
-    if (jsonMode) {
-      try {
-        JSON.parse(content);
-      } catch (e) {
-        throw new Error(`Mistral generation returned invalid JSON structure: ${e.message}`);
+      // In JSON Mode, we should proactively validate what Mistral returned
+      if (jsonMode) {
+        try {
+          JSON.parse(content);
+        } catch (e) {
+          throw new Error(`Mistral generation returned invalid JSON structure: ${e.message}`);
+        }
       }
+
+      const durationMs = Date.now() - startTime;
+      console.log(`[Mistral Service] ✅ Generation succeeded in ${(durationMs / 1000).toFixed(1)}s (${content.length} chars)`);
+      
+      return {
+        content,
+        model,
+        durationMs
+      };
+
+    } catch (error) {
+      const is429 = error.statusCode === 429 || error.message?.includes('429') || error.message?.includes('Rate limit');
+      
+      if (is429 && attempt < MAX_RETRIES) {
+        const waitSec = 15 * attempt; // 15s, 30s
+        console.warn(`[Mistral Service] ⏳ Rate limited (429). Waiting ${waitSec}s before retry ${attempt + 1}/${MAX_RETRIES}...`);
+        await new Promise(r => setTimeout(r, waitSec * 1000));
+        continue;
+      }
+
+      console.error(`[Mistral Error] Request failed:`, error.message || error);
+      throw new Error(`Mistral API generation failed: ${error.message}`);
     }
-
-    const durationMs = Date.now() - startTime;
-    console.log(`[Mistral Service] ✅ Generation succeeded in ${(durationMs / 1000).toFixed(1)}s (${content.length} chars)`);
-    
-    return {
-      content,
-      model,
-      durationMs
-    };
-
-  } catch (error) {
-    console.error(`[Mistral Error] Request failed:`, error);
-    throw new Error(`Mistral API generation failed: ${error.message}`);
   }
 }
 

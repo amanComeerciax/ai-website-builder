@@ -6,11 +6,15 @@ import {
     HelpCircle, ChevronRight 
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
+import { useProjectStore } from '../../stores/projectStore'
 import './ProjectPopover.css'
 
-export default function ProjectPopover({ isOpen, onClose }) {
+export default function ProjectPopover({ isOpen, onClose, projectId }) {
     const popoverRef = useRef(null)
     const { userData } = useAuthStore()
+    const { getProjectById, renameProject, toggleStar } = useProjectStore()
+    
+    const project = projectId ? getProjectById(projectId) : null
 
     // Close on click outside
     useEffect(() => {
@@ -28,6 +32,21 @@ export default function ProjectPopover({ isOpen, onClose }) {
 
     const userName = userData?.email ? userData.email.split('@')[0] : 'User'
     const userInitial = userName.charAt(0).toUpperCase()
+
+    const handleRename = () => {
+        if (!project) return;
+        const newName = window.prompt("Enter new project name:", project.name);
+        if (newName && newName.trim().length > 0) {
+            renameProject(projectId, newName.trim());
+        }
+        onClose();
+    };
+
+    const handleStar = () => {
+        if (!project) return;
+        toggleStar(projectId);
+        onClose();
+    };
 
     return (
         <div className="project-popover" ref={popoverRef}>
@@ -90,13 +109,18 @@ export default function ProjectPopover({ isOpen, onClose }) {
                 </button>
                 <div className="ppv-divider"></div>
 
-                <button className="ppv-menu-item">
+                <button className="ppv-menu-item" onClick={handleRename}>
                     <Edit2 size={16} className="ppv-icon" />
                     <span className="ppv-label">Rename project</span>
                 </button>
-                <button className="ppv-menu-item">
-                    <Star size={16} className="ppv-icon" />
-                    <span className="ppv-label">Star project</span>
+                <button className="ppv-menu-item" onClick={handleStar}>
+                    <Star 
+                        size={16} 
+                        className="ppv-icon" 
+                        fill={project?.isStarred ? '#fbbf24' : 'none'} 
+                        color={project?.isStarred ? '#fbbf24' : '#666'}
+                    />
+                    <span className="ppv-label">{project?.isStarred ? 'Unstar project' : 'Star project'}</span>
                 </button>
                 <button className="ppv-menu-item">
                     <Folder size={16} className="ppv-icon" />

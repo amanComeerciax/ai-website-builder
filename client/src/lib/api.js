@@ -1,11 +1,27 @@
 const API_BASE = '/api'
 
+/**
+ * API Client with automatic Clerk JWT token injection.
+ * 
+ * Call `apiClient.setTokenGetter(getToken)` once after Clerk loads,
+ * then every request automatically includes the Bearer token.
+ */
 class ApiClient {
     constructor() {
         this.baseUrl = API_BASE
+        this._getToken = null // Clerk's getToken function, injected at app init
     }
 
-    async request(endpoint, options = {}, token) {
+    /**
+     * Set the Clerk token getter function.
+     * Must be called once when the app boots and Clerk is ready.
+     * @param {Function} getTokenFn - Clerk's `getToken()` async function
+     */
+    setTokenGetter(getTokenFn) {
+        this._getToken = getTokenFn
+    }
+
+    async request(endpoint, options = {}, tokenOverride) {
         const url = `${this.baseUrl}${endpoint}`
         const config = {
             headers: {
@@ -15,7 +31,16 @@ class ApiClient {
             ...options,
         }
 
-        // Will add Clerk token here after auth integration
+        // Auto-inject Clerk token: use override if provided, else get from Clerk
+        let token = tokenOverride
+        if (!token && this._getToken) {
+            try {
+                token = await this._getToken()
+            } catch (e) {
+                console.warn('[API] Could not get Clerk token:', e.message)
+            }
+        }
+
         if (token) config.headers.Authorization = `Bearer ${token}`
 
         try {

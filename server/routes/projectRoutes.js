@@ -4,21 +4,47 @@ const Project = require("../models/Project")
 const Message = require("../models/Message")
 const Version = require("../models/Version")
 const Template = require("../models/Template")
+const { verifyToken } = require("@clerk/express")
 
-// Mock Auth wrapper for now until Clerk is fully engaged
-const mockUser = (req, res, next) => {
-    // CLI Bypass
+/**
+ * Real Auth middleware — extracts the Clerk userId from the JWT Bearer token.
+ * Falls back to "local_test_user" ONLY for CLI dev bypass via x-cli-token header.
+ */
+const clerkAuth = async (req, res, next) => {
+    // CLI bypass for local development tools
     if (req.headers['x-cli-token'] === 'stackforge-dev-cli') {
         req.auth = { userId: "local_test_user" };
         return next();
     }
-    
-    req.auth = { userId: "local_test_user" };
-    next();
+
+    // Check for Bearer token from Clerk
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: "No authorization token provided" });
+    }
+
+    try {
+        const token = authHeader.split(' ')[1];
+        // Verify the JWT using Clerk's verifyToken function
+        const payload = await verifyToken(token, {
+            secretKey: process.env.CLERK_SECRET_KEY,
+        });
+        
+        const userId = payload.sub;
+        if (!userId) {
+            return res.status(401).json({ error: "Invalid token — no user ID found" });
+        }
+
+        req.auth = { userId };
+        next();
+    } catch (error) {
+        console.error('[ClerkAuth] Token verification failed:', error.message);
+        return res.status(401).json({ error: "Invalid or expired token" });
+    }
 };
 
 // ── GET /api/projects — List user's projects ──
-router.get("/", mockUser, async (req, res, next) => {
+router.get("/", clerkAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
         const projects = await Project.find({ userId }).sort({ createdAt: -1 });
@@ -29,7 +55,7 @@ router.get("/", mockUser, async (req, res, next) => {
 });
 
 // ── POST /api/projects — Create a new workspace ──
-router.post("/", mockUser, async (req, res, next) => {
+router.post("/", clerkAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
         const { name, folderId, templateId } = req.body;
@@ -86,7 +112,7 @@ router.post("/", mockUser, async (req, res, next) => {
 });
 
 // ── GET /api/projects/:id — Get full workspace context (HYDRATION) ──
-router.get("/:id", mockUser, async (req, res, next) => {
+router.get("/:id", clerkAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
         const project = await Project.findOne({ _id: req.params.id, userId })
@@ -104,7 +130,7 @@ router.get("/:id", mockUser, async (req, res, next) => {
 })
 
 // ── GET /api/projects/:id/files — Get project files for CLI pull ──
-router.get("/:id/files", mockUser, async (req, res, next) => {
+router.get("/:id/files", clerkAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
         const project = await Project.findOne({ _id: req.params.id, userId });
@@ -118,7 +144,7 @@ router.get("/:id/files", mockUser, async (req, res, next) => {
 });
 
 // ── GET /api/projects/:id/versions — Get history of project versions ──
-router.get("/:id/versions", mockUser, async (req, res, next) => {
+router.get("/:id/versions", clerkAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
         const project = await Project.findOne({ _id: req.params.id, userId });
@@ -137,7 +163,7 @@ router.get("/:id/versions", mockUser, async (req, res, next) => {
 });
 
 // ── POST /api/projects/:id/versions/:versionId/restore — Restore a specific version ──
-router.post("/:id/versions/:versionId/restore", mockUser, async (req, res, next) => {
+router.post("/:id/versions/:versionId/restore", clerkAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
         const project = await Project.findOne({ _id: req.params.id, userId });
@@ -158,14 +184,23 @@ router.post("/:id/versions/:versionId/restore", mockUser, async (req, res, next)
 });
 
 // ── PUT /api/projects/:id — Rename or update workspace ──
-router.put("/:id", mockUser, async (req, res, next) => {
+router.put("/:id", clerkAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
-        const { name, previewUrl, netlifySiteId, activeVersionId } = req.body
+        const { name, previewUrl, netlifySiteId, activeVersionId, starred, folderId } = req.body
+
+        // Build update object dynamically to avoid setting undefined values
+        const updateFields = {};
+        if (name !== undefined) updateFields.name = name;
+        if (previewUrl !== undefined) updateFields.previewUrl = previewUrl;
+        if (netlifySiteId !== undefined) updateFields.netlifySiteId = netlifySiteId;
+        if (activeVersionId !== undefined) updateFields.activeVersionId = activeVersionId;
+        if (starred !== undefined) updateFields.starred = starred;
+        if (folderId !== undefined) updateFields.folderId = folderId;
 
         const project = await Project.findOneAndUpdate(
             { _id: req.params.id, userId },
-            { $set: { name, previewUrl, netlifySiteId, activeVersionId } },
+            { $set: updateFields },
             { new: true, runValidators: true }
         )
 
@@ -177,7 +212,7 @@ router.put("/:id", mockUser, async (req, res, next) => {
 })
 
 // ── DELETE /api/projects/:id — Delete workspace ──
-router.delete("/:id", mockUser, async (req, res, next) => {
+router.delete("/:id", clerkAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
         const project = await Project.findOneAndDelete({ _id: req.params.id, userId })
@@ -193,7 +228,7 @@ router.delete("/:id", mockUser, async (req, res, next) => {
 })
 
 // ── POST /api/projects/:id/messages — Add a message to a workspace ──
-router.post("/:id/messages", mockUser, async (req, res, next) => {
+router.post("/:id/messages", clerkAuth, async (req, res, next) => {
     try {
         const { content, role } = req.body;
         if (!content || !role) {
