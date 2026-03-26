@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react'
-import { RefreshCw, Monitor, Tablet, Smartphone, Loader2 } from 'lucide-react'
+import { RefreshCw, Monitor, Tablet, Smartphone, Loader2, Download } from 'lucide-react'
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
 import { 
     SandpackProvider, 
     SandpackLayout, 
@@ -271,6 +273,35 @@ export { SafeIcon };
         return deps;
     }, [sandpackFiles]);
 
+    // ── ZIP DOWNLOAD LOGIC ────────────────────────────────────────────
+    const handleDownloadZip = async () => {
+        const zip = new JSZip();
+        // Use business name from files if possible, otherwise default
+        let appName = 'my-website';
+        if (files['/package.json']) {
+            try {
+                appName = JSON.parse(files['/package.json']).name;
+            } catch (e) {
+                console.warn('Failed to parse package.json for download name', e);
+            }
+        }
+        
+        if (isSrcdoc) {
+            // Track A: Single HTML file
+            zip.file("index.html", htmlContent);
+        } else {
+            // Track B: Multi-file React project
+            Object.entries(files).forEach(([path, file]) => {
+                const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+                const content = typeof file === 'string' ? file : file.content;
+                zip.file(cleanPath, content);
+            });
+        }
+        
+        const blob = await zip.generateAsync({ type: "blob" });
+        saveAs(blob, `${appName.replace(/\s+/g, '-').toLowerCase()}.zip`);
+    };
+
     return (
         <div className="preview-panel">
             <div className="pp-toolbar">
@@ -306,6 +337,14 @@ export { SafeIcon };
                     </button>
                     <button className="pp-view-btn" onClick={() => setRefreshKey(k => k + 1)} title="Refresh">
                         <RefreshCw size={14} />
+                    </button>
+                    <button 
+                        className="pp-view-btn download" 
+                        onClick={handleDownloadZip} 
+                        title="Download ZIP"
+                        disabled={!isSrcdoc && Object.keys(files).length === 0}
+                    >
+                        <Download size={14} />
                     </button>
                 </div>
             </div>

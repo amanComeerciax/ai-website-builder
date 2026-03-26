@@ -65,6 +65,7 @@
 }
 
 .pp-view-btn:hover { background: rgba(255,255,255,0.06); color: #ccc; }
+.pp-view-btn.download:hover { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
 .pp-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
 
 .pp-iframe-container {

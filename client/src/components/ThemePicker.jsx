@@ -40,9 +40,9 @@ export default function ThemePicker() {
                         className="relative p-1 group"
                         title={`${item.label} accent`}
                     >
-                        <div 
+                        <div
                             className="w-3.5 h-3.5 rounded-full transition-transform duration-300 group-hover:scale-125"
-                            style={{ 
+                            style={{
                                 backgroundColor: item.color,
                                 boxShadow: accent === item.id ? `0 0 10px ${item.color}66` : 'none',
                                 opacity: accent === item.id ? 1 : 0.6

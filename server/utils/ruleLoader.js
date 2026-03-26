@@ -38,11 +38,11 @@ const PHASE_MAP = {
 
   // Phase 2: Planning — structural rules only (~6KB)
   // Removed design-rulebook.md (52KB) — design tokens are communicated inline via prompt
-  phase2: ['spacing-system.md', 'component-standards.md', 'responsive-rules.md', 'SKILL.md'],
+  phase2: ['spacing-system.md', 'component-standards.md', 'responsive-rules.md', 'image-rules.md', 'SKILL.md'],
 
   // Phase 3 & Track rules: compact essentials (~4KB)
   phase3_qwen: ['code-quality-rules.md', 'package-policy.md'],
-  track_a: ['code-quality-rules.md', 'package-policy.md'],
+  track_a: ['code-quality-rules.md', 'package-policy.md', 'image-rules.md'],
   track_b: ['code-quality-rules.md', 'package-policy.md'],
 
   iteration: ['iteration-rules.md'],
