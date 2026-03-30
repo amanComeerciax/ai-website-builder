@@ -186,6 +186,14 @@ export const useEditorStore = create(
         }),
         {
             name: 'stackforge-vfs-storage', // Persistence Key
+            // INDUSTRY STANDARD: Do not save large codebases to LocalStorage (5MB limit)
+            // Only save essential active flags. The files should be fetched from DB.
+            partialize: (state) => ({
+                activeProjectId: state.activeProjectId,
+                activeFile: state.activeFile,
+                openTabs: state.openTabs,
+                previewType: state.previewType
+            }),
         }
     )
 )

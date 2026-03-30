@@ -25,18 +25,50 @@ const COMPONENT_REGISTRY = {
   },
 
   HeroSection: {
-    variants: ['centered', 'split', 'fullImage'],
+    variants: ['centered', 'split', 'fullImage', 'glass', 'parallax', 'aurora', 'sparkles'],
     requiredProps: ['heading', 'subtext', 'ctaText'],
     optionalProps: ['ctaLink', 'bgImage', 'secondaryCtaText', 'secondaryCtaLink', 'badgeText'],
     defaultProps: {
       ctaLink: '#contact',
       bgImage: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80',
     },
-    description: 'Hero section with heading, subtext, CTA, and background image',
+    description: 'Hero section with heading, subtext, CTA, and background image. Aurora and Sparkles variants provide high-end animated backgrounds.',
+  },
+
+  BentoGrid: {
+    variants: ['modern', 'glass'],
+    requiredProps: ['heading', 'items'],
+    optionalProps: ['subtext'],
+    defaultProps: {
+      subtext: 'Discover our multifaceted solutions',
+    },
+    description: 'Modern Bento-style grid for features or projects with variable card sizes.',
+    itemSchema: {
+      title: 'string',
+      description: 'string',
+      header: 'string (optional image or graphic)',
+      icon: 'string (lucide icon name)',
+      className: 'string (optional layout hint: md:col-span-2 etc)',
+    },
+  },
+
+  StickyScroll: {
+    variants: ['default'],
+    requiredProps: ['items'],
+    optionalProps: ['heading'],
+    defaultProps: {
+      heading: 'How it Works',
+    },
+    description: 'Scroll-triggered content reveal where images change as you scroll through text blocks.',
+    itemSchema: {
+      title: 'string',
+      description: 'string',
+      content: 'string (image URL or component)',
+    },
   },
 
   FeatureGrid: {
-    variants: ['cards', 'icons'],
+    variants: ['cards', 'icons', 'glass'],
     requiredProps: ['heading', 'items'],
     optionalProps: ['subtext'],
     defaultProps: {
@@ -50,8 +82,54 @@ const COMPONENT_REGISTRY = {
     },
   },
 
+  PricingSection: {
+    variants: ['cards', 'glass'],
+    requiredProps: ['heading', 'plans'],
+    optionalProps: ['subtext'],
+    defaultProps: {
+      subtext: 'Choose the plan that works best for you',
+    },
+    description: 'Pricing comparison table',
+    itemSchema: {
+      name: 'string',
+      price: 'string',
+      features: 'string[]',
+      ctaText: 'string',
+      isPopular: 'boolean',
+    },
+  },
+
+  PortfolioSection: {
+    variants: ['grid', 'masonry'],
+    requiredProps: ['heading', 'items'],
+    optionalProps: ['subtext'],
+    defaultProps: {
+      subtext: 'Our latest work',
+    },
+    description: 'Gallery of projects or images',
+    itemSchema: {
+      title: 'string',
+      category: 'string',
+      image: 'string',
+    },
+  },
+
+  FAQSection: {
+    variants: ['accordion'],
+    requiredProps: ['heading', 'items'],
+    optionalProps: ['subtext'],
+    defaultProps: {
+      subtext: 'Frequently asked questions',
+    },
+    description: 'FAQ section with expandable answers',
+    itemSchema: {
+      question: 'string',
+      answer: 'string',
+    },
+  },
+
   TestimonialSection: {
-    variants: ['cards'],
+    variants: ['cards', 'glass'],
     requiredProps: ['heading', 'items'],
     optionalProps: ['subtext'],
     defaultProps: {
@@ -68,7 +146,7 @@ const COMPONENT_REGISTRY = {
   },
 
   AboutSection: {
-    variants: ['story'],
+    variants: ['story', 'glass'],
     requiredProps: ['heading', 'description'],
     optionalProps: ['image', 'stats'],
     defaultProps: {
@@ -82,7 +160,7 @@ const COMPONENT_REGISTRY = {
   },
 
   CTASection: {
-    variants: ['banner'],
+    variants: ['banner', 'glass'],
     requiredProps: ['heading', 'ctaText'],
     optionalProps: ['subtext', 'ctaLink', 'secondaryCtaText'],
     defaultProps: {
@@ -92,7 +170,7 @@ const COMPONENT_REGISTRY = {
   },
 
   ContactSection: {
-    variants: ['splitForm'],
+    variants: ['splitForm', 'glass'],
     requiredProps: ['heading'],
     optionalProps: ['subtext', 'email', 'phone', 'address'],
     defaultProps: {
@@ -134,6 +212,21 @@ const IMAGE_LIBRARY = {
     'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80',
     'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80',
     'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80',
+  ],
+  'saas': [
+    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1551288049-bbbda5012375?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80',
+  ],
+  'agency': [
+    'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=1200&q=80',
+  ],
+  'ecommerce': [
+    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=80',
   ],
   'tech': [
     'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80',

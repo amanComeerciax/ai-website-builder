@@ -102,7 +102,11 @@ export const useChatStore = create(
                     try {
                         const data = await apiClient.getWorkspace(projectId, token);
                         if (data && data.project) {
-                            set({ isConfigured: !!data.project.isConfigured });
+                            set({ 
+                                isConfigured: !!data.project.isConfigured,
+                                generationTheme: data.project.theme || '',
+                                generationSiteType: data.project.siteType || ''
+                            });
                         }
                         if (data && data.messages && data.messages.length > 0) {
                             const dbMessages = data.messages.map(m => ({
@@ -116,14 +120,24 @@ export const useChatStore = create(
                             }));
                             // Only override if DB has real data
                             set((state) => {
+                                const isConfigured = !!data.project?.isConfigured;
                                 const newProjectData = { ...state.projectData };
                                 newProjectData[projectId] = {
                                     ...newProjectData[projectId],
-                                    messages: dbMessages
+                                    messages: dbMessages,
+                                    isConfigured: isConfigured,
+                                    generationPhase: isConfigured ? 'complete' : 'idle',
+                                    generationTheme: data.project?.theme || '',
+                                    generationSiteType: data.project?.siteType || ''
                                 };
                                 return {
                                     messages: dbMessages,
-                                    projectData: newProjectData
+                                    projectData: newProjectData,
+                                    isConfigured: isConfigured,
+                                    generationPhase: isConfigured ? 'complete' : 'idle',
+                                    // If already configured in DB, auto-switch to preview view
+                                    activeView: isConfigured ? 'preview' : state.activeView,
+                                    isIdeVisible: isConfigured ? true : state.isIdeVisible
                                 };
                             });
 
@@ -135,7 +149,14 @@ export const useChatStore = create(
                                 Object.entries(lastMsgWithFiles.files).forEach(([path, content]) => {
                                     formattedFiles[path] = { content: typeof content === 'string' ? content : (content.content || '') };
                                 });
-                                useEditorStore.getState().setFiles(formattedFiles);
+                                
+                                const editorStore = useEditorStore.getState();
+                                editorStore.setFiles(formattedFiles);
+
+                                // ALSO HYDRATE PREVIEW HTML (The "Permanent Browser Sync" fix)
+                                if (formattedFiles['index.html']) {
+                                    editorStore.setPreview('srcdoc', formattedFiles['index.html'].content);
+                                }
                             } else {
                                 // If the DB has no files (e.g. projects made before the DB fix), 
                                 // FORCE wipe the virtual file system to prevent the currently active
@@ -388,10 +409,16 @@ export const useChatStore = create(
         }),
         {
             name: 'stackforge-chat-storage',
-            // Exclude transient properties from persistence
-            partialize: (state) => Object.fromEntries(
-                Object.entries(state).filter(([key]) => !['_eventSource', 'isGenerating'].includes(key))
-            ),
+            // INDUSTRY STANDARD: Do not save large message histories or project clones to LocalStorage.
+            // These are already in the Database. This prevents QuotaExceededError.
+            partialize: (state) => ({
+                activeProjectId: state.activeProjectId,
+                selectedModel: state.selectedModel,
+                activeView: state.activeView,
+                isIdeVisible: state.isIdeVisible,
+                generationTheme: state.generationTheme,
+                generationSiteType: state.generationSiteType
+            }),
         }
     )
 )

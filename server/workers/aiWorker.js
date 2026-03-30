@@ -124,11 +124,28 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
       await Message.findByIdAndUpdate(job.data.messageId, {
         status: 'done',
         content: summary,
-        files: finalFiles,
+        files: { ...finalFiles, ...result.files },
         previewType: 'srcdoc',
         layoutSpec: result.layoutSpec,
       });
       console.log(`[Worker] Saved to DB Message ${job.data.messageId}`);
+      
+      // CRITICAL CROSS-BROWSER FIX: Also update the Project model directly
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(job.data.projectId)) {
+          const Project = require('../models/Project');
+          await Project.findByIdAndUpdate(job.data.projectId, {
+            isConfigured: true,
+            status: 'done',
+            // Use themeId for backend/frontend consistency
+            theme: enhanced.enrichedSpec?.themeId || 'modern-dark',
+            websiteName: enhanced.enrichedSpec?.businessName,
+            description: enhanced.enrichedSpec?.description
+          });
+          console.log(`[Worker] ✅ HARD-SAVED Project ${job.data.projectId} as configured`);
+      } else {
+          console.warn(`[Worker] Skipping Project update — ID "${job.data.projectId}" is not an ObjectId`);
+      }
     } catch (saveErr) {
       console.error(`[Worker] DB save failed:`, saveErr.message);
     }
