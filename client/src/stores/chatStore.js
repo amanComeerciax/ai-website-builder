@@ -287,28 +287,24 @@ export const useChatStore = create(
                             data = { summary: 'Generation complete.' };
                         }
                         
-                        console.log('[ChatStore] Complete event — files:', data.files ? Object.keys(data.files).length : 0, 'previewType:', data.previewType);
+                        console.log('[ChatStore] Complete event — files:', data.files ? Object.keys(data.files).length : 0);
                         
                         const editorStore = useEditorStore.getState();
 
-                        // Inject generated files into the editorStore VFS
-                        if (data.files && Object.keys(data.files).length > 0) {
-                            editorStore.loadGeneratedFiles(data.files);
+                        // Component Kit pipeline: load all files (preview HTML + Next.js export)
+                        const allFiles = { ...(data.files || {}), ...(data.exportFiles || {}) };
+                        if (Object.keys(allFiles).length > 0) {
+                            editorStore.loadGeneratedFiles(allFiles);
                         }
 
-                        // Set preview type: 'srcdoc' for Track A HTML, 'sandpack' for Track B React
-                        const previewType = data.previewType || 'sandpack';
+                        // Always srcdoc preview with Component Kit
                         let htmlContent = null;
-                        if (previewType === 'srcdoc' && data.files) {
-                            if (Array.isArray(data.files)) {
-                                const indexFile = data.files.find(f => f.path === 'index.html');
-                                htmlContent = indexFile ? indexFile.content : null;
-                            } else {
-                                htmlContent = data.files['index.html'];
-                                if (typeof htmlContent === 'object') htmlContent = htmlContent.content;
-                            }
+                        if (data.files && data.files['index.html']) {
+                            htmlContent = typeof data.files['index.html'] === 'string' 
+                                ? data.files['index.html'] 
+                                : data.files['index.html']?.content;
                         }
-                        editorStore.setPreview(previewType, htmlContent);
+                        editorStore.setPreview('srcdoc', htmlContent);
 
                         get()._sync({ 
                             generationPhase: 'complete',

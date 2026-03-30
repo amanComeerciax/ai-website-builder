@@ -15,12 +15,12 @@ export const useEditorStore = create(
             files: { ...EMPTY_FILES },
 
             // ── Preview ──
-            previewType: 'sandpack',   // 'srcdoc' (Track A HTML) | 'sandpack' (Track B React)
+            previewType: 'srcdoc',     // Always srcdoc with Component Kit
             htmlContent: null,         // raw HTML string for srcdoc mode
 
             // ── Active State ──
-            activeFile: 'App.jsx',
-            openTabs: ['App.jsx'],
+            activeFile: 'index.html',
+            openTabs: ['index.html'],
 
             _sync: (updater) => set((state) => {
                 const updates = typeof updater === 'function' ? updater(state) : updater;
@@ -61,7 +61,7 @@ export const useEditorStore = create(
                         files: data.files || { ...EMPTY_FILES },
                         activeFile: data.activeFile || 'App.jsx',
                         openTabs: data.openTabs || ['App.jsx'],
-                        previewType: data.previewType || 'sandpack',
+                        previewType: data.previewType || 'srcdoc',
                         htmlContent: data.htmlContent || null,
                         isPreviewReady: true,
                         previewError: null
@@ -75,9 +75,9 @@ export const useEditorStore = create(
                         activeProjectId: projectId,
                         projectData: newProjectData,
                         files: { ...EMPTY_FILES },
-                        activeFile: 'App.jsx',
-                        openTabs: ['App.jsx'],
-                        previewType: 'sandpack',
+                        activeFile: 'index.html',
+                        openTabs: ['index.html'],
+                        previewType: 'srcdoc',
                         htmlContent: null,
                         isPreviewReady: true,
                         previewError: null
@@ -165,8 +165,8 @@ export const useEditorStore = create(
 
                     return {
                         files: fileMap,
-                        openTabs: newOpenTabs.length > 0 ? newOpenTabs : ['App.jsx'],
-                        activeFile: tabs[0] || state.activeFile || 'App.jsx',
+                        openTabs: newOpenTabs.length > 0 ? newOpenTabs : ['index.html'],
+                        activeFile: tabs[0] || state.activeFile || 'index.html',
                         isPreviewReady: true,
                         previewError: null,
                     }
@@ -176,9 +176,9 @@ export const useEditorStore = create(
             reset: () =>
                 get()._sync({
                     files: { ...EMPTY_FILES },
-                    activeFile: 'App.jsx',
-                    openTabs: ['App.jsx'],
-                    previewType: 'sandpack',
+                    activeFile: 'index.html',
+                    openTabs: ['index.html'],
+                    previewType: 'srcdoc',
                     htmlContent: null,
                     isPreviewReady: true,
                     previewError: null,

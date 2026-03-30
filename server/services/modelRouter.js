@@ -21,6 +21,7 @@ const ROUTING_TABLE = {
   // Reasoning tasks → Mistral (fast, good at structured output)
   parse_prompt:   { model: 'mistral', temperature: 0.3, jsonMode: true },
   plan_structure:  { model: 'mistral', temperature: 0.3, jsonMode: true },
+  plan_layout:     { model: 'mistral', temperature: 0.4, jsonMode: true },   // Component Kit layout planner
   summarize:       { model: 'mistral', temperature: 0.5, jsonMode: true },
 
   // Chat → Groq (instant responses)
