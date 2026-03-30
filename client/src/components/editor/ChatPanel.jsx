@@ -18,7 +18,7 @@ export default function ChatPanel() {
         messages, isGenerating, generationPhase, generationLogs, 
         generationSummary, generationTaskName, isDetailsExpanded,
         isIdeVisible, selectedModel, generationTheme, generationSiteType,
-        isConfigured, addMessage, startGeneration, setDetailsExpanded, 
+        isConfigured, styleOptions: persistedStyleOptions, addMessage, startGeneration, setDetailsExpanded, 
         setIdeVisible, setSelectedModel, completeProjectConfig
     } = useChatStore()
     const { getToken } = useAuth()
@@ -38,6 +38,13 @@ export default function ChatPanel() {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages, generationPhase, generationLogs])
+    
+    // Sync local style options with persisted store when project changes or config completes
+    useEffect(() => {
+        if (persistedStyleOptions && isConfigured) {
+            setStyleOptions(persistedStyleOptions);
+        }
+    }, [persistedStyleOptions, isConfigured, projectId]);
 
     const handleSend = () => {
         const trimmed = input.trim()

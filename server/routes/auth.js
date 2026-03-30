@@ -25,7 +25,7 @@ router.post('/sync', requireAuth, async (req, res) => {
         name: name || "", 
         avatar: avatar || "" 
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     return res.status(200).json({ success: true, user });
@@ -55,7 +55,7 @@ router.get('/me', requireAuth, async (req, res) => {
       user = await User.findOneAndUpdate(
         { clerkId: req.user.clerkId },
         { email, tier: 'free', usage: { generationsThisMonth: 0 } },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
       );
       console.log(`[Auth] Auto-created user: ${user.email} (${req.user.clerkId})`);
     }

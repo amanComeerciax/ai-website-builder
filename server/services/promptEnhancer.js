@@ -19,22 +19,22 @@ const { callModel } = require('./modelRouter.js');
  * When we detect a site type from the prompt, we know which sections make sense.
  */
 const SITE_TYPE_SECTIONS = {
-  'coffee-shop':   ['hero', 'menu', 'about', 'testimonials', 'gallery', 'contact', 'footer'],
-  'restaurant':    ['hero', 'menu', 'about', 'chef', 'reservations', 'testimonials', 'gallery', 'contact', 'footer'],
-  'bakery':        ['hero', 'products', 'about', 'specials', 'testimonials', 'contact', 'footer'],
-  'portfolio':     ['hero', 'projects', 'about', 'skills', 'experience', 'testimonials', 'contact', 'footer'],
-  'agency':        ['hero', 'services', 'portfolio', 'about', 'team', 'testimonials', 'cta', 'contact', 'footer'],
-  'saas':          ['hero', 'features', 'how-it-works', 'pricing', 'testimonials', 'faq', 'cta', 'footer'],
-  'ecommerce':     ['hero', 'featured-products', 'categories', 'about', 'testimonials', 'newsletter', 'footer'],
-  'blog':          ['hero', 'featured-posts', 'categories', 'about', 'newsletter', 'footer'],
-  'landing':       ['hero', 'features', 'about', 'testimonials', 'cta', 'footer'],
-  'gym':           ['hero', 'programs', 'trainers', 'pricing', 'testimonials', 'schedule', 'contact', 'footer'],
-  'salon':         ['hero', 'services', 'pricing', 'gallery', 'about', 'team', 'booking', 'testimonials', 'footer'],
-  'hotel':         ['hero', 'rooms', 'amenities', 'gallery', 'about', 'testimonials', 'booking', 'contact', 'footer'],
-  'education':     ['hero', 'courses', 'features', 'instructors', 'testimonials', 'pricing', 'faq', 'footer'],
-  'medical':       ['hero', 'services', 'doctors', 'about', 'testimonials', 'appointment', 'contact', 'footer'],
-  'real-estate':   ['hero', 'listings', 'services', 'about', 'testimonials', 'contact', 'footer'],
-  'default':       ['hero', 'features', 'about', 'testimonials', 'contact', 'footer'],
+  'coffee-shop':   ['navbar', 'hero', 'menu', 'about', 'testimonials', 'gallery', 'contact', 'footer'],
+  'restaurant':    ['navbar', 'hero', 'menu', 'about', 'chef', 'reservations', 'testimonials', 'gallery', 'contact', 'footer'],
+  'bakery':        ['navbar', 'hero', 'products', 'about', 'specials', 'testimonials', 'contact', 'footer'],
+  'portfolio':     ['navbar', 'hero', 'projects', 'about', 'skills', 'experience', 'testimonials', 'contact', 'footer'],
+  'agency':        ['navbar', 'hero', 'services', 'portfolio', 'about', 'team', 'testimonials', 'cta', 'contact', 'footer'],
+  'saas':          ['navbar', 'hero', 'features', 'how-it-works', 'pricing', 'testimonials', 'faq', 'cta', 'footer'],
+  'ecommerce':     ['navbar', 'hero', 'featured-products', 'categories', 'about', 'testimonials', 'newsletter', 'footer'],
+  'blog':          ['navbar', 'hero', 'featured-posts', 'categories', 'about', 'newsletter', 'footer'],
+  'landing':       ['navbar', 'hero', 'features', 'about', 'testimonials', 'cta', 'footer'],
+  'gym':           ['navbar', 'hero', 'programs', 'trainers', 'pricing', 'testimonials', 'schedule', 'contact', 'footer'],
+  'salon':         ['navbar', 'hero', 'services', 'pricing', 'gallery', 'about', 'team', 'booking', 'testimonials', 'footer'],
+  'hotel':         ['navbar', 'hero', 'rooms', 'amenities', 'gallery', 'about', 'testimonials', 'booking', 'contact', 'footer'],
+  'education':     ['navbar', 'hero', 'courses', 'features', 'instructors', 'testimonials', 'pricing', 'faq', 'footer'],
+  'medical':       ['navbar', 'hero', 'services', 'doctors', 'about', 'testimonials', 'appointment', 'contact', 'footer'],
+  'real-estate':   ['navbar', 'hero', 'listings', 'services', 'about', 'testimonials', 'contact', 'footer'],
+  'default':       ['navbar', 'hero', 'features', 'about', 'testimonials', 'contact', 'footer'],
 };
 
 /**
@@ -42,40 +42,41 @@ const SITE_TYPE_SECTIONS = {
  * Tells the AI EXACTLY what each section must contain to prevent empty sections.
  */
 const SECTION_CONTENT_GUIDE = {
-  'hero':          'Full-width hero with heading, subtext, CTA button, and a decorative image/gradient background',
+  'navbar':        'MANDATORY fixed/sticky navigation bar at the top with logo/brand name on the left, navigation links (Home, About, Services, Contact) in the center or right, and a CTA button. Must be present on EVERY page and ALWAYS be the FIRST element in the HTML body.',
+  'hero':          'Full-width hero with heading, subtext, CTA button, and a REAL background image from Unsplash (use <img> tag or background-image with a real URL, NOT a CSS gradient alone)',
   'menu':          'At least 6 menu items in a grid/cards, each with name, description, and price',
-  'rooms':         '3-4 room/suite cards, each with an image placeholder (use CSS gradient), name, price per night, and a features list',
+  'rooms':         '3-4 room/suite cards, each with a REAL Unsplash <img> tag showing a hotel room, name, price per night, and a features list',
   'amenities':     '6 amenity cards in a grid, each with an icon, title, and short description',
-  'gallery':       '6-8 image cards in a responsive grid using CSS gradient placeholders or placehold.co images',
+  'gallery':       '6-8 real <img> tags with Unsplash URLs in a responsive grid. NEVER use CSS-only placeholders for gallery.',
   'testimonials':  '3 testimonial cards with quote text, customer name, role/title, and a star rating',
   'about':         'About section with company story text, mission statement, and key stats (e.g., years, clients, projects)',
   'features':      '4-6 feature cards with icon, heading, and description text',
   'services':      '4-6 service cards with icon, name, description, and a "Learn More" link',
   'pricing':       '3 pricing tier cards (Basic/Pro/Enterprise) with price, feature list, and CTA button',
-  'team':          '3-4 team member cards with avatar placeholder, name, role, and social links',
+  'team':          '3-4 team member cards with real portrait <img> from Unsplash (use https://images.unsplash.com/featured/?portrait,professional&w=400&q=80), name, role, and social links',
   'contact':       'Contact form with name, email, message fields, a submit button, plus address/phone/email info',
   'footer':        'Footer with logo, navigation links, social media icons, and copyright text',
   'cta':           'Full-width call-to-action banner with heading, subtext, and prominent button',
   'faq':           '5-6 FAQ accordion items with question and answer text',
   'how-it-works':  '3-4 steps with number, icon, title, and description in a horizontal timeline',
   'newsletter':    'Newsletter signup with heading, description, email input, and subscribe button',
-  'projects':      '4-6 project cards with image placeholder, title, category tag, and description',
+  'projects':      '4-6 project cards with real <img> from Unsplash, title, category tag, and description',
   'skills':        'Skills section with progress bars or percentage indicators for 6-8 skills',
   'experience':    '3-4 experience timeline items with company, role, date range, and description',
-  'portfolio':     '4-6 portfolio items in a filterable grid with image, title, and category',
+  'portfolio':     '4-6 portfolio items in a filterable grid with real <img> from Unsplash, title, and category',
   'programs':      '3-4 program/class cards with name, description, schedule, and price',
   'trainers':      '3-4 trainer cards with photo placeholder, name, specialization, and bio',
   'schedule':      'Weekly schedule table/grid showing time slots and activities',
   'courses':       '4-6 course cards with image, title, instructor, duration, and price',
   'instructors':   '3-4 instructor cards with photo placeholder, name, subject, and bio',
-  'doctors':       '3-4 doctor cards with photo placeholder, name, specialization, and available hours',
+  'doctors':       '3-4 doctor cards with real portrait <img> from Unsplash, name, specialization, and available hours',
   'appointment':   'Appointment booking form with date picker, time slots, and service selection',
-  'listings':      '4-6 property listing cards with image, price, location, bedrooms/bathrooms, and area',
+  'listings':      '4-6 property listing cards with real house/building <img> from Unsplash, price, location, bedrooms/bathrooms, and area',
   'booking':       'Booking/reservation form with date inputs, guest count, and room/service selection',
   'chef':          'Chef profile section with large image placeholder, name, bio, and signature dishes',
   'reservations':  'Reservation form with date, time, party size, and special requests',
   'categories':    '4-6 category cards in a grid with image placeholder, name, and item count',
-  'featured-products': '4-6 product cards with image placeholder, name, price, and add-to-cart button',
+  'featured-products': '4-6 product cards with real <img> from Unsplash, name, price, and add-to-cart button',
   'featured-posts':    '3-4 blog post cards with image, title, date, excerpt, and read-more link',
   'specials':      '3-4 special offer cards with image, title, description, and original/sale price',
 };
@@ -231,6 +232,7 @@ async function llmEnrich(ruleSpec) {
     '',
     'Return ONLY valid JSON with this exact shape (no markdown, no explanation):',
     '{',
+    '  "isModification": "boolean — true if user wants to change existing content, false if new site",',
     '  "businessName": "string — use the provided name or invent a fitting one",',
     '  "tagline": "string — a short catchy tagline for the hero section",',
     '  "targetAudience": "string — who this site is for",',
@@ -250,6 +252,9 @@ async function llmEnrich(ruleSpec) {
     ruleSpec.websiteName ? `Business name provided: ${ruleSpec.websiteName}` : 'No business name provided — please suggest one.',
     ruleSpec.description ? `Description provided: ${ruleSpec.description}` : '',
     `Sections planned: ${ruleSpec.sections.join(', ')}`,
+    ruleSpec.existingFiles && Object.keys(ruleSpec.existingFiles).length > 0 
+      ? `### EXISTING PROJECT CONTEXT\nThe project already has these files: ${Object.keys(ruleSpec.existingFiles).join(', ')}. \nIf the prompt is clearly an instruction to modify these (e.g. "change name", "add section", "make red"), set isModification to true.`
+      : 'This is a new project request. set isModification to false.'
   ].filter(Boolean).join('\n');
 
   try {
@@ -259,6 +264,7 @@ async function llmEnrich(ruleSpec) {
     // Merge LLM output into the spec
     return {
       ...ruleSpec,
+      isModification: !!parsed.isModification,
       businessName: ruleSpec.websiteName || parsed.businessName || 'MyWebsite',
       tagline: parsed.tagline || '',
       targetAudience: parsed.targetAudience || 'general audience',
@@ -299,8 +305,10 @@ function buildEnhancedPrompt(spec) {
     })
     .join('\n');
 
+  const actionWord = spec.isModification ? 'Update' : 'Build';
   const parts = [
-    `Build a complete, professional ${spec.siteType.replace(/-/g, ' ')} website for "${spec.businessName}".`,
+    `${actionWord} a complete, professional ${spec.siteType.replace(/-/g, ' ')} website for "${spec.businessName}".`,
+    spec.isModification ? '### INSTRUCTION: APPLY REQUESTED UPDATES TO THE EXISTING CODEBASE BELOW. MAINTAIN ALL OTHER STRUCTURES AND STYLING UNLESS EXPLICITLY ASKED TO CHANGE THEM.' : '',
     '',
     '=== DESIGN SYSTEM (MUST follow exactly) ===',
     `Theme: ${spec.themeName}`,
@@ -356,14 +364,15 @@ function buildEnhancedPrompt(spec) {
  * Main entry point — Full prompt enhancement pipeline.
  * 
  * @param {string} prompt - Raw user prompt ("Make a coffee website")
- * @param {object} options - { theme, websiteName, description, logoUrl, brandColors }
+ * @param {object} options - { theme, websiteName, description, logoUrl, brandColors, existingFiles }
  * @returns {object} { enrichedSpec, enhancedPrompt, siteType, themeName }
  */
 async function enhance(prompt, options = {}) {
-  console.log(`[PromptEnhancer] Input: "${prompt}" | Theme: ${options.theme || 'default'}`);
+  console.log(`[PromptEnhancer] Input: "${prompt}" | Theme: ${options.theme || 'default'} | Context: ${options.existingFiles ? Object.keys(options.existingFiles).length : 0} files`);
 
   // Layer 1: Rule-based (instant, free)
   const ruleSpec = ruleBasedEnrich(prompt, options);
+  ruleSpec.existingFiles = options.existingFiles || null;
   console.log(`[PromptEnhancer] Rule-based → siteType: ${ruleSpec.siteType}, sections: ${ruleSpec.sections.length}, theme: ${ruleSpec.themeName}`);
 
   // Layer 2: LLM-based (Mistral, ~1-2 seconds)

@@ -106,6 +106,18 @@ export { SafeIcon };
                         // Auto-correct `@/` imports
                         content = content.replace(/from\s+['"]@\//g, "from '/src/");
                         content = content.replace(/import\s+['"]@\//g, "import '/src/");
+
+                        // ── COLLISION DETECTION ──
+                        // Collect all identifiers imported from react-router-dom BEFORE processing lucide
+                        // This prevents conflicts like `Link` (lucide icon) vs `Link` (router component)
+                        const routerImports = new Set();
+                        const routerImportRegex = /import\s+{([^}]+)}\s+from\s+['"]react-router-dom['"]/g;
+                        let routerMatch;
+                        while ((routerMatch = routerImportRegex.exec(content)) !== null) {
+                            routerMatch[1].split(',').forEach(name => {
+                                routerImports.add(name.trim().split(/\s+as\s+/)[0]); // handle "Link as RouterLink"
+                            });
+                        }
                         
                         // ── PERMANENT ICON FIX ──
                         // Rewrite ALL lucide-react imports to use our safe wrapper
@@ -118,13 +130,21 @@ export { SafeIcon };
                                 return icon.replace(/(Icon|Logo|Outline|Filled|Solid)$/i, '');
                             });
                             
+                            // Filter out icons that collide with react-router-dom imports
+                            const safeIcons = cleanedIcons.filter(icon => !routerImports.has(icon));
+                            const skippedIcons = cleanedIcons.filter(icon => routerImports.has(icon));
+                            
+                            if (skippedIcons.length > 0) {
+                                console.log(`[PreviewPanel] Skipped lucide shim for router-colliding icons: ${skippedIcons.join(', ')}`);
+                            }
+                            
+                            if (safeIcons.length === 0) return ''; // All icons collided, remove the import entirely
+                            
                             // Build safe import: import from our wrapper + add SafeIcon fallbacks
-                            const safeImport = `import { SafeIcon, ${[...new Set(cleanedIcons)].join(', ')} } from '/lucide-safe.js'`;
+                            const safeImport = `import { SafeIcon, ${[...new Set(safeIcons)].join(', ')} } from '/lucide-safe.js'`;
                             
                             // For each icon, add a local fallback reassignment after the import  
-                            // This handles the case where the icon exists in our wrapper's re-export
-                            // but might be undefined in the actual lucide-react version
-                            const fallbacks = cleanedIcons.map(icon => {
+                            const fallbacks = safeIcons.map(icon => {
                                 // Also fix JSX usage if name was cleaned
                                 const originalIcon = icons[cleanedIcons.indexOf(icon)];
                                 if (originalIcon !== icon) {
@@ -135,7 +155,7 @@ export { SafeIcon };
                             });
                             
                             // Replace each icon usage in JSX with the safe version
-                            cleanedIcons.forEach(icon => {
+                            safeIcons.forEach(icon => {
                                 // Replace <IconName with <_IconName (the safe version)
                                 content = content.replace(new RegExp(`<${icon}(\\s|\\/)`, 'g'), `<_${icon}$1`);
                                 content = content.replace(new RegExp(`</${icon}>`, 'g'), `</_${icon}>`);
@@ -145,6 +165,7 @@ export { SafeIcon };
                         });
                         
                         result[name] = content;
+
                     }
                 }
             });

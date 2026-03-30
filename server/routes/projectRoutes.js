@@ -8,7 +8,7 @@ const { requireAuth } = require('../middleware/requireAuth');
 // ── GET /api/projects — List user's projects ──
 router.get("/", requireAuth, async (req, res, next) => {
     try {
-        const userId = req.auth.userId;
+        const userId = req.user.clerkId;
         const projects = await Project.find({ userId }).sort({ createdAt: -1 });
         res.json({ projects });
     } catch (error) {
@@ -19,7 +19,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 // ── POST /api/projects — Create a new workspace ──
 router.post("/", requireAuth, async (req, res, next) => {
     try {
-        const userId = req.auth.userId;
+        const userId = req.user.clerkId;
         const project = await Project.create({
             userId,
             name: req.body.name || 'Untitled Project',
@@ -34,7 +34,7 @@ router.post("/", requireAuth, async (req, res, next) => {
 // ── GET /api/projects/:id — Get full workspace context (HYDRATION) ──
 router.get("/:id", requireAuth, async (req, res, next) => {
     try {
-        const userId = req.auth.userId
+        const userId = req.user.clerkId
         const project = await Project.findOne({ _id: req.params.id, userId })
         if (!project) {
             return res.status(404).json({ error: "Project not found" })
@@ -52,13 +52,13 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 // ── PUT /api/projects/:id — Rename or update workspace ──
 router.put("/:id", requireAuth, async (req, res, next) => {
     try {
-        const userId = req.auth.userId
+        const userId = req.user.clerkId
         const { name, previewUrl, netlifySiteId, activeVersionId } = req.body
  
         const project = await Project.findOneAndUpdate(
             { _id: req.params.id, userId },
             { $set: { name, previewUrl, netlifySiteId, activeVersionId } },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         )
 
         if (!project) return res.status(404).json({ error: "Project not found" })
@@ -71,7 +71,7 @@ router.put("/:id", requireAuth, async (req, res, next) => {
 // ── PATCH /api/projects/:id/config — Update style configuration ──
 router.patch("/:id/config", requireAuth, async (req, res, next) => {
     try {
-        const userId = req.auth.userId
+        const userId = req.user.clerkId
         const { theme, websiteName, description, logoUrl, brandColors, isConfigured } = req.body
 
         const project = await Project.findOneAndUpdate(
@@ -86,7 +86,7 @@ router.patch("/:id/config", requireAuth, async (req, res, next) => {
                     isConfigured 
                 } 
             },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         )
 
         if (!project) return res.status(404).json({ error: "Project not found" })
@@ -99,7 +99,7 @@ router.patch("/:id/config", requireAuth, async (req, res, next) => {
 // ── PUT /api/projects/:id/star — Toggle star status ──
 router.put("/:id/star", requireAuth, async (req, res, next) => {
     try {
-        const userId = req.auth.userId;
+        const userId = req.user.clerkId;
         const project = await Project.findOne({ _id: req.params.id, userId });
         
         if (!project) return res.status(404).json({ error: "Project not found" });
@@ -116,7 +116,7 @@ router.put("/:id/star", requireAuth, async (req, res, next) => {
 // ── DELETE /api/projects/:id — Delete workspace ──
 router.delete("/:id", requireAuth, async (req, res, next) => {
     try {
-        const userId = req.auth.userId
+        const userId = req.user.clerkId
         const project = await Project.findOneAndDelete({ _id: req.params.id, userId })
         if (!project) return res.status(404).json({ error: "Project not found" })
         

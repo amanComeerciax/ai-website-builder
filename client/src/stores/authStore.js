@@ -14,7 +14,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const token = await getToken();
-            const res = await fetch('http://localhost:5000/api/auth/me', {
+            const res = await fetch('/api/auth/me', {
                 method: 'GET',
                 headers: { 
                     'Authorization': `Bearer ${token}`,
@@ -36,7 +36,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const token = await getToken();
-            const res = await fetch('http://localhost:5000/api/auth/sync', {
+            const res = await fetch('/api/auth/sync', {
                 method: 'POST',
                 headers: { 
                     'Authorization': `Bearer ${token}`,

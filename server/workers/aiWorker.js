@@ -54,8 +54,8 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
   let enhanced;
   try {
-    enhanced = await enhance(prompt, enhanceOptions || {});
-    console.log(`[Worker] PromptEnhancer ✅ — site: ${enhanced.siteType}, theme: ${enhanced.themeName}, track: ${enhanced.outputTrack}`);
+    enhanced = await enhance(prompt, { ...(enhanceOptions || {}), existingFiles });
+    console.log(`[Worker] PromptEnhancer ✅ — site: ${enhanced.siteType}, theme: ${enhanced.themeName}, track: ${enhanced.outputTrack}, isEdit: ${enhanced.enrichedSpec.isModification}`);
   } catch (e) {
     console.warn(`[Worker] PromptEnhancer failed, using legacy Phase 1:`, e.message);
     // Fallback to legacy Phase 1 if enhancer fails
@@ -89,7 +89,11 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
   await job.updateProgress({
     event: 'log',
-    payload: { type: 'Reading', file: 'prompt analysis', message: `${enhanced.siteType} (${enhanced.themeName}) → Track ${outputTrack === 'html' ? 'A' : 'B'}` }
+    payload: { 
+      type: enhanced.enrichedSpec.isModification ? 'Reading' : 'Reading', 
+      file: 'prompt analysis', 
+      message: `${enhanced.enrichedSpec.isModification ? 'Updating' : 'Creating'} ${enhanced.siteType} (${enhanced.themeName}) → Track ${outputTrack === 'html' ? 'A' : 'B'}` 
+    }
   });
 
   // ════════════════════════════════════════════
@@ -113,7 +117,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
       siteType: enhanced.siteType,
       colorPreference: enhanced.enrichedSpec.colorPreference || 'dark',
     };
-    const { systemPrompt, userMessage } = buildTrackAPrompt(trackASpec);
+    const { systemPrompt, userMessage } = buildTrackAPrompt(trackASpec, enhanced.enrichedSpec.isModification);
     
     // Prepend the enhanced prompt to give the LLM our full technical spec
     const enhancedUserMessage = `${enhanced.enhancedPrompt}\n\n---\n\n${userMessage}`;
@@ -203,7 +207,8 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
         await Message.findByIdAndUpdate(job.data.messageId, {
           status: 'done',
           content: summary,
-          files: finalFiles
+          files: finalFiles,
+          previewType: 'srcdoc'
         });
         console.log(`[Worker] Saved Track A HTML to DB Message ${job.data.messageId}`);
       } catch (saveErr) {
@@ -283,7 +288,10 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   });
 
   const glossary = filePlan.projectGlossary || {};
-  const codeRules = getRulesForPhase('phase3_qwen');
+  let codeRules = getRulesForPhase('phase3_qwen');
+  if (enhanced.enrichedSpec.isModification) {
+    codeRules += '\n\n' + getRulesForPhase('iteration');
+  }
 
   const codeSystemPrompt = [
     'You are a senior React (Vite) code generator. Output ONLY valid JSON:',
@@ -428,7 +436,8 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
       await Message.findByIdAndUpdate(job.data.messageId, {
         status: 'done',
         content: summary,
-        files: generatedFiles
+        files: generatedFiles,
+        previewType: 'sandpack'
       });
       console.log(`[Worker] Saved ${Object.keys(generatedFiles).length} files to DB Message ${job.data.messageId}`);
     } catch (saveErr) {

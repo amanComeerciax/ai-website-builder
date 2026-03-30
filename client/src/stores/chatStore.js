@@ -25,6 +25,13 @@ export const useChatStore = create(
             generationTheme: '',
             generationSiteType: '',
             isConfigured: false,
+            styleOptions: {
+                theme: 'modern-dark',
+                websiteName: '',
+                description: '',
+                logoUrl: '',
+                brandColors: []
+            },
 
             // Helper to automatically sync project-specific state to projectData
             _sync: (updater) => set((state) => {
@@ -39,7 +46,8 @@ export const useChatStore = create(
                         generationTaskName: nextState.generationTaskName,
                         generationTheme: nextState.generationTheme,
                         generationSiteType: nextState.generationSiteType,
-                        isConfigured: nextState.isConfigured
+                        isConfigured: nextState.isConfigured,
+                        styleOptions: nextState.styleOptions
                     };
                     updates.projectData = newProjectData;
                 }
@@ -75,6 +83,13 @@ export const useChatStore = create(
                             generationTheme: data.generationTheme || '',
                             generationSiteType: data.generationSiteType || '',
                             isConfigured: data.isConfigured || false,
+                            styleOptions: data.styleOptions || {
+                                theme: 'modern-dark',
+                                websiteName: '',
+                                description: '',
+                                logoUrl: '',
+                                brandColors: []
+                            },
                             isGenerating: false
                         };
                     } else {
@@ -92,6 +107,13 @@ export const useChatStore = create(
                             generationTheme: '',
                             generationSiteType: '',
                             isConfigured: false,
+                            styleOptions: {
+                                theme: 'modern-dark',
+                                websiteName: '',
+                                description: '',
+                                logoUrl: '',
+                                brandColors: []
+                            },
                             isGenerating: false
                         };
                     }
@@ -102,7 +124,20 @@ export const useChatStore = create(
                     try {
                         const data = await apiClient.getWorkspace(projectId, token);
                         if (data && data.project) {
-                            set({ isConfigured: !!data.project.isConfigured });
+                            const proj = data.project;
+                            const restoredStyleOptions = {
+                                theme: proj.theme || 'modern-dark',
+                                websiteName: proj.websiteName || '',
+                                description: proj.description || '',
+                                logoUrl: proj.logoUrl || '',
+                                brandColors: proj.brandColors || []
+                            };
+                            set({ 
+                                isConfigured: !!proj.isConfigured,
+                                styleOptions: restoredStyleOptions,
+                                generationTheme: proj.theme || '',
+                            });
+                            console.log(`[ChatStore] DB project config restored: configured=${!!proj.isConfigured}, theme=${proj.theme}`);
                         }
                         if (data && data.messages && data.messages.length > 0) {
                             const dbMessages = data.messages.map(m => ({
@@ -136,12 +171,27 @@ export const useChatStore = create(
                                     formattedFiles[path] = { content: typeof content === 'string' ? content : (content.content || '') };
                                 });
                                 useEditorStore.getState().setFiles(formattedFiles);
+
+                                // Restore correct preview mode from DB
+                                // Auto-detect: if only index.html exists → srcdoc, otherwise sandpack
+                                const fileNames = Object.keys(lastMsgWithFiles.files);
+                                const detectedPreviewType = lastMsgWithFiles.previewType 
+                                    || (fileNames.length === 1 && fileNames[0] === 'index.html' ? 'srcdoc' : 'sandpack');
+                                
+                                let htmlContent = null;
+                                if (detectedPreviewType === 'srcdoc') {
+                                    const rawHtml = lastMsgWithFiles.files['index.html'];
+                                    htmlContent = typeof rawHtml === 'string' ? rawHtml : (rawHtml?.content || null);
+                                }
+                                useEditorStore.getState().setPreview(detectedPreviewType, htmlContent);
+                                console.log(`[ChatStore] Hydrated preview: ${detectedPreviewType} | files: ${fileNames.length}`);
                             } else {
                                 // If the DB has no files (e.g. projects made before the DB fix), 
                                 // FORCE wipe the virtual file system to prevent the currently active
                                 // local storage cache (like FreshCart) from bleeding into old projects.
                                 useEditorStore.getState().setFiles({});
                             }
+
                         }
                     } catch (err) {
                         console.warn('[ChatStore] DB hydration skipped:', err.message);
@@ -208,8 +258,15 @@ export const useChatStore = create(
             },
             
             // ── Real AI Generation via Backend SSE ──
-            startGeneration: async (promptText, projectId, token, styleOptions = {}) => {
+            startGeneration: async (promptText, projectId, token, styleOptions = null) => {
                 const currentModel = get().selectedModel || 'qwen';
+                
+                // If options passed, sync them. If not, use what we have in store.
+                if (styleOptions) {
+                    get()._sync({ styleOptions });
+                }
+                const effectiveOptions = styleOptions || get().styleOptions;
+
                 // Reset UI state for new generation
                 get()._sync({ 
                     isGenerating: true, 
@@ -233,7 +290,7 @@ export const useChatStore = create(
                         promptText,
                         currentModel,
                         existingFiles,
-                        styleOptions,
+                        effectiveOptions,
                         token
                     );
                     

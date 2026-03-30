@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 
 const CheckIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -10,29 +10,29 @@ const CheckIcon = () => (
 
 const plans = [
     {
-        name: "Basic",
+        name: "Free",
         desc: "Perfect for personal projects and hobbyists.",
         price: "0",
-        features: ["1 User", "1GB Storage", "Community Forum"],
+        features: ["1 Project", "Basic Generation", "Community Support"],
         btn: "Get Started",
         popular: false,
         primary: false,
     },
     {
-        name: "Team",
-        desc: "Collaborate with your team on multiple projects.",
-        price: "49",
-        features: ["10 Users", "100GB Storage", "Email Support", "Shared Workspaces"],
-        btn: "Choose Team Plan",
+        name: "Pro",
+        desc: "Best for power users and small teams.",
+        price: "29",
+        features: ["10 Projects", "GPT-4 Access", "Premium Support", "Priority Queue"],
+        btn: "Choose Pro Plan",
         popular: true,
         primary: true,
     },
     {
         name: "Agency",
-        desc: "Manage all your clients under one roof.",
-        price: "149",
-        features: ["Unlimited Users", "1TB Storage", "Dedicated Support", "Client Invoicing"],
-        btn: "Contact Us",
+        desc: "Infinite scaling for agencies and shops.",
+        price: "99",
+        features: ["Unlimited Projects", "Custom Branding", "Dedicated Account Manager", "API Access"],
+        btn: "Scale Now",
         popular: false,
         primary: true,
     },
@@ -124,12 +124,42 @@ const ShaderCanvas = () => {
 export default function PricingPage() {
     const navigate = useNavigate();
     const { isSignedIn } = useAuth();
+    const { user } = useUser();
+    const [loadingPlan, setLoadingPlan] = useState(null);
 
-    const handlePlanClick = () => {
+    const handlePlanClick = async (plan) => {
         if (!isSignedIn) {
             navigate("/signup");
-        } else {
-            navigate("/dashboard");
+            return;
+        }
+
+        if (plan.name === 'Free') {
+            navigate('/dashboard');
+            return;
+        }
+
+        setLoadingPlan(plan.name);
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/payment/create-checkout-session`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    planName: plan.name,
+                    userId: user.id,
+                    userEmail: user.primaryEmailAddress?.emailAddress
+                })
+            });
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                alert("Failed to create checkout session.");
+            }
+        } catch (error) {
+            console.error('Payment error:', error);
+            alert("Payment system is currently unavailable.");
+        } finally {
+            setLoadingPlan(null);
         }
     };
 
@@ -218,9 +248,10 @@ export default function PricingPage() {
                             }}
                                 onMouseEnter={e => e.target.style.opacity = "0.85"}
                                 onMouseLeave={e => e.target.style.opacity = "1"}
-                                onClick={handlePlanClick}
+                                onClick={() => handlePlanClick(plan)}
+                                disabled={loadingPlan === plan.name}
                             >
-                                {plan.btn}
+                                {loadingPlan === plan.name ? "Processing..." : plan.btn}
                             </button>
                         </div>
                     ))}

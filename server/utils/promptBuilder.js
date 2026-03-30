@@ -105,8 +105,11 @@ function buildPhase2Prompt(spec) {
  * Use for simple sites, landing pages, portfolios.
  * Preview via iframe srcdoc — ZERO build step needed.
  */
-function buildTrackAPrompt(sitePlan) {
-  const rules = getRulesForPhase('track_a');
+function buildTrackAPrompt(sitePlan, isModification = false) {
+  let rules = getRulesForPhase('track_a');
+  if (isModification) {
+    rules += '\n\n' + getRulesForPhase('iteration');
+  }
 
   const systemPrompt = [
     'You are a senior HTML/CSS/JavaScript developer generating a complete, beautiful website.',
@@ -124,6 +127,7 @@ function buildTrackAPrompt(sitePlan) {
     '6. All JavaScript inside <script> tags at bottom of <body> — vanilla JS only',
     '7. Images: ALWAYS use high-quality Unsplash URLs from the design rules library. If the category is unknown, use: https://images.unsplash.com/featured/?keyword1,keyword2&w=1200&q=80',
     '8. The file must open in Chrome with zero errors, no internet build step needed',
+    '9. NAVBAR IS MANDATORY: ALWAYS include a fixed/sticky navigation bar as the VERY FIRST element inside <body>. It must have the business name/logo on the left and navigation links on the right. NEVER skip the navbar.',
     '',
     rules,
   ].join('\n');
@@ -155,13 +159,22 @@ function buildTrackAPrompt(sitePlan) {
     'CONTENT DENSITY REQUIREMENTS (CRITICAL):',
     '- EVERY section MUST have fully rendered content — NOT just a heading with empty space',
     '- Cards/grids: minimum 3 items per section, ideally 4-6',
-    '- For images: ALWAYS use high-quality Unsplash URLs (e.g., https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800)',
-    '- NEVER use placehold.co or generic grey boxes. Use real, stunning photography.',
-    '- Use CSS gradients as decorative backgrounds: background: linear-gradient(135deg, #1a1a2e, #16213e)',
     '- Each card MUST include: an icon or image, a title, and description text',
     '- Testimonials: include 3 review cards with quote, name, and star rating',
     '- Gallery: include 6-8 image cards using real photography in a responsive grid',
     '- NEVER create a section with only a heading and blank space below it',
+    '',
+    '=== IMAGE RULES (CRITICAL — DO NOT SKIP) ===',
+    '- EVERY section that mentions "image" in its description MUST use a real <img> tag with a working Unsplash URL.',
+    '- NEVER use placehold.co, placeholder.com, via.placeholder.com, or grey boxes.',
+    '- NEVER rely on only CSS gradients where a photo should be. Gradients are OK as decorative overlays ON TOP of real images.',
+    '- Hero section: MUST have a background image using a real Unsplash photo URL.',
+    '- Gallery section: MUST have 6+ <img> tags with real Unsplash URLs.',
+    '- Team/Doctor/Trainer cards: MUST use portrait-style Unsplash photos.',
+    '- If you do not know the exact URL, use this pattern: https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800',
+    '- Or use dynamic keyword search: https://images.unsplash.com/featured/?KEYWORD1,KEYWORD2&w=800&q=80',
+    '- Examples: coffee→photo-1554118811-1e0d58224f24, restaurant→photo-1504674900247-0877df9cc836, tech→photo-1451187580459-43490279c0fa, gym→photo-1534438327276-14e5300c3a48',
+    '- MINIMUM 5 unique <img> tags per generated website. A website with 0 images is UNACCEPTABLE.',
     '',
     'VISUAL QUALITY REQUIREMENTS:',
     '- Use Tailwind CSS classes for all styling (loaded from CDN)',
@@ -182,8 +195,11 @@ function buildTrackAPrompt(sitePlan) {
  * Phase 3: Generate all React files in one call (Qwen)
  * CRITICAL: System prompt MUST stay compact for Qwen context limit.
  */
-function buildPhase3Prompt(fileSpec, glossary) {
-  const rules = getRulesForPhase('phase3_qwen');
+function buildPhase3Prompt(fileSpec, glossary, isModification = false) {
+  let rules = getRulesForPhase('phase3_qwen');
+  if (isModification) {
+    rules += '\n\n' + getRulesForPhase('iteration');
+  }
 
   const systemPrompt = [
     'You are a code generator. Output ONLY the file content. No markdown fences.',

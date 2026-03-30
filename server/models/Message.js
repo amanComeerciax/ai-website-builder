@@ -30,6 +30,11 @@ const messageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {}
     },
+    previewType: {
+      type: String,
+      enum: ['srcdoc', 'sandpack'],
+      default: 'sandpack'
+    },
     filesChanged: [{
       path: String,
       action: { type: String, enum: ['create', 'edit', 'delete'] }
