@@ -449,10 +449,37 @@ export const useChatStore = create(
         }),
         {
             name: 'stackforge-chat-storage',
-            // Exclude transient properties from persistence
-            partialize: (state) => Object.fromEntries(
-                Object.entries(state).filter(([key]) => !['_eventSource', 'isGenerating'].includes(key))
-            ),
+            // Exclude transient properties and huge files from persistence to prevent QuotaExceededError
+            partialize: (state) => {
+                const serializableState = Object.fromEntries(
+                    Object.entries(state).filter(([key]) => !['_eventSource', 'isGenerating'].includes(key))
+                );
+
+                // Strip heavy 'files' objects from the active messages list
+                if (serializableState.messages) {
+                    serializableState.messages = serializableState.messages.map(m => {
+                        const { files, ...rest } = m;
+                        return rest;
+                    });
+                }
+
+                // Strip heavy 'files' objects from cached projectData
+                if (serializableState.projectData) {
+                    const safeProjectData = {};
+                    for (const [pId, pData] of Object.entries(serializableState.projectData)) {
+                        safeProjectData[pId] = { ...pData };
+                        if (safeProjectData[pId].messages) {
+                            safeProjectData[pId].messages = safeProjectData[pId].messages.map(m => {
+                                const { files, ...rest } = m;
+                                return rest;
+                            });
+                        }
+                    }
+                    serializableState.projectData = safeProjectData;
+                }
+
+                return serializableState;
+            },
         }
     )
 )
