@@ -13,7 +13,7 @@
 
 const COMPONENT_REGISTRY = {
   NavBar: {
-    variants: ['transparent', 'solid'],
+    variants: ['transparent', 'solid', 'minimal', 'bold'],
     requiredProps: ['brand'],
     optionalProps: ['links', 'ctaText', 'ctaLink', 'logoUrl'],
     defaultProps: {
@@ -68,7 +68,7 @@ const COMPONENT_REGISTRY = {
   },
 
   FeatureGrid: {
-    variants: ['cards', 'icons', 'glass'],
+    variants: ['cards', 'icons', 'glass', 'radiant', 'salient', 'warm', 'bold', 'energetic', 'clean'],
     requiredProps: ['heading', 'items'],
     optionalProps: ['subtext'],
     defaultProps: {
@@ -129,7 +129,7 @@ const COMPONENT_REGISTRY = {
   },
 
   TestimonialSection: {
-    variants: ['cards', 'glass'],
+    variants: ['cards', 'glass', 'grid', 'spotlight'],
     requiredProps: ['heading', 'items'],
     optionalProps: ['subtext'],
     defaultProps: {
@@ -146,7 +146,7 @@ const COMPONENT_REGISTRY = {
   },
 
   AboutSection: {
-    variants: ['story', 'glass'],
+    variants: ['story', 'glass', 'centered', 'timeline'],
     requiredProps: ['heading', 'description'],
     optionalProps: ['image', 'stats'],
     defaultProps: {
@@ -183,7 +183,7 @@ const COMPONENT_REGISTRY = {
   },
 
   FooterSection: {
-    variants: ['simple', 'withLinks'],
+    variants: ['simple', 'withLinks', 'minimal', 'magazine'],
     requiredProps: ['brand'],
     optionalProps: ['description', 'links', 'socialLinks', 'copyright'],
     defaultProps: {

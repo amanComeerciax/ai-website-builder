@@ -68,22 +68,64 @@ function isDarkTheme(theme) {
 }
 
 // ═══════════════════════════════════════════════
-// NAVBAR — Tailwind Component
+// NAVBAR — Visual Diversity (3 Variants)
 // ═══════════════════════════════════════════════
-function renderNavBar(props, theme) {
+function renderNavBar(props, theme, variant) {
   const dark = isDarkTheme(theme);
+  const v = variant || 'default';
   const rawLinks = props.links || ['Home', 'About', 'Services', 'Contact'];
   const links = rawLinks.map(l => typeof l === 'string' ? l : (l.name || l.label || l.title || l.text || 'Link'));
+  const brand = props.brand || 'Brand';
 
+  // ── MINIMAL (Centered logo, clean lines — Restaurant/Medical/Education) ──
+  if (v === 'minimal') {
+    return `
+<nav id="main-nav" class="fixed top-0 inset-x-0 z-50 transition-[background-color,border-color,height,box-shadow] duration-300 ${dark ? 'bg-black/60' : 'bg-white/90'} backdrop-blur-lg" style="opacity:0; transform:translateY(-100%);">
+  <div class="max-w-7xl mx-auto px-6 md:px-8">
+    <div class="flex items-center justify-between h-14 md:h-16 border-b ${dark ? 'border-white/5' : 'border-black/5'}">
+      <div class="nav-links hidden md:flex gap-8 items-center">
+        ${links.slice(0, Math.ceil(links.length / 2)).map(link => `<a href="#${String(link).toLowerCase().replace(/\\s+/g, '-')}" class="font-body text-[13px] font-medium ${dark ? 'text-white/60 hover:text-white' : 'text-black/50 hover:text-black'} transition-colors duration-200 uppercase tracking-[0.12em]">${link}</a>`).join('')}
+      </div>
+      <a href="#" class="font-heading text-lg md:text-xl font-black text-theme-text tracking-tighter no-underline absolute left-1/2 -translate-x-1/2">
+        ${props.logoUrl ? `<img src="${props.logoUrl}" alt="${brand}" class="h-7 object-contain">` : brand}
+      </a>
+      <div class="nav-links hidden md:flex gap-8 items-center">
+        ${links.slice(Math.ceil(links.length / 2)).map(link => `<a href="#${String(link).toLowerCase().replace(/\\s+/g, '-')}" class="font-body text-[13px] font-medium ${dark ? 'text-white/60 hover:text-white' : 'text-black/50 hover:text-black'} transition-colors duration-200 uppercase tracking-[0.12em]">${link}</a>`).join('')}
+      </div>
+    </div>
+  </div>
+</nav>`;
+  }
+
+  // ── BOLD (Agency / Creative — strong presence) ──
+  if (v === 'bold') {
+    return `
+<nav id="main-nav" class="fixed top-0 inset-x-0 z-50 transition-[background-color,border-color,height,box-shadow] duration-300 ${dark ? 'bg-[#0d0d0d]' : 'bg-white'} border-b ${dark ? 'border-white/5' : 'border-black/5'}" style="opacity:0; transform:translateY(-100%);">
+  <div class="max-w-7xl mx-auto px-6 md:px-8 flex items-center justify-between h-16 md:h-20">
+    <a href="#" class="font-heading text-xl md:text-2xl font-black text-theme-text tracking-tighter no-underline uppercase">
+      ${props.logoUrl ? `<img src="${props.logoUrl}" alt="${brand}" class="h-8 object-contain">` : brand}
+    </a>
+    <div class="flex items-center gap-0">
+      <div class="nav-links hidden md:flex items-center">
+        ${links.map(link => `<a href="#${String(link).toLowerCase().replace(/\\s+/g, '-')}" class="font-body text-sm font-medium ${dark ? 'text-white/60 hover:text-white' : 'text-black/50 hover:text-black'} transition-colors duration-200 px-5 py-2 relative after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-0 after:h-[2px] after:bg-theme-accent after:transition-all after:duration-300 hover:after:w-3/4">${link}</a>`).join('')}
+      </div>
+      ${props.ctaText ? `
+      <a href="${props.ctaLink || '#contact'}" class="ml-4 inline-flex items-center justify-center bg-theme-accent text-white px-7 py-3 rounded-none font-body text-sm font-bold uppercase tracking-widest transition-all duration-300 hover:bg-white hover:text-black">${props.ctaText}</a>` : ''}
+    </div>
+  </div>
+</nav>`;
+  }
+
+  // ── DEFAULT (Glassmorphic — SaaS/General) ──
   return `
-<nav id="main-nav" class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl transition-all duration-300 ease-in-out border-b ${dark ? 'bg-black/40 border-white/10' : 'bg-white/80 border-black/5'}">
+<nav id="main-nav" class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl transition-[background-color,border-color,height,box-shadow] duration-300 ease-in-out border-b ${dark ? 'bg-black/40 border-white/10' : 'bg-white/80 border-black/5'}" style="opacity:0; transform:translateY(-100%);">
   <div class="max-w-7xl mx-auto px-6 md:px-8 flex items-center justify-between h-16 md:h-20">
     <a href="#" class="font-heading text-xl md:text-2xl font-extrabold text-theme-text tracking-tight no-underline">
-      ${props.logoUrl ? `<img src="${props.logoUrl}" alt="${props.brand}" class="h-8 object-contain">` : props.brand || 'Brand'}
+      ${props.logoUrl ? `<img src="${props.logoUrl}" alt="${brand}" class="h-8 object-contain">` : brand}
     </a>
     <div class="flex items-center gap-8">
       <div class="nav-links hidden md:flex gap-8 items-center">
-        ${links.map(link => `<a href="#${String(link).toLowerCase().replace(/\s+/g, '-')}" class="font-body text-sm font-medium ${dark ? 'text-white/70 hover:text-white' : 'text-black/60 hover:text-black'} transition-colors duration-200">${link}</a>`).join('')}
+        ${links.map(link => `<a href="#${String(link).toLowerCase().replace(/\\s+/g, '-')}" class="font-body text-sm font-medium ${dark ? 'text-white/70 hover:text-white' : 'text-black/60 hover:text-black'} transition-colors duration-200">${link}</a>`).join('')}
       </div>
       ${props.ctaText ? `
       <a href="${props.ctaLink || '#contact'}" class="inline-flex items-center justify-center bg-theme-accent hover:bg-theme-hover text-white px-6 py-2.5 rounded-theme font-body text-sm font-semibold whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 shadow-lg shadow-theme-accent/30">${props.ctaText}</a>` : ''}
@@ -253,10 +295,10 @@ function renderHeroSection(props, theme, variant) {
   // ── CENTERED (Portfolio / Default) ──
   return `
 <section class="min-h-screen flex items-center justify-center bg-theme-bg px-6 py-32 relative overflow-hidden">
-  ${isDarkTheme(theme) 
-    ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[radial-gradient(ellipse,var(--tw-gradient-stops))] from-theme-accent/20 to-transparent pointer-events-none opacity-60"></div>` 
-    : `<div class="absolute -top-32 -right-32 w-[600px] h-[600px] bg-[radial-gradient(circle,var(--tw-gradient-stops))] from-theme-accent/10 to-transparent pointer-events-none opacity-50"></div>`
-  }
+  ${isDarkTheme(theme)
+      ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[radial-gradient(ellipse,var(--tw-gradient-stops))] from-theme-accent/20 to-transparent pointer-events-none opacity-60"></div>`
+      : `<div class="absolute -top-32 -right-32 w-[600px] h-[600px] bg-[radial-gradient(circle,var(--tw-gradient-stops))] from-theme-accent/10 to-transparent pointer-events-none opacity-50"></div>`
+    }
   <div class="relative z-10 text-center max-w-3xl mx-auto pt-10">
     ${props.badgeText ? `<div class="inline-flex items-center gap-2 bg-theme-accent/10 border border-theme-accent/20 text-theme-accent font-body text-xs font-bold px-4 py-1.5 rounded-full mb-8 tracking-widest uppercase">${props.badgeText}</div>` : ''}
     <h1 class="font-heading text-4xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight text-theme-text mb-6">${props.heading}</h1>
@@ -270,12 +312,13 @@ function renderHeroSection(props, theme, variant) {
 }
 
 // ═══════════════════════════════════════════════
-// FEATURE GRID — Variants
+// FEATURE GRID — Visual Diversity Engine
 // ═══════════════════════════════════════════════
 function renderFeatureGrid(props, theme, v) {
   const items = props.items || [];
   const dark = isDarkTheme(theme);
 
+  // ── SALIENT (Clean SaaS / Light) ──
   if (v === 'salient') {
     return `
 <section id="features" class="py-24 px-6 md:px-8 bg-slate-50 border-t border-slate-200">
@@ -299,6 +342,7 @@ function renderFeatureGrid(props, theme, v) {
 </section>`;
   }
 
+  // ── RADIANT (Futuristic Tech / Dark Glow) ──
   if (v === 'radiant') {
     return `
 <section id="features" class="py-32 px-6 md:px-8 bg-[#0a0a0a] relative overflow-hidden">
@@ -324,6 +368,116 @@ function renderFeatureGrid(props, theme, v) {
 </section>`;
   }
 
+  // ── WARM (Restaurant / Cafe / Hotel — organic, image-accent) ──
+  if (v === 'warm') {
+    return `
+<section id="features" class="py-28 px-6 md:px-8 bg-theme-bg relative overflow-hidden">
+  <div class="max-w-7xl mx-auto relative z-10">
+    <div class="text-center mb-20">
+      <span class="font-body text-sm font-semibold text-theme-accent uppercase tracking-[0.2em] mb-4 block">What We Offer</span>
+      <h2 class="font-heading text-4xl md:text-5xl font-bold tracking-tight text-theme-text mb-4">${props.heading}</h2>
+      ${props.subtext ? `<p class="font-body text-lg text-theme-dim max-w-xl mx-auto">${props.subtext}</p>` : ''}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      ${items.map((item, i) => `
+        <div class="group flex gap-6 p-8 rounded-2xl ${dark ? 'bg-white/[0.03] hover:bg-white/[0.06]' : 'bg-stone-50 hover:bg-stone-100'} border ${dark ? 'border-white/5' : 'border-stone-200/60'} transition-all duration-500 hover:-translate-y-1 items-start">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-theme-accent/20 to-theme-accent/5 flex items-center justify-center text-theme-accent flex-shrink-0 group-hover:scale-110 transition-transform duration-500 shadow-inner">
+            ${icon(item.icon || 'Zap', 28)}
+          </div>
+          <div class="flex-1">
+            <h3 class="font-heading text-xl font-bold text-theme-text mb-2 tracking-tight">${item.title}</h3>
+            <p class="font-body text-theme-dim leading-relaxed text-[0.93rem]">${item.description}</p>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</section>`;
+  }
+
+  // ── BOLD (Agency / Creative — numbered, asymmetric) ──
+  if (v === 'bold') {
+    return `
+<section id="features" class="py-32 px-6 md:px-8 bg-theme-bg relative overflow-hidden">
+  <div class="max-w-7xl mx-auto relative z-10">
+    <div class="mb-24">
+      <h2 class="font-heading text-5xl md:text-7xl font-black tracking-tighter text-theme-text mb-4">${props.heading}</h2>
+      ${props.subtext ? `<p class="font-body text-xl text-theme-dim max-w-xl">${props.subtext}</p>` : ''}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border-t ${dark ? 'border-white/10' : 'border-black/10'}">
+      ${items.map((item, i) => `
+        <div class="group p-10 md:p-12 border-b ${dark ? 'border-white/10' : 'border-black/10'} ${i % 2 === 0 ? `md:border-r ${dark ? 'md:border-white/10' : 'md:border-black/10'}` : ''} hover:bg-theme-accent/[0.03] transition-all duration-500 relative overflow-hidden">
+          <div class="absolute top-6 right-8 font-heading text-[5rem] font-black ${dark ? 'text-white/[0.04]' : 'text-black/[0.04]'} leading-none select-none group-hover:text-theme-accent/10 transition-colors duration-700">0${i + 1}</div>
+          <div class="relative z-10">
+            <div class="w-10 h-10 rounded-lg bg-theme-accent/10 flex items-center justify-center text-theme-accent mb-6 border border-theme-accent/20">
+              ${icon(item.icon || 'Zap', 20)}
+            </div>
+            <h3 class="font-heading text-2xl font-black text-theme-text mb-4 tracking-tight uppercase">${item.title}</h3>
+            <p class="font-body text-theme-dim leading-relaxed">${item.description}</p>
+            <div class="mt-6 w-12 h-0.5 bg-theme-accent/40 group-hover:w-24 transition-all duration-700"></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</section>`;
+  }
+
+  // ── ENERGETIC (Gym / Salon — sharp, gradient, powerful) ──
+  if (v === 'energetic') {
+    return `
+<section id="features" class="py-28 px-6 md:px-8 bg-theme-bg relative overflow-hidden">
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,var(--tw-gradient-stops))] from-theme-accent/8 to-transparent pointer-events-none"></div>
+  <div class="max-w-7xl mx-auto relative z-10">
+    <div class="text-center mb-20">
+      <h2 class="font-heading text-4xl md:text-6xl font-black tracking-tight text-theme-text mb-4 uppercase">${props.heading}</h2>
+      ${props.subtext ? `<p class="font-body text-lg text-theme-dim max-w-2xl mx-auto">${props.subtext}</p>` : ''}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      ${items.map((item, i) => `
+        <div class="group relative rounded-none p-8 bg-gradient-to-b ${dark ? 'from-white/[0.06] to-white/[0.02]' : 'from-black/[0.03] to-transparent'} border-l-4 border-l-theme-accent ${dark ? 'border-y border-r border-white/5' : 'border-y border-r border-black/5'} hover:border-l-8 transition-all duration-300 overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-theme-accent/5 rounded-full blur-3xl group-hover:bg-theme-accent/15 transition-all duration-700 -translate-y-1/2 translate-x-1/2"></div>
+          <div class="relative z-10">
+            <div class="w-14 h-14 rounded-full bg-theme-accent/15 flex items-center justify-center text-theme-accent mb-6 group-hover:bg-theme-accent group-hover:text-white transition-all duration-500">
+              ${icon(item.icon || 'Zap', 26)}
+            </div>
+            <h3 class="font-heading text-lg font-black text-theme-text mb-3 uppercase tracking-wide">${item.title}</h3>
+            <p class="font-body text-theme-dim text-sm leading-relaxed">${item.description}</p>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</section>`;
+  }
+
+  // ── CLEAN (Medical / Education — professional, trustworthy) ──
+  if (v === 'clean') {
+    return `
+<section id="features" class="py-28 px-6 md:px-8 bg-theme-bg">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-20">
+      <h2 class="font-heading text-3xl md:text-5xl font-bold tracking-tight text-theme-text mb-4">${props.heading}</h2>
+      ${props.subtext ? `<p class="font-body text-lg text-theme-dim max-w-2xl mx-auto">${props.subtext}</p>` : ''}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      ${items.map((item, i) => `
+        <div class="group flex items-start gap-5 p-6 rounded-xl ${dark ? 'bg-white/[0.02] hover:bg-white/[0.05]' : 'bg-white hover:bg-blue-50/30'} border ${dark ? 'border-white/5' : 'border-slate-200'} transition-all duration-300 border-l-[3px] border-l-transparent hover:border-l-theme-accent">
+          <div class="w-11 h-11 rounded-lg ${dark ? 'bg-theme-accent/10' : 'bg-blue-50'} flex items-center justify-center text-theme-accent flex-shrink-0 mt-0.5">
+            ${icon(item.icon || 'Zap', 20)}
+          </div>
+          <div>
+            <h3 class="font-heading text-base font-bold text-theme-text mb-1.5">${item.title}</h3>
+            <p class="font-body text-theme-dim text-sm leading-relaxed">${item.description}</p>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</section>`;
+  }
+
+  // ── DEFAULT (Generic — glassmorphism cards) ──
   return `
 <section id="features" class="py-24 px-6 md:px-8 bg-theme-bg relative overflow-hidden">
   <div class="max-w-7xl mx-auto relative z-10">
@@ -333,7 +487,7 @@ function renderFeatureGrid(props, theme, v) {
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       ${items.map((item, i) => {
-        return `
+    return `
         <div class="group relative rounded-3xl p-8 bg-theme-surface border ${dark ? 'border-white/5' : 'border-black/5'} overflow-hidden transition-all duration-500 hover:-translate-y-1">
           <div class="absolute inset-0 bg-gradient-to-br from-theme-accent/0 to-theme-accent/0 group-hover:from-theme-accent/5 group-hover:to-transparent transition-all duration-500"></div>
           <div class="absolute -right-20 -top-20 w-64 h-64 bg-theme-accent/10 rounded-full blur-3xl group-hover:bg-theme-accent/20 transition-all duration-500"></div>
@@ -349,7 +503,7 @@ function renderFeatureGrid(props, theme, v) {
             </div>
           </div>
         </div>`;
-      }).join('')}
+  }).join('')}
     </div>
   </div>
 </section>`;
@@ -447,8 +601,8 @@ function renderAboutSection(props, theme) {
       ${statItems.length > 0 ? `
       <div style="display:grid;grid-template-columns:repeat(${Math.min(statItems.length, 3)},1fr);gap:24px;padding-top:32px;border-top:1px solid ${theme.border};">
         ${statItems.map(s => `
-        <div>
-          <div style="font-family:'${theme.fontHeading}',sans-serif;font-size:2.2rem;font-weight:900;color:${theme.accent};letter-spacing:-0.03em;">${s.value}</div>
+        <div class="sf-stagger-card">
+          <div class="sf-counter" data-target="${s.value}" style="font-family:'${theme.fontHeading}',sans-serif;font-size:2.2rem;font-weight:900;color:${theme.accent};letter-spacing:-0.03em;">${s.value}</div>
           <div style="font-family:'${theme.fontBody}',sans-serif;font-size:0.8rem;color:${theme.textDim};margin-top:4px;text-transform:uppercase;letter-spacing:0.08em;">${s.label}</div>
         </div>`).join('')}
       </div>` : ''}
@@ -458,15 +612,85 @@ function renderAboutSection(props, theme) {
 }
 
 // ═══════════════════════════════════════════════
-// TESTIMONIALS — Magic UI Infinite Marquee
+// TESTIMONIALS — Visual Diversity (3 Variants)
 // ═══════════════════════════════════════════════
-function renderTestimonialSection(props, theme) {
+function renderTestimonialSection(props, theme, variant) {
   const items = props.items || [];
   const dark = isDarkTheme(theme);
-  
-  // Duplicate items twice to enable smooth infinite scrolling
-  const scrollItems = [...items, ...items, ...items];
+  const v = variant || 'default';
 
+  // ── GRID (Static 3-column cards — Professional/Clean) ──
+  if (v === 'grid') {
+    return `
+<section id="testimonials" class="py-28 px-6 md:px-8 bg-theme-bg">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="font-heading text-4xl md:text-5xl font-bold tracking-tight text-theme-text mb-4">${props.heading}</h2>
+      ${props.subtext ? `<p class="font-body text-lg text-theme-dim max-w-2xl mx-auto">${props.subtext}</p>` : ''}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      ${items.slice(0, 6).map((item, i) => `
+        <div class="sf-stagger-card group p-8 rounded-2xl ${dark ? 'bg-white/[0.03] border border-white/5 hover:border-theme-accent/30' : 'bg-white border border-slate-200 hover:border-theme-accent/50'} transition-all duration-500 hover:-translate-y-1 ${i === 0 ? 'md:col-span-2 md:row-span-1' : ''}">
+          <div class="flex gap-1 mb-5 text-theme-accent">${stars(item.rating)}</div>
+          <p class="font-body text-theme-dim leading-relaxed mb-8 ${i === 0 ? 'text-lg' : 'text-[0.95rem]'}">"${item.quote}"</p>
+          <div class="flex items-center gap-4 mt-auto pt-6 border-t ${dark ? 'border-white/5' : 'border-slate-100'}">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-theme-accent/30 to-theme-accent/10 flex items-center justify-center text-theme-accent font-heading text-lg font-bold">
+              ${(item.name || 'U')[0]}
+            </div>
+            <div>
+              <div class="font-body text-sm font-bold text-theme-text">${item.name}</div>
+              <div class="font-body text-xs text-theme-dim">${item.role || 'Customer'}</div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</section>`;
+  }
+
+  // ── SPOTLIGHT (Single large featured quote — Luxury/Elegant) ──
+  if (v === 'spotlight') {
+    const featured = items[0] || { quote: '', name: 'Customer', role: '', rating: 5 };
+    return `
+<section id="testimonials" class="py-32 px-6 md:px-8 bg-theme-surface relative overflow-hidden">
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-theme-accent/5 rounded-full blur-[120px] pointer-events-none"></div>
+  <div class="max-w-4xl mx-auto text-center relative z-10">
+    <div class="mb-8">
+      <h2 class="font-heading text-3xl md:text-4xl font-bold tracking-tight text-theme-text mb-4">${props.heading}</h2>
+      ${props.subtext ? `<p class="font-body text-theme-dim">${props.subtext}</p>` : ''}
+    </div>
+    <div class="relative p-12 md:p-16 rounded-3xl ${dark ? 'bg-white/[0.03] border border-white/10' : 'bg-white border border-slate-200 shadow-xl'} mb-12">
+      <div class="absolute top-8 left-10 text-theme-accent/20 font-heading text-[8rem] leading-none select-none">"</div>
+      <div class="relative z-10">
+        <div class="flex justify-center gap-1 mb-8 text-theme-accent">${stars(featured.rating)}</div>
+        <p class="font-body text-xl md:text-2xl leading-relaxed text-theme-text/80 mb-10 italic">"${featured.quote}"</p>
+        <div class="flex items-center justify-center gap-4">
+          <div class="w-14 h-14 rounded-full bg-gradient-to-br from-theme-accent to-theme-accent/60 flex items-center justify-center text-white font-heading text-xl font-bold">
+            ${(featured.name || 'U')[0]}
+          </div>
+          <div class="text-left">
+            <div class="font-heading text-lg font-bold text-theme-text">${featured.name}</div>
+            <div class="font-body text-sm text-theme-dim">${featured.role || 'Customer'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${items.length > 1 ? `
+    <div class="flex justify-center gap-8 flex-wrap">
+      ${items.slice(1, 4).map(item => `
+        <div class="text-center max-w-[200px]">
+          <p class="font-body text-sm text-theme-dim italic mb-3">"${item.quote.substring(0, 80)}..."</p>
+          <div class="font-body text-xs font-bold text-theme-text">${item.name}</div>
+        </div>
+      `).join('')}
+    </div>` : ''}
+  </div>
+</section>`;
+  }
+
+  // ── DEFAULT (Infinite Marquee Scroll) ──
+  const scrollItems = [...items, ...items, ...items];
   return `
 <section id="testimonials" class="py-32 bg-theme-surface relative overflow-hidden flex flex-col items-center justify-center">
   <div class="text-center mb-16 relative z-10 px-6">
@@ -744,12 +968,85 @@ function renderFooterSection(props, theme, variant) {
     ];
   }
 
+  const v = variant || 'default';
+  const brand = props.brand || 'Brand';
+  const copyright = props.copyright || `© ${new Date().getFullYear()} ${brand}. All rights reserved.`;
+
+  // ── MINIMAL (Single line, clean — Medical/Education) ──
+  if (v === 'minimal') {
+    return `
+<footer class="bg-theme-bg border-t ${dark ? 'border-white/5' : 'border-black/5'} mt-10">
+  <div class="max-w-7xl mx-auto px-6 md:px-8 py-10">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="font-heading text-lg font-bold text-theme-text tracking-tight">${brand}</div>
+      <div class="flex flex-wrap justify-center gap-8">
+        ${linkGroups.flatMap(g => g.items || []).slice(0, 6).map(item => `
+          <a href="#" class="font-body text-sm text-theme-dim ${dark ? 'hover:text-white' : 'hover:text-black'} transition-colors">${item}</a>
+        `).join('')}
+      </div>
+      <div class="flex items-center gap-4">
+        ${socialLinks.map(s => `
+          <a href="#" class="text-theme-dim ${dark ? 'hover:text-white' : 'hover:text-black'} transition-colors">
+            ${icon(socialIconMap[s] || 'Globe', 16)}
+          </a>
+        `).join('')}
+      </div>
+    </div>
+    <div class="text-center mt-8 pt-6 border-t ${dark ? 'border-white/5' : 'border-black/5'}">
+      <p class="font-body text-xs text-theme-dim">${copyright}</p>
+    </div>
+  </div>
+</footer>`;
+  }
+
+  // ── MAGAZINE (Newsletter-focused — Agency/Creative) ──
+  if (v === 'magazine') {
+    return `
+<footer class="${dark ? 'bg-[#0a0a0a]' : 'bg-slate-50'} border-t ${dark ? 'border-white/5' : 'border-slate-200'} mt-10">
+  <div class="max-w-7xl mx-auto px-6 md:px-8 py-20">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-16">
+      <div>
+        <div class="font-heading text-4xl md:text-5xl font-black text-theme-text tracking-tighter mb-6">${brand}</div>
+        ${props.description ? `<p class="font-body text-lg text-theme-dim leading-relaxed max-w-md mb-8">${props.description}</p>` : ''}
+        <div class="flex gap-4">
+          ${socialLinks.map(s => `
+            <a href="#" class="w-11 h-11 rounded-xl ${dark ? 'bg-white/5 hover:bg-white/10 text-white/60 hover:text-white' : 'bg-black/5 hover:bg-black/10 text-black/40 hover:text-black'} flex items-center justify-center transition-all duration-300">
+              ${icon(socialIconMap[s] || 'Globe', 18)}
+            </a>
+          `).join('')}
+        </div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-8">
+        ${linkGroups.map(g => `
+          <div>
+            <div class="font-body text-xs font-bold text-theme-accent uppercase tracking-[0.15em] mb-5">${g.title}</div>
+            <div class="flex flex-col gap-3">
+              ${(g.items || []).map(item => `
+                <a href="#" class="font-body text-sm text-theme-dim ${dark ? 'hover:text-white' : 'hover:text-black'} transition-colors">${item}</a>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t ${dark ? 'border-white/5' : 'border-slate-200'} gap-4">
+      <p class="font-body text-sm text-theme-dim">${copyright}</p>
+      <div class="flex gap-6">
+        <a href="#" class="font-body text-sm text-theme-dim ${dark ? 'hover:text-white' : 'hover:text-black'} transition-colors">Privacy</a>
+        <a href="#" class="font-body text-sm text-theme-dim ${dark ? 'hover:text-white' : 'hover:text-black'} transition-colors">Terms</a>
+      </div>
+    </div>
+  </div>
+</footer>`;
+  }
+
+  // ── DEFAULT (Mega footer with big brand watermark) ──
   return `
 <footer class="bg-theme-surface border-t ${dark ? 'border-white/10' : 'border-black/5'} overflow-hidden rounded-t-[3rem] mt-10">
   <div class="max-w-7xl mx-auto px-6 md:px-8 py-20 pb-12">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 mb-24 cursor-default">
       <div class="lg:col-span-5">
-        <div class="font-heading text-2xl font-black text-theme-text tracking-tight mb-6">${props.brand || 'Brand'}</div>
+        <div class="font-heading text-2xl font-black text-theme-text tracking-tight mb-6">${brand}</div>
         ${props.description ? `<p class="font-body text-theme-dim leading-relaxed max-w-sm mb-8">${props.description}</p>` : ''}
         <div class="flex gap-4">
           ${socialLinks.map(s => `
@@ -775,7 +1072,7 @@ function renderFooterSection(props, theme, variant) {
     </div>
     
     <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t ${dark ? 'border-white/10' : 'border-black/5'} mb-16 gap-4">
-      <p class="font-body text-sm text-theme-dim font-medium">${props.copyright || `© ${new Date().getFullYear()} ${props.brand}. All rights reserved.`}</p>
+      <p class="font-body text-sm text-theme-dim font-medium">${copyright}</p>
       <div class="flex gap-8">
         <a href="#" class="font-body text-sm font-medium text-theme-dim ${dark ? 'hover:text-white' : 'hover:text-black'} transition-colors duration-200">Privacy Policy</a>
         <a href="#" class="font-body text-sm font-medium text-theme-dim ${dark ? 'hover:text-white' : 'hover:text-black'} transition-colors duration-200">Terms of Service</a>
@@ -784,7 +1081,7 @@ function renderFooterSection(props, theme, variant) {
     
     <div class="w-full text-center select-none flex justify-center items-center overflow-hidden">
       <h1 class="font-heading font-black text-theme-text/5 tracking-tighter w-full text-center leading-none" style="font-size: clamp(4rem, 15vw, 15rem);">
-        ${(props.brand || 'BRAND').toUpperCase()}
+        ${brand.toUpperCase()}
       </h1>
     </div>
   </div>
@@ -907,6 +1204,24 @@ function renderToHTML(layoutSpec, themeConfig) {
     .nav-links a::after { content:''; position:absolute; bottom:-2px; left:0; width:0; height:1.5px; background:${theme.accent}; transition:width 0.25s; }
     .nav-links a:hover::after { width:100%; }
     @keyframes pulse-orb { 0%,100%{transform:translateX(-50%) scale(1)} 50%{transform:translateX(-50%) scale(1.12)} }
+
+    /* ═══ PREMIUM ANIMATION ENGINE — CSS ═══ */
+    .sf-reveal { opacity: 0; transform: translateY(40px); }
+    .sf-reveal-left { opacity: 0; transform: translateX(-60px); }
+    .sf-reveal-right { opacity: 0; transform: translateX(60px); }
+    .sf-reveal-scale { opacity: 0; transform: scale(0.92); }
+    .sf-heading-reveal { clip-path: inset(0 100% 0 0); }
+    .sf-line-reveal { transform: scaleX(0); transform-origin: left; }
+    .sf-stagger-card { opacity: 0; transform: translateY(50px) scale(0.96); }
+    .sf-parallax-img { will-change: transform; }
+    @keyframes sf-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    @keyframes sf-glow-pulse { 0%,100%{opacity:0.3;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.15)} }
+    .sf-float { animation: sf-float 6s ease-in-out infinite; }
+    .sf-glow { animation: sf-glow-pulse 4s ease-in-out infinite; }
+    @keyframes sf-gradient-shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+    .sf-gradient-text { background-size: 200% 200%; animation: sf-gradient-shift 5s ease infinite; }
+    /* ═══ END PREMIUM ANIMATION ENGINE ═══ */
+
     @media (max-width: 768px) {
       [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
       [style*="grid-template-columns: 2fr"] { grid-template-columns: 1fr !important; }
@@ -919,25 +1234,131 @@ ${sectionsHTML}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>
-  if (typeof gsap !== 'undefined') {
-    gsap.registerPlugin(ScrollTrigger);
-    gsap.utils.toArray('section > div, section > div > div').forEach((el, i) => {
-      if (el.children.length > 0) {
-        gsap.from(el, {
-          opacity: 0, y: 28, duration: 0.7, ease: 'power2.out',
-          scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' },
-          delay: (i % 4) * 0.08
-        });
+if (typeof gsap !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+
+  // ═══════════════════════════════════════════════════════
+  // PREMIUM ANIMATION ENGINE v2 — StackForge
+  // ═══════════════════════════════════════════════════════
+
+  // 1. HEADING CLIP-PATH REVEAL — cinematic text entrance
+  gsap.utils.toArray('h1, h2').forEach(h => {
+    gsap.fromTo(h, 
+      { clipPath: 'inset(0 100% 0 0)', opacity: 0 },
+      { clipPath: 'inset(0 0% 0 0)', opacity: 1, duration: 1.2, ease: 'power4.inOut',
+        scrollTrigger: { trigger: h, start: 'top 85%', toggleActions: 'play none none none' }
       }
+    );
+  });
+
+  // 2. PARAGRAPH & SUBTEXT — smooth fade + slide
+  gsap.utils.toArray('section p').forEach(p => {
+    gsap.from(p, {
+      opacity: 0, y: 25, duration: 0.9, ease: 'power3.out',
+      scrollTrigger: { trigger: p, start: 'top 88%', toggleActions: 'play none none none' },
+      delay: 0.2
     });
+  });
+
+  // 3. STAGGER CARDS — left-right alternating entrance
+  document.querySelectorAll('section').forEach(section => {
+    const cards = section.querySelectorAll('[class*="rounded-3xl"], [class*="rounded-2xl"], .sf-stagger-card');
+    if (cards.length > 1) {
+      gsap.fromTo(cards,
+        { opacity: 0, y: 50, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'back.out(1.4)',
+          stagger: { amount: 0.6, from: 'start' },
+          scrollTrigger: { trigger: section, start: 'top 75%', toggleActions: 'play none none none' }
+        }
+      );
+    }
+  });
+
+  // 4. CTA BUTTONS — pop-in with bounce
+  gsap.utils.toArray('a[href="#contact"], a[href^="#"][class*="bg-theme-accent"], a[class*="bg-white"]').forEach(btn => {
+    gsap.from(btn, {
+      opacity: 0, scale: 0.8, duration: 0.6, ease: 'back.out(2)',
+      scrollTrigger: { trigger: btn, start: 'top 90%', toggleActions: 'play none none none' },
+      delay: 0.4
+    });
+  });
+
+  // 5. COUNTER ANIMATION — live count-up for stats
+  document.querySelectorAll('.sf-counter').forEach(counter => {
+    const target = counter.getAttribute('data-target') || counter.textContent;
+    const numMatch = target.match(/(\d+)/);
+    if (numMatch) {
+      const end = parseInt(numMatch[1]);
+      const prefix = target.substring(0, target.indexOf(numMatch[1]));
+      const suffix = target.substring(target.indexOf(numMatch[1]) + numMatch[1].length);
+      const obj = { val: 0 };
+      gsap.to(obj, {
+        val: end, duration: 2, ease: 'power2.out',
+        scrollTrigger: { trigger: counter, start: 'top 85%', toggleActions: 'play none none none' },
+        onUpdate: () => { counter.textContent = prefix + Math.round(obj.val) + suffix; }
+      });
+    }
+  });
+
+  // 6. PARALLAX IMAGES — depth effect on scroll
+  gsap.utils.toArray('section img[style*="object-fit:cover"], section img[class*="object-cover"]').forEach(img => {
+    gsap.to(img, {
+      yPercent: -12,
+      ease: 'none',
+      scrollTrigger: { trigger: img.closest('section') || img, start: 'top bottom', end: 'bottom top', scrub: 1.5 }
+    });
+  });
+
+  // 7. ICON BOXES — scale-in with rotation
+  gsap.utils.toArray('[class*="rounded-xl"][class*="flex"][class*="items-center"][class*="justify-center"]').forEach((box, i) => {
+    if (box.querySelector('svg')) {
+      gsap.from(box, {
+        opacity: 0, scale: 0.5, rotation: -15, duration: 0.6, ease: 'back.out(2.5)',
+        scrollTrigger: { trigger: box, start: 'top 88%', toggleActions: 'play none none none' },
+        delay: (i % 6) * 0.08
+      });
+    }
+  });
+
+  // 8. NAVBAR — smooth enter from top
+  if (navEl) {
+    gsap.fromTo(navEl, 
+      { y: '-100%', opacity: 0 },
+      { y: '0%', opacity: 1, duration: 1.2, ease: 'power4.out', delay: 0.1 }
+    );
   }
+
+  // 9. DECORATIVE BLURS — float in
+  gsap.utils.toArray('[class*="blur-"][class*="absolute"]').forEach(blob => {
+    gsap.from(blob, {
+      scale: 0.5, opacity: 0, duration: 2, ease: 'power2.out',
+      scrollTrigger: { trigger: blob.closest('section') || blob, start: 'top 90%', toggleActions: 'play none none none' }
+    });
+  });
+
+  // 10. BADGE / PILL — slide in from left
+  gsap.utils.toArray('[class*="rounded-full"][class*="tracking-widest"], [class*="rounded-full"][class*="backdrop-blur"]').forEach(badge => {
+    gsap.from(badge, {
+      x: -30, opacity: 0, duration: 0.7, ease: 'power3.out',
+      scrollTrigger: { trigger: badge, start: 'top 88%', toggleActions: 'play none none none' },
+      delay: 0.1
+    });
+  });
+
+  // 11. BORDER-TOP REVEAL — for pricing/feature sections
+  gsap.utils.toArray('[style*="border-top"]').forEach(line => {
+    gsap.from(line, {
+      scaleX: 0, transformOrigin: 'left center', duration: 1.2, ease: 'power4.inOut',
+      scrollTrigger: { trigger: line, start: 'top 85%', toggleActions: 'play none none none' }
+    });
+  });
+}
 
   // PERMANENT IMAGE FIX: Auto-recovery for broken images
   window.addEventListener('error', function(e) {
     if (e.target.tagName === 'IMG') {
       console.warn('Image failed to load, applying fallback:', e.target.src);
       e.target.src = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80';
-      // Prevent infinite loop if fallback also fails
       e.target.onerror = null; 
     }
   }, true);

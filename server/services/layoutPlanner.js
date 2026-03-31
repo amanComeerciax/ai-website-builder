@@ -370,92 +370,92 @@ const { getComponentCatalog, validateLayoutSpec, applyDefaults, getImagesForSite
 // ─────────────────────────────────────────────
 const SITE_BLUEPRINTS = {
   'saas': {
-    heroVariant: 'radiant',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'radiant', featureComponent: 'FeatureGrid', featureVariant: 'radiant',
+    navVariant: 'default', footerVariant: 'default', testimonialVariant: 'default',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'StickyScroll', 'TestimonialSection', 'PricingSection', 'FAQSection', 'CTASection', 'FooterSection'],
     tone: 'modern, bold, futuristic',
     iconSet: ['Zap', 'Shield', 'Globe', 'Cpu', 'Target', 'Layers', 'BarChart', 'Lock'],
   },
   'tech': {
-    heroVariant: 'radiant',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'radiant', featureComponent: 'FeatureGrid', featureVariant: 'radiant',
+    navVariant: 'default', footerVariant: 'default', testimonialVariant: 'grid',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'StickyScroll', 'TestimonialSection', 'PricingSection', 'FAQSection', 'CTASection', 'FooterSection'],
     tone: 'innovative, technical, premium',
     iconSet: ['Cpu', 'Code', 'Globe', 'Zap', 'Shield', 'Database', 'Network', 'Terminal'],
   },
   'agency': {
-    heroVariant: 'stuxen',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'stuxen', featureComponent: 'FeatureGrid', featureVariant: 'bold',
+    navVariant: 'bold', footerVariant: 'magazine', testimonialVariant: 'spotlight',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'PortfolioSection', 'AboutSection', 'TestimonialSection', 'CTASection', 'ContactSection', 'FooterSection'],
     tone: 'creative, bold, confident',
     iconSet: ['Pen', 'Layout', 'Palette', 'TrendingUp', 'Users', 'Award', 'Star', 'Rocket'],
   },
   'portfolio': {
-    heroVariant: 'stuxen',
-    featureComponent: 'PortfolioSection',
+    heroVariant: 'stuxen', featureComponent: 'PortfolioSection', featureVariant: 'bold',
+    navVariant: 'bold', footerVariant: 'minimal', testimonialVariant: 'spotlight',
     sections: ['NavBar', 'HeroSection', 'PortfolioSection', 'AboutSection', 'FeatureGrid', 'TestimonialSection', 'ContactSection', 'FooterSection'],
     tone: 'minimal, clean, sophisticated',
     iconSet: ['Pen', 'Camera', 'Code', 'Layout', 'Layers', 'Star', 'Award', 'Eye'],
   },
   'restaurant': {
-    heroVariant: 'fullImage',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'fullImage', featureComponent: 'FeatureGrid', featureVariant: 'warm',
+    navVariant: 'minimal', footerVariant: 'minimal', testimonialVariant: 'spotlight',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'AboutSection', 'TestimonialSection', 'GallerySection', 'ContactSection', 'FooterSection'],
     tone: 'warm, inviting, luxurious',
     iconSet: ['UtensilsCrossed', 'Wine', 'Star', 'Clock', 'MapPin', 'Heart', 'Award', 'Leaf'],
   },
   'coffee-shop': {
-    heroVariant: 'split',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'split', featureComponent: 'FeatureGrid', featureVariant: 'warm',
+    navVariant: 'minimal', footerVariant: 'minimal', testimonialVariant: 'grid',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'AboutSection', 'TestimonialSection', 'ContactSection', 'FooterSection'],
     tone: 'cozy, warm, artisanal',
     iconSet: ['Coffee', 'Leaf', 'Star', 'Clock', 'MapPin', 'Heart', 'Sun', 'Wind'],
   },
   'gym': {
-    heroVariant: 'fullImage',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'fullImage', featureComponent: 'FeatureGrid', featureVariant: 'energetic',
+    navVariant: 'bold', footerVariant: 'default', testimonialVariant: 'grid',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'AboutSection', 'PricingSection', 'TestimonialSection', 'CTASection', 'ContactSection', 'FooterSection'],
     tone: 'energetic, powerful, motivating',
     iconSet: ['Dumbbell', 'Flame', 'Target', 'Trophy', 'Zap', 'Heart', 'Clock', 'Users'],
   },
   'hotel': {
-    heroVariant: 'fullImage',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'fullImage', featureComponent: 'FeatureGrid', featureVariant: 'warm',
+    navVariant: 'minimal', footerVariant: 'magazine', testimonialVariant: 'spotlight',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'AboutSection', 'PortfolioSection', 'TestimonialSection', 'ContactSection', 'FooterSection'],
     tone: 'luxurious, elegant, refined',
     iconSet: ['Star', 'Wine', 'Wifi', 'Car', 'Utensils', 'Pool', 'Spa', 'Key'],
   },
   'salon': {
-    heroVariant: 'salient',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'salient', featureComponent: 'FeatureGrid', featureVariant: 'energetic',
+    navVariant: 'minimal', footerVariant: 'minimal', testimonialVariant: 'spotlight',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'AboutSection', 'PricingSection', 'TestimonialSection', 'ContactSection', 'FooterSection'],
     tone: 'elegant, stylish, glamorous',
     iconSet: ['Scissors', 'Sparkles', 'Star', 'Heart', 'Clock', 'Award', 'Leaf', 'Crown'],
   },
   'medical': {
-    heroVariant: 'salient',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'salient', featureComponent: 'FeatureGrid', featureVariant: 'clean',
+    navVariant: 'default', footerVariant: 'minimal', testimonialVariant: 'grid',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'AboutSection', 'TestimonialSection', 'FAQSection', 'ContactSection', 'FooterSection'],
     tone: 'trustworthy, professional, caring',
     iconSet: ['Heart', 'Shield', 'Users', 'Clock', 'Award', 'CheckCircle', 'Activity', 'Stethoscope'],
   },
   'education': {
-    heroVariant: 'salient',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'salient', featureComponent: 'FeatureGrid', featureVariant: 'clean',
+    navVariant: 'default', footerVariant: 'magazine', testimonialVariant: 'grid',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'AboutSection', 'PricingSection', 'TestimonialSection', 'FAQSection', 'FooterSection'],
     tone: 'inspiring, approachable, credible',
     iconSet: ['BookOpen', 'GraduationCap', 'Users', 'Star', 'Award', 'Clock', 'Globe', 'Lightbulb'],
   },
   'ecommerce': {
-    heroVariant: 'split',
-    featureComponent: 'BentoGrid',
+    heroVariant: 'split', featureComponent: 'BentoGrid', featureVariant: 'cards',
+    navVariant: 'default', footerVariant: 'default', testimonialVariant: 'grid',
     sections: ['NavBar', 'HeroSection', 'BentoGrid', 'AboutSection', 'TestimonialSection', 'CTASection', 'FooterSection'],
     tone: 'vibrant, exciting, trustworthy',
     iconSet: ['ShoppingBag', 'Star', 'Shield', 'Truck', 'Gift', 'Heart', 'Award', 'Zap'],
   },
   'default': {
-    heroVariant: 'salient',
-    featureComponent: 'FeatureGrid',
+    heroVariant: 'salient', featureComponent: 'FeatureGrid', featureVariant: 'cards',
+    navVariant: 'default', footerVariant: 'default', testimonialVariant: 'default',
     sections: ['NavBar', 'HeroSection', 'FeatureGrid', 'AboutSection', 'TestimonialSection', 'CTASection', 'ContactSection', 'FooterSection'],
     tone: 'professional, modern, clean',
     iconSet: ['Zap', 'Shield', 'Globe', 'Target', 'Star', 'Award', 'Users', 'TrendingUp'],
@@ -482,6 +482,7 @@ ${catalog.map(c => `- ${c.name} (variants: ${c.variants.join(', ')})
 SITE BLUEPRINT FOR "${siteType.toUpperCase()}":
 - Hero variant to use: ${blueprint.heroVariant}
 - Feature component: ${blueprint.featureComponent}
+- Feature variant to use: ${blueprint.featureVariant || 'cards'}
 - Recommended sections: ${blueprint.sections.join(' → ')}
 - Tone: ${blueprint.tone}
 - Relevant icons: ${blueprint.iconSet.join(', ')}
@@ -489,13 +490,14 @@ SITE BLUEPRINT FOR "${siteType.toUpperCase()}":
 
 RULES:
 1. Use EXACTLY the hero variant specified: "${blueprint.heroVariant}"
-2. Use the feature component specified: "${blueprint.featureComponent}"
+2. Use the feature component specified: "${blueprint.featureComponent}" with variant: "${blueprint.featureVariant || 'cards'}"
 3. Generate content that is 100% specific to "${brandName}" — no generic placeholder text
 4. Items arrays must have 4-6 entries minimum, each unique and specific
 5. For BentoGrid: vary className — use "md:col-span-2" on 2nd and 4th items
 6. For PortfolioSection: 4-6 items with real project names related to "${siteType}"
 7. Write in tone: ${blueprint.tone}
 8. Start with NavBar, end with FooterSection — always
+9. For FeatureGrid: use variant "${blueprint.featureVariant || 'cards'}" — do NOT use any other variant
 
 RETURN ONLY VALID JSON:
 {
@@ -571,6 +573,7 @@ function autoFixLayout(sections, spec, blueprint) {
           props.links = getSiteNavLinks(siteType);
         }
         if (!props.ctaText) props.ctaText = getSiteCtaText(siteType);
+        if (!section.variant) section.variant = bp.navVariant || 'default';
         break;
 
       case 'HeroSection':
@@ -593,7 +596,10 @@ function autoFixLayout(sections, spec, blueprint) {
         if (!props.items || props.items.length === 0) {
           props.items = getDefaultFeatureItems(siteType, bp.iconSet);
         }
-        if (!section.variant) section.variant = bp.heroVariant;
+        // Use the dedicated featureVariant, NOT the heroVariant
+        if (!section.variant || section.variant === bp.heroVariant) {
+          section.variant = bp.featureVariant || 'cards';
+        }
         break;
 
       case 'PricingSection':
@@ -608,6 +614,7 @@ function autoFixLayout(sections, spec, blueprint) {
         if (!props.items || props.items.length === 0) {
           props.items = getDefaultTestimonials(brandName);
         }
+        if (!section.variant) section.variant = bp.testimonialVariant || 'default';
         break;
 
       case 'FAQSection':
@@ -633,6 +640,7 @@ function autoFixLayout(sections, spec, blueprint) {
 
       case 'FooterSection':
         if (!props.brand) props.brand = brandName;
+        if (!section.variant) section.variant = bp.footerVariant || 'default';
         break;
     }
 
