@@ -101,20 +101,16 @@ export default function ChatPanel() {
     const handleNextStep = async () => {
         const token = await getToken();
         
-        // 1. Add User "Message" reflecting the choice
         let userContent = "";
         let assistantNext = "";
         
         if (configStep === 0) {
-            userContent = `I choose the **${styleOptions.theme}** theme.`;
-            assistantNext = "Great! What should we name your website?";
-        } else if (configStep === 1) {
             userContent = `The name is **${styleOptions.websiteName}**.`;
             assistantNext = "Nice name! Can you give me a short description of what your website or business is about?";
-        } else if (configStep === 2) {
+        } else if (configStep === 1) {
             userContent = `Description: ${styleOptions.description}`;
             assistantNext = "Perfect. Lastly, do you have a logo URL or specific hex colors you'd like to use? (Optional)";
-        } else if (configStep === 3) {
+        } else if (configStep === 2) {
             // Finalize!
             completeProjectConfig(projectId, token, styleOptions);
             return;
@@ -277,14 +273,14 @@ export default function ChatPanel() {
                         <button 
                             style={{
                                 width: '100%', padding: '14px 20px',
-                                background: configStep === 3 
+                                background: configStep === 2 
                                     ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' 
                                     : 'linear-gradient(135deg, #3b82f6, #2563eb)',
                                 color: '#fff', border: 'none',
                                 borderRadius: '14px', fontSize: '14px', fontWeight: '600',
                                 cursor: 'pointer', display: 'flex',
                                 alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                boxShadow: configStep === 3 
+                                boxShadow: configStep === 2 
                                     ? '0 4px 20px rgba(139,92,246,0.3)' 
                                     : '0 4px 20px rgba(59,130,246,0.25)',
                                 transition: 'all 0.3s ease',
@@ -295,7 +291,7 @@ export default function ChatPanel() {
                             onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.filter = 'brightness(1.1)'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.filter = 'brightness(1)'; }}
                         >
-                            {configStep === 3 ? (
+                            {configStep === 2 ? (
                                 <><Sparkles size={16} /> Build Your Website</>
                             ) : (
                                 <>Continue <ArrowRight size={16} /></>

@@ -92,6 +92,35 @@ class ApiClient {
         return this.request(`/messages/${messageId}/logs`, {}, token)
     }
 
+    // ── Versions ──
+    getProjectVersions(projectId, token) {
+        return this.request(`/projects/${projectId}/versions`, {}, token)
+    }
+
+    restoreVersion(projectId, versionId, token) {
+        return this.request(`/projects/${projectId}/versions/${versionId}/restore`, {
+            method: 'POST',
+        }, token)
+    }
+
+    // ── Folders ──
+    getFolders(token) {
+        return this.request('/folders', {}, token)
+    }
+
+    createFolder(data, token) {
+        return this.request('/folders', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, token)
+    }
+
+    deleteFolder(id, token) {
+        return this.request(`/folders/${id}`, {
+            method: 'DELETE',
+        }, token)
+    }
+
     // ── Generation ──
     startGeneration(projectId, prompt, model, existingFiles = null, styleOptions = {}, token) {
         return this.request('/generate', {

@@ -170,6 +170,7 @@ function ruleBasedEnrich(prompt, options = {}) {
     description = null,
     logoUrl = null,
     brandColors = null,
+    isModification = false,
   } = options;
 
   // 1. Load and merge theme
@@ -211,6 +212,7 @@ function ruleBasedEnrich(prompt, options = {}) {
     targetAudience: null,
     tone: null,
     contentHints: null,
+    isModification: isModification,
   };
 }
 
@@ -227,7 +229,7 @@ function ruleBasedEnrich(prompt, options = {}) {
 async function llmEnrich(ruleSpec) {
   const systemPrompt = [
     'You are a website planning assistant. Given a website request and detected site type,',
-    'fill in the missing details to help a code generator produce a complete website.',
+    ruleSpec.isModification ? 'The user is requesting an EDIT to their EXISTING website. If they ask to change the name or theme, update the properties accordingly.' : 'fill in the missing details to help a code generator produce a complete website.',
     '',
     'Return ONLY valid JSON with this exact shape (no markdown, no explanation):',
     '{',
@@ -247,7 +249,7 @@ async function llmEnrich(ruleSpec) {
     `Website request: "${ruleSpec.rawPrompt}"`,
     `Detected site type: ${ruleSpec.siteType}`,
     `Theme style: ${ruleSpec.themeName}`,
-    ruleSpec.websiteName ? `Business name provided: ${ruleSpec.websiteName}` : 'No business name provided — please suggest one.',
+    ruleSpec.websiteName ? `Business name provided: ${ruleSpec.websiteName}${ruleSpec.isModification ? ' (You may change this if requested)' : ''}` : 'No business name provided — please suggest one.',
     ruleSpec.description ? `Description provided: ${ruleSpec.description}` : '',
     `Sections planned: ${ruleSpec.sections.join(', ')}`,
   ].filter(Boolean).join('\n');

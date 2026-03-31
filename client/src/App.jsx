@@ -70,6 +70,13 @@ function App() {
             <Route index element={<ProjectsPage />} />
           </Route>
 
+          <Route
+            path="/projects/folder/:folderId"
+            element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}
+          >
+            <Route index element={<ProjectsPage />} />
+          </Route>
+
           {/* Editor route */}
           <Route
             path="/chat/:projectId"

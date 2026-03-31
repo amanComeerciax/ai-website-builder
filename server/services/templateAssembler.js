@@ -20,7 +20,7 @@ const { planLayout, buildFallbackLayout } = require('./layoutPlanner.js');
  * @param {function} onProgress - Callback for progress events
  * @returns {object} { html, layoutSpec, files, meta }
  */
-async function assemble(enrichedSpec, onProgress = () => {}) {
+async function assemble(enrichedSpec, onProgress = () => {}, previousLayoutSpec = null) {
   const themeId = enrichedSpec.themeId || 'modern-dark';
   const themeConfig = getTheme(themeId);
 
@@ -29,7 +29,7 @@ async function assemble(enrichedSpec, onProgress = () => {}) {
 
   let layoutSpec;
   try {
-    layoutSpec = await planLayout(enrichedSpec);
+    layoutSpec = await planLayout(enrichedSpec, previousLayoutSpec);
     onProgress({ event: 'log', type: 'Reading', file: 'layout plan', message: `Planned ${layoutSpec.sections.length} sections` });
   } catch (e) {
     console.warn('[Assembler] Layout planning failed, using fallback:', e.message);

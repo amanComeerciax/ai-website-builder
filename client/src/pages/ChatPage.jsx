@@ -9,6 +9,7 @@ import FileTree from '../components/editor/FileTree'
 import CodeEditor from '../components/editor/CodeEditor'
 import PreviewPanel from '../components/editor/PreviewPanel'
 import DetailsPanel from '../components/editor/DetailsPanel'
+import HistoryPanel from '../components/editor/HistoryPanel'
 import ProjectPopover from '../components/editor/ProjectPopover'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
@@ -218,7 +219,10 @@ export default function ChatPage() {
                                 <button className="ep-history-arrow"><ChevronDown size={16} /></button>
                             </div>
 
-                            <button className="ep-center-control-btn">
+                            <button 
+                                className={`ep-center-control-btn ${activeView === 'history' ? 'active' : ''}`}
+                                onClick={() => setActiveView(activeView === 'history' ? 'preview' : 'history')}
+                            >
                                 <History size={14} />
                                 Timeline
                             </button>
@@ -271,6 +275,7 @@ export default function ChatPage() {
                                 </div>
                             )}
                             {activeView === 'preview' && <PreviewPanel />}
+                            {activeView === 'history' && <HistoryPanel projectId={projectId} />}
                         </div>
                     </>
                 )}

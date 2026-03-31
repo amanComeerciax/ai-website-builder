@@ -5,10 +5,11 @@ export const useProjectStore = create((set, get) => ({
     projects: [],
     
     // Create a new project via API — returns a real MongoDB ObjectId
-    createProject: async (prompt, token) => {
+    createProject: async (prompt, token, folderId = null) => {
         try {
             const data = await apiClient.createProject({ 
-                name: prompt.substring(0, 40) 
+                name: prompt.substring(0, 40),
+                folderId
             }, token);
             const dbProject = data.project;
             
@@ -19,7 +20,8 @@ export const useProjectStore = create((set, get) => ({
                 time: 'Just now',
                 lastEdited: Date.now(),
                 isStarred: false,
-                isShared: false
+                isShared: false,
+                folderId: dbProject.folderId || null
             };
             
             set((state) => ({
@@ -47,7 +49,8 @@ export const useProjectStore = create((set, get) => ({
                 time: new Date(p.createdAt).toLocaleDateString(),
                 lastEdited: new Date(p.updatedAt).getTime(),
                 isStarred: p.isStarred || false,
-                isShared: p.isShared || false
+                isShared: p.isShared || false,
+                folderId: p.folderId || null
             }));
             set({ projects });
         } catch (err) {
@@ -81,6 +84,40 @@ export const useProjectStore = create((set, get) => ({
             return true;
         } catch (err) {
             console.error('[ProjectStore] Failed to delete project:', err);
+            return false;
+        }
+    },
+
+    // Rename project
+    renameProject: async (projectId, newName, token) => {
+        // Optimistic update
+        set((state) => ({
+            projects: state.projects.map(p => 
+                p.id === projectId ? { ...p, name: newName } : p
+            )
+        }));
+        try {
+            await apiClient.updateProject(projectId, { name: newName }, token);
+            return true;
+        } catch (err) {
+            console.error('[ProjectStore] Failed to rename project:', err);
+            return false;
+        }
+    },
+
+    // Move to folder
+    moveToFolder: async (projectId, folderId, token) => {
+        // Optimistic update
+        set((state) => ({
+            projects: state.projects.map(p =>
+                p.id === projectId ? { ...p, folderId: folderId || null } : p
+            )
+        }));
+        try {
+            await apiClient.updateProject(projectId, { folderId: folderId || null }, token);
+            return true;
+        } catch (err) {
+            console.error('[ProjectStore] Failed to move project to folder:', err);
             return false;
         }
     },

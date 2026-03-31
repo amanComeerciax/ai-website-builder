@@ -38,6 +38,14 @@ const messageSchema = new mongoose.Schema(
       type: [String],
       default: []
     },
+    layoutSpec: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
+    },
+    previewType: {
+      type: String,
+      default: null
+    },
     status: {
       type: String,
       enum: ['pending', 'done', 'failed'],

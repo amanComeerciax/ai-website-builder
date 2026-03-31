@@ -364,6 +364,7 @@
 
 const { callModel } = require('./modelRouter.js');
 const { getComponentCatalog, validateLayoutSpec, applyDefaults, getImagesForSiteType } = require('../component-kit/registry.js');
+const { getRandomTemplate } = require('./templateLoader.js');
 
 // ─────────────────────────────────────────────
 // Per siteType: which hero variant, which sections, which style
@@ -462,7 +463,7 @@ const SITE_BLUEPRINTS = {
   },
 };
 
-async function planLayout(enrichedSpec) {
+async function planLayout(enrichedSpec, previousLayoutSpec = null) {
   const catalog = getComponentCatalog();
   const siteType = enrichedSpec.siteType || 'default';
   const blueprint = SITE_BLUEPRINTS[siteType] || SITE_BLUEPRINTS['default'];
@@ -507,7 +508,7 @@ RETURN ONLY VALID JSON:
   ]
 }`;
 
-  const userMessage = `Plan a world-class ${siteType} website:
+  let userMessage = `Plan a world-class ${siteType} website:
 
 Brand: "${brandName}"
 Theme: ${enrichedSpec.themeName || 'Modern Dark'}
@@ -520,6 +521,39 @@ CRITICAL:
 - NOT generic — make content unique to this exact business type
 - Use the "${blueprint.heroVariant}" hero variant — do NOT change this
 - Use "${blueprint.featureComponent}" for features — do NOT change this`;
+
+  if (previousLayoutSpec) {
+    console.log(`[LayoutPlanner] 🔄 Modification mode — injecting ${previousLayoutSpec.sections?.length || 0} existing sections into prompt`);
+    userMessage += `\n\n=== EXISTING LAYOUT TO MODIFY ===
+The current layout consists of these sections:
+${JSON.stringify(previousLayoutSpec.sections, null, 2)}
+
+CRITICAL MODIFICATION RULES:
+- Keep the existing sections if they don't need to change.
+- Modify only the components or text requested by the user.
+- The user's modification request is: "${enrichedSpec.rawPrompt || ''}"
+- If the user changed the brand name to "${brandName}", ensure you update the text across existing sections to match.
+- If the user changed the theme or description, adapt the text to match the new vibe.
+- DO NOT regenerate sections from scratch — only apply targeted changes.`;
+  } else {
+    // NEW TEMPLATE SEEDING LOGIC
+    const seededTemplate = getRandomTemplate(siteType);
+    if (seededTemplate) {
+      console.log(`[LayoutPlanner] 📥 SEED MODE — Injecting pristine template for "${siteType}"`);
+      userMessage += `\n\n=== REFERENCE BLUEPRINT TEMPLATE ===
+I have selected a pristine, highly-optimized component layout for this business type.
+YOUR JOB is to act as a copywriter. Keep the EXACT component structure, variants, and prop keys, but rewrite the text content, items, and placeholders to perfectly match "${brandName}" and the user's prompt.
+
+Here is the structure you MUST use:
+${JSON.stringify(seededTemplate.sections, null, 2)}
+
+CRITICAL SEEDING RULES:
+- Use EXACTLY the components and variants provided above. Do NOT invent new ones.
+- Only change textual content (headings, descriptions, labels).
+- Ensure the tone matches ${enrichedSpec.tone || blueprint.tone} and sounds premium.
+- Output the fully populated JSON structure.`;
+    }
+  }
 
   let layoutSpec = null;
 

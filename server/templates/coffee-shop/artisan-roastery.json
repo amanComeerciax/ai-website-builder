@@ -1,0 +1,93 @@
+{
+  "meta": {
+    "title": "Artisan Roastery",
+    "description": "A premium coffee experience."
+  },
+  "sections": [
+    {
+      "component": "NavBar",
+      "variant": "transparent",
+      "props": {
+        "logo": "Artisan Roastery",
+        "links": [
+          { "label": "Our Story", "href": "#about" },
+          { "label": "Menu", "href": "#menu" },
+          { "label": "Visit Us", "href": "#contact" }
+        ],
+        "buttonText": "Order Online"
+      }
+    },
+    {
+      "component": "HeroSection",
+      "variant": "glass",
+      "props": {
+        "heading": "Crafting the Perfect Cup",
+        "subheading": "Ethically sourced beans, roasted to perfection in the heart of the city.",
+        "buttonText": "View Our Menu",
+        "secondaryButtonText": "Find a Location",
+        "backgroundImage": "https://images.unsplash.com/photo-1497935586351-b67a49e012bf"
+      }
+    },
+    {
+      "component": "FeaturesSection",
+      "variant": "grid",
+      "props": {
+        "heading": "Our Commitment",
+        "subheading": "What makes our coffee different.",
+        "features": [
+          { "title": "Single Origin", "description": "Sourced from the best farms.", "icon": "Coffee" },
+          { "title": "In-House Roasting", "description": "Freshly roasted every day.", "icon": "Flame" },
+          { "title": "Expert Baristas", "description": "Trained to pour perfection.", "icon": "Award" }
+        ]
+      }
+    },
+    {
+      "component": "StickyScroll",
+      "variant": "default",
+      "props": {
+        "items": [
+          { "title": "The Sourcing", "description": "We build direct relationships with farmers around the globe to ensure fair wages and the highest quality beans.", "image": "https://images.unsplash.com/photo-1511920170033-f8396924c348" },
+          { "title": "The Roasting", "description": "Our master roaster carefully crafts the profile for each origin, bringing out the unique tasting notes of every bean.", "image": "https://images.unsplash.com/photo-1507133750070-44ecf1dc0471" },
+          { "title": "The Brewing", "description": "Whether it's a meticulously crafted pour-over or a creamy cortado, every cup is brewed with precision.", "image": "https://images.unsplash.com/photo-1442512595331-e89e73853f31" }
+        ]
+      }
+    },
+    {
+      "component": "BentoGrid",
+      "variant": "default",
+      "props": {
+        "heading": "Our Signature Blends",
+        "items": [
+          { "title": "Morning Glory", "description": "Light roast with notes of citrus and jasmine.", "image": "https://images.unsplash.com/photo-1559525839-b184a4d698c7", "className": "md:col-span-1" },
+          { "title": "Midnight Run", "description": "Dark roast full of dark chocolate and caramel.", "image": "https://images.unsplash.com/photo-1611162458324-aae1eb4129a4", "className": "md:col-span-2" },
+          { "title": "Decaf Delight", "description": "All the flavor, none of the jitters.", "image": "https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b", "className": "md:col-span-2" },
+          { "title": "Seasonal Espresso", "description": "A vibrant espresso blend that changes with the seasons.", "image": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd", "className": "md:col-span-1" }
+        ]
+      }
+    },
+    {
+      "component": "TestimonialSection",
+      "variant": "cards",
+      "props": {
+        "heading": "What Locals Say",
+        "testimonials": [
+          { "quote": "The best cortado I've had outside of Spain.", "name": "Maria G.", "role": "Local Guide" },
+          { "quote": "I buy my beans here every week. The quality is unmatched.", "name": "James T.", "role": "Home Brewer" },
+          { "quote": "A perfect place to work for a few hours with great coffee.", "name": "Sarah L.", "role": "Freelance Writer" }
+        ]
+      }
+    },
+    {
+      "component": "FooterSection",
+      "variant": "simple",
+      "props": {
+        "brandName": "Artisan Roastery",
+        "description": "Premium coffee for the community.",
+        "links": [
+          { "title": "Social", "items": [{ "label": "Instagram", "href": "#" }, { "label": "Twitter", "href": "#" }] },
+          { "title": "Legal", "items": [{ "label": "Privacy", "href": "#" }, { "label": "Terms", "href": "#" }] }
+        ]
+      }
+    }
+  ]
+}

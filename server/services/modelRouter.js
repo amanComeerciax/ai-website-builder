@@ -23,6 +23,8 @@ const ROUTING_TABLE = {
   plan_structure:  { model: 'mistral', temperature: 0.3, jsonMode: true },
   plan_layout:     { model: 'mistral', temperature: 0.4, jsonMode: true },   // Component Kit layout planner
   summarize:       { model: 'mistral', temperature: 0.5, jsonMode: true },
+  template_selector: { model: 'mistral', temperature: 0.2, jsonMode: false },
+  html_to_jsx:     { model: 'mistral', temperature: 0.2, jsonMode: false },
 
   // Chat → Groq (instant responses)
   chat_response:   { model: 'groq', temperature: 0.5, jsonMode: false },

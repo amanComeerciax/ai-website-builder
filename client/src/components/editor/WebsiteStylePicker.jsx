@@ -1,66 +1,13 @@
 import React, { useState } from 'react';
-import { Check, Sparkles, Type, Layout, Image as ImageIcon, Palette, ArrowRight } from 'lucide-react';
-
-const THEMES = [
-  { 
-    id: 'modern-dark', 
-    name: 'Modern Dark', 
-    tag: 'Professional',
-    gradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #3b82f6 100%)',
-    accent: '#3b82f6',
-    preview: ['#0f172a', '#1e293b', '#334155', '#3b82f6']
-  },
-  { 
-    id: 'modern-light', 
-    name: 'Modern Light', 
-    tag: 'Clean',
-    gradient: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #6366f1 100%)',
-    accent: '#6366f1',
-    preview: ['#f8fafc', '#e2e8f0', '#cbd5e1', '#6366f1']
-  },
-  { 
-    id: 'minimal', 
-    name: 'Minimal', 
-    tag: 'Simple',
-    gradient: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 50%, #737373 100%)',
-    accent: '#525252',
-    preview: ['#fafafa', '#e5e5e5', '#a3a3a3', '#525252']
-  },
-  { 
-    id: 'bold', 
-    name: 'Bold', 
-    tag: 'High Energy',
-    gradient: 'linear-gradient(135deg, #1c1917 0%, #f97316 50%, #fbbf24 100%)',
-    accent: '#f97316',
-    preview: ['#1c1917', '#292524', '#f97316', '#fbbf24']
-  },
-  { 
-    id: 'elegant', 
-    name: 'Elegant', 
-    tag: 'Premium',
-    gradient: 'linear-gradient(135deg, #0c0a09 0%, #1c1917 50%, #d4a574 100%)',
-    accent: '#c4a35a',
-    preview: ['#0c0a09', '#1c1917', '#c4a35a', '#e8d5b5']
-  },
-  { 
-    id: 'playful', 
-    name: 'Playful', 
-    tag: 'Creative',
-    gradient: 'linear-gradient(135deg, #fdf2f8 0%, #ec4899 50%, #8b5cf6 100%)',
-    accent: '#ec4899',
-    preview: ['#fdf2f8', '#fbcfe8', '#ec4899', '#8b5cf6']
-  },
-];
+import { Type, Layout, Image as ImageIcon, Palette } from 'lucide-react';
 
 const STEP_INFO = [
-  { icon: Sparkles, label: 'Theme', color: '#3b82f6' },
   { icon: Type, label: 'Name', color: '#8b5cf6' },
   { icon: Layout, label: 'About', color: '#a855f7' },
   { icon: Palette, label: 'Brand', color: '#f59e0b' },
 ];
 
 export default function WebsiteStylePicker({ step = 0, value, onChange }) {
-  const selectedTheme = value.theme || 'modern-dark';
   const details = {
     websiteName: value.websiteName || '',
     description: value.description || '',
@@ -68,12 +15,8 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
     brandColors: value.brandColors || '',
   };
 
-  const StepIcon = STEP_INFO[step]?.icon || Sparkles;
-  const stepColor = STEP_INFO[step]?.color || '#3b82f6';
-
-  const handleThemeSelect = (themeId) => {
-    onChange({ ...value, theme: themeId });
-  };
+  const StepIcon = STEP_INFO[step]?.icon || Type;
+  const stepColor = STEP_INFO[step]?.color || '#8b5cf6';
 
   const handleDetailChange = (e) => {
     const { name, value: val } = e.target;
@@ -123,94 +66,23 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
             fontSize: '14px', fontWeight: '700', color: '#fff',
             letterSpacing: '-0.01em', lineHeight: '1.2'
           }}>
-            {step === 0 && 'Choose your style'}
-            {step === 1 && "What's your brand name?"}
-            {step === 2 && 'Describe your project'}
-            {step === 3 && 'Brand assets (optional)'}
+            {step === 0 && "What's your brand name?"}
+            {step === 1 && 'Describe your project'}
+            {step === 2 && 'Brand assets (optional)'}
           </div>
           <div style={{
             fontSize: '11px', color: 'rgba(255,255,255,0.35)',
             marginTop: '2px'
           }}>
-            Step {step + 1} of 4
+            Step {step + 1} of 3
           </div>
         </div>
       </div>
 
-      {/* Step 0: Theme Grid */}
+
+
+      {/* Step 0: Website Name */}
       {step === 0 && (
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px',
-        }}>
-          {THEMES.map((theme) => {
-            const isSelected = selectedTheme === theme.id;
-            return (
-              <button
-                key={theme.id}
-                onClick={() => handleThemeSelect(theme.id)}
-                style={{
-                  position: 'relative',
-                  display: 'flex', flexDirection: 'column',
-                  gap: '8px', padding: '0',
-                  borderRadius: '14px', border: 'none',
-                  cursor: 'pointer', textAlign: 'left',
-                  background: isSelected ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.02)',
-                  outline: isSelected ? `2px solid ${theme.accent}` : '1px solid rgba(255,255,255,0.06)',
-                  outlineOffset: '-1px',
-                  transition: 'all 0.3s ease',
-                  overflow: 'hidden',
-                }}
-                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.outline = '1px solid rgba(255,255,255,0.12)'; }}
-                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.outline = '1px solid rgba(255,255,255,0.06)'; }}
-              >
-                {/* Color Preview Strip */}
-                <div style={{
-                  width: '100%', height: '48px',
-                  background: theme.gradient,
-                  borderRadius: '14px 14px 0 0',
-                  position: 'relative',
-                }}>
-                  {isSelected && (
-                    <div style={{
-                      position: 'absolute', top: '8px', right: '8px',
-                      width: '20px', height: '20px', borderRadius: '50%',
-                      background: theme.accent, display: 'flex',
-                      alignItems: 'center', justifyContent: 'center',
-                      boxShadow: `0 2px 8px ${theme.accent}60`,
-                    }}>
-                      <Check size={12} color="#fff" strokeWidth={3} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Theme Info */}
-                <div style={{ padding: '4px 12px 12px' }}>
-                  <div style={{
-                    fontSize: '12px', fontWeight: '600',
-                    color: isSelected ? '#fff' : 'rgba(255,255,255,0.6)',
-                    lineHeight: '1.3', marginBottom: '4px',
-                  }}>
-                    {theme.name}
-                  </div>
-                  {/* Color Dots */}
-                  <div style={{ display: 'flex', gap: '3px' }}>
-                    {theme.preview.map((col, i) => (
-                      <div key={i} style={{
-                        width: '12px', height: '12px', borderRadius: '50%',
-                        background: col,
-                        border: '1px solid rgba(255,255,255,0.1)',
-                      }} />
-                    ))}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Step 1: Website Name */}
-      {step === 1 && (
         <div style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.06)',
@@ -244,8 +116,8 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
         </div>
       )}
 
-      {/* Step 2: Description */}
-      {step === 2 && (
+      {/* Step 1: Description */}
+      {step === 1 && (
         <div style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.06)',
@@ -280,8 +152,8 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
         </div>
       )}
 
-      {/* Step 3: Logo & Colors */}
-      {step === 3 && (
+      {/* Step 2: Logo & Colors */}
+      {step === 2 && (
         <div style={{
           display: 'flex', flexDirection: 'column', gap: '12px',
         }}>

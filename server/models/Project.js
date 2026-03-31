@@ -22,9 +22,13 @@ const projectSchema = new mongoose.Schema(
       default: null
     },
     currentFileTree: {
-      type: Map,
-      of: String, // Map of path to R2Key string
-      default: new Map()
+      type: mongoose.Schema.Types.Mixed, // Map of path to file content
+      default: {}
+    },
+    outputTrack: {
+      type: String,
+      enum: ['html', 'nextjs', 'component-kit'],
+      default: 'html'
     },
     previewUrl: {
       type: String,
@@ -41,6 +45,11 @@ const projectSchema = new mongoose.Schema(
     isStarred: {
       type: Boolean,
       default: false
+    },
+    folderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Folder',
+      default: null
     },
     // 5-STEP PIPELINE CONFIG
     isConfigured: {

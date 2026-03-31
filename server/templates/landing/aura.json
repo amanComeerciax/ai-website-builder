@@ -1,0 +1,105 @@
+{
+  "meta": {
+    "title": "Aura Home — Where Technology Disappears",
+    "description": "The best technology is invisible. Ambient intelligence for your home."
+  },
+  "sections": [
+    {
+      "component": "NavBar",
+      "variant": "transparent",
+      "props": {
+        "logo": "AURA",
+        "links": [
+          { "label": "PHILOSOPHY", "href": "#philosophy" },
+          { "label": "EXPERIENCE", "href": "#experience" },
+          { "label": "LIVING", "href": "#scenarios" },
+          { "label": "DETAILS", "href": "#details" }
+        ],
+        "buttonText": "REQUEST EXPERIENCE"
+      }
+    },
+    {
+      "component": "HeroSection",
+      "variant": "aurora",
+      "props": {
+        "heading": "The best technology is invisible",
+        "subheading": "Aura Home orchestrates light, temperature, and sound to create spaces that respond to your presence without demanding your attention.",
+        "buttonText": "Experience Aura",
+        "secondaryButtonText": "Watch Film",
+        "backgroundImage": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9"
+      }
+    },
+    {
+      "component": "FeaturesSection",
+      "variant": "grid",
+      "props": {
+        "heading": "Comfort without complexity",
+        "subheading": "When technology demands attention, it becomes noise. The most profound innovations are those you never notice.",
+        "features": [
+          { "title": "Ambient Intelligence", "description": "Sensors perceive. Systems respond smoothly to your natural rhythms.", "icon": "Eye" },
+          { "title": "Responsive Lighting", "description": "Color temperature matches the sun, regulating your circadian rhythm.", "icon": "Sun" },
+          { "title": "Invisible Control", "description": "No apps necessary. The home learns your patterns directly.", "icon": "Wind" },
+          { "title": "Absolute Privacy", "description": "All processing happens locally. No microphones, no cloud data.", "icon": "Shield" }
+        ]
+      }
+    },
+    {
+      "component": "StickyScroll",
+      "variant": "default",
+      "props": {
+        "heading": "Scenes that understand you",
+        "items": [
+          { "title": "Reading Mode: Focused Warmth", "description": "Aura gently dims ambient lighting while directing warm 2700K light to your book. Temperature adjusts to 21°C.", "image": "https://images.unsplash.com/photo-1512820790803-83ca734da794" },
+          { "title": "Bathing Mode: Evening Unwind", "description": "Warm amber light replaces bright daylight, steam-friendly speakers play soft ambient tones, and floor heating activates.", "image": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a" },
+          { "title": "Sleep Mode: Natural Descent", "description": "Lights gradually dim to simulate sunset, temperature cools to 18°C, and subtle white noise fills the space.", "image": "https://images.unsplash.com/photo-1540518614846-7eded433c457" }
+        ]
+      }
+    },
+    {
+      "component": "BentoGrid",
+      "variant": "default",
+      "props": {
+        "heading": "Precision in service of comfort",
+        "items": [
+          { "title": "Ultra-Fast Response", "description": "0.1s latency with 99.7% detection accuracy.", "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31", "className": "md:col-span-1" },
+          { "title": "Ambient Sensing Network", "description": "24 types of sensors passing 10K data points per second over a 128-node mesh.", "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71", "className": "md:col-span-2" },
+          { "title": "Lighting Intelligence", "description": "Unlimited zones with 1800-6500K color control and 98+ CRI.", "image": "https://images.unsplash.com/photo-1518770660439-4636190af475", "className": "md:col-span-2" },
+          { "title": "Thermal Tuning", "description": "Micro-climate optimization per room.", "image": "https://images.unsplash.com/photo-1451187580459-43490279c0fa", "className": "md:col-span-1" }
+        ]
+      }
+    },
+    {
+      "component": "TestimonialSection",
+      "variant": "cards",
+      "props": {
+        "heading": "Lived experiences",
+        "testimonials": [
+          { "quote": "I stopped reaching for light switches perfectly within 48 hours. The house just knows.", "name": "Elena Rodriguez", "role": "Architect" },
+          { "quote": "The way the light warms up automatically as the evening progresses has completely fixed my sleep.", "name": "Marcus Chen", "role": "Designer" },
+          { "quote": "It feels less like a smart home and more like an organism that takes care of you.", "name": "Sarah Jenkins", "role": "Resident" }
+        ]
+      }
+    },
+    {
+      "component": "CallToAction",
+      "variant": "centered",
+      "props": {
+        "heading": "Begin the invisible transformation",
+        "subheading": "Experience Aura Home in your space. Our consultants visit your home to understand your rhythms and design a system that disappears into your life.",
+        "buttonText": "Schedule Consultation"
+      }
+    },
+    {
+      "component": "FooterSection",
+      "variant": "simple",
+      "props": {
+        "brandName": "AURA",
+        "description": "Where technology disappears.",
+        "links": [
+          { "title": "Explore", "items": [{ "label": "Philosophy", "href": "#" }, { "label": "Experience", "href": "#" }, { "label": "Scenarios", "href": "#" }] },
+          { "title": "Support", "items": [{ "label": "Installation", "href": "#" }, { "label": "Guides", "href": "#" }, { "label": "Contact", "href": "#" }] }
+        ]
+      }
+    }
+  ]
+}

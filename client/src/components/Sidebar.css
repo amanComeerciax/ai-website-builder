@@ -126,6 +126,41 @@
   color: #fff;
 }
 
+/* ═══════════════════════════════════════
+   Nav Item with Expand Toggle (All Projects / Created by me)
+   ═══════════════════════════════════════ */
+
+.lv-nav-item-with-toggle {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.lv-nav-item-with-toggle .lv-nav-link {
+  flex: 1;
+  min-width: 0;
+}
+
+.lv-item-toggle {
+  position: absolute;
+  right: 4px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.lv-item-toggle:hover {
+  background: #2a2a2a;
+  color: #fff;
+}
+
 .lv-sub-nav {
   display: flex;
   flex-direction: column;
@@ -258,6 +293,11 @@
   flex-shrink: 0;
 }
 
+img.lv-user-avatar {
+  border-radius: 6px;
+  object-fit: cover;
+}
+
 .lv-user-info {
   flex: 1;
   min-width: 0;
@@ -291,6 +331,140 @@
 .lv-logout-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #ff4d4d;
+}
+
+/* ═══════════════════════════════════════
+   Project Rows — Three-Dot Menu System
+   ═══════════════════════════════════════ */
+
+.lv-project-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lv-project-link {
+  flex: 1;
+  min-width: 0;
+}
+
+.lv-project-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lv-three-dot {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  z-index: 2;
+}
+
+.lv-project-row:hover .lv-three-dot,
+.lv-three-dot-active {
+  opacity: 1;
+}
+
+.lv-three-dot:hover,
+.lv-three-dot-active {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+/* ── Dropdown Menu ── */
+
+.lv-dot-menu {
+  position: absolute;
+  top: 100%;
+  right: 4px;
+  z-index: 100;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: dotMenuIn 0.12s ease-out;
+}
+
+@keyframes dotMenuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lv-dot-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ddd;
+  cursor: pointer;
+  border-radius: 5px;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+
+.lv-dot-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.lv-dot-menu-item svg {
+  color: #888;
+  flex-shrink: 0;
+}
+
+.lv-dot-menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 4px 8px;
+}
+
+.lv-dot-menu-danger {
+  color: #ef4444;
+}
+
+.lv-dot-menu-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.lv-dot-menu-danger svg {
+  color: #ef4444;
+}
+
+/* ── Created by me sub-section ── */
+
+.lv-created-projects {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.lv-created-projects::-webkit-scrollbar { width: 3px; }
+.lv-created-projects::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+/* Recents section project rows need padding */
+.lv-recents-section .lv-project-row {
+  padding: 0 12px;
+}
+
+.lv-recents-section .lv-project-link {
+  padding: 8px 12px;
 }
 
 @media (max-width: 768px) {

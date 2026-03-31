@@ -32,11 +32,20 @@ const getProjectGradient = (id) => {
 }
 
 export default function ProjectsPage() {
-    const { type } = useParams() // 'mine', 'starred', 'shared', 'all'
+    const { type, folderId } = useParams() // 'mine', 'starred', 'shared', 'all', or undefined if /projects/folder/:folderId
     const { isLoaded, isSignedIn, getToken } = useAuth()
     const { userData } = useAuthStore()
     const { projects, fetchProjects, deleteProject, toggleStar } = useProjectStore()
-    const [activeDropdown, setActiveDropdown] = useState(null);
+    const [activeDropdown, setActiveDropdown] = useState(null)
+    
+    // Attempt to pull in folderStore to get the name of the folder for the title
+    let folders = [];
+    try {
+        const folderStore = require('../stores/folderStore').useFolderStore.getState();
+        if (folderStore && folderStore.folders) {
+            folders = folderStore.folders;
+        }
+    } catch(e) {}
 
     useEffect(() => {
         if (isLoaded && isSignedIn) {
@@ -88,12 +97,36 @@ export default function ProjectsPage() {
         return () => window.removeEventListener('click', handleClickOutside);
     }, []);
 
-    // Filter projects based on type
+    // Filter projects based on type or folderId
     const renderedProjects = projects.filter(p => {
-        if (type === 'starred') return p.isStarred
-        if (type === 'shared') return p.isShared
-        return true
+        if (folderId) return p.folderId === folderId;
+        
+        // If type is 'all' or 'mine', act like a "Root" directory and hide projects in folders
+        if (type === 'all' || type === 'mine') {
+             return !p.folderId;
+        }
+
+        if (type === 'starred') return p.isStarred;
+        if (type === 'shared') return p.isShared;
+        return true;
     })
+
+    let displayTitle = 'Projects';
+    let emptyTitle = "Let's build something amazing";
+    if (folderId) {
+        const folder = folders.find(f => f.id === folderId || f._id === folderId);
+        displayTitle = folder ? folder.name : 'Folder';
+        emptyTitle = 'This folder is empty';
+    } else {
+        const titleMap = {
+            'all': 'Projects',
+            'mine': 'Mine',
+            'starred': 'Starred',
+            'shared': 'Shared'
+        };
+        displayTitle = titleMap[type] || 'Projects';
+        if (type === 'starred') emptyTitle = 'No starred projects';
+    }
 
     const userInitial = userData?.email ? userData.email[0].toUpperCase() : 'U'
 
@@ -102,30 +135,25 @@ export default function ProjectsPage() {
             <div className="pp-empty-icon-wrapper">
                 <LayoutTemplate size={48} className="pp-empty-icon" />
             </div>
-            <h2>{type === 'starred' ? 'No starred projects' : "Let's build something amazing"}</h2>
+            <h2>{emptyTitle}</h2>
             <p className="pp-empty-subtext">
                 {type === 'starred' 
                     ? "Projects you star will appear here for quick access." 
-                    : "Create your first project and start building your web application with AI."}
+                    : folderId 
+                        ? "Create your first project in this folder."
+                        : "Create your first project and start building your web application with AI."}
             </p>
-            <Link to="/dashboard" className="pp-create-btn-large">
+            <Link to={folderId ? `/dashboard?folder=${folderId}` : "/dashboard"} className="pp-create-btn-large">
                 Create new project
             </Link>
         </div>
     )
 
-    const titleMap = {
-        'all': 'Projects',
-        'mine': 'Mine',
-        'starred': 'Starred',
-        'shared': 'Shared'
-    }
-
     return (
         <div className="projects-page">
             <header className="pp-header">
                 <div className="pp-header-left">
-                    <h1 className="pp-title">{titleMap[type] || 'Projects'}</h1>
+                    <h1 className="pp-title">{displayTitle}</h1>
                     <button className="pp-header-more"><MoreVertical size={16} /></button>
                 </div>
                 
@@ -155,10 +183,10 @@ export default function ProjectsPage() {
             </header>
 
             <main className="pp-main">
-                {(renderedProjects.length > 0 || type === 'all' || type === 'mine') ? (
+                {(renderedProjects.length > 0 || type === 'all' || type === 'mine' || folderId) ? (
                     <div className="pp-grid">
-                        {(type === 'all' || type === 'mine') && (
-                            <Link to="/dashboard" className="pp-card pp-create-card">
+                        {(type === 'all' || type === 'mine' || folderId) && (
+                            <Link to={folderId ? `/dashboard?folder=${folderId}` : "/dashboard"} className="pp-card pp-create-card">
                                 <div className="pp-card-preview creation-box">
                                     <div className="pp-plus-icon">+</div>
                                 </div>

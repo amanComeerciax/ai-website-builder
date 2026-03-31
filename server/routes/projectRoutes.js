@@ -2,6 +2,7 @@ const express = require("express")
 const router = express.Router()
 const Project = require("../models/Project")
 const Message = require("../models/Message")
+const Version = require("../models/Version")
 
 const { requireAuth } = require('../middleware/requireAuth');
 
@@ -23,7 +24,8 @@ router.post("/", requireAuth, async (req, res, next) => {
         const project = await Project.create({
             userId,
             name: req.body.name || 'Untitled Project',
-            status: 'idle'
+            status: 'idle',
+            folderId: req.body.folderId || null
         });
         res.status(201).json({ project });
     } catch (error) {
@@ -53,11 +55,16 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 router.put("/:id", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
-        const { name, previewUrl, netlifySiteId, activeVersionId } = req.body
+        const { name, previewUrl, netlifySiteId, activeVersionId, folderId } = req.body
+        
+        const updateData = { name, previewUrl, netlifySiteId, activeVersionId }
+        if (folderId !== undefined) {
+            updateData.folderId = folderId
+        }
  
         const project = await Project.findOneAndUpdate(
             { _id: req.params.id, userId },
-            { $set: { name, previewUrl, netlifySiteId, activeVersionId } },
+            { $set: updateData },
             { new: true, runValidators: true }
         )
 
@@ -143,6 +150,45 @@ router.post("/:id/messages", requireAuth, async (req, res, next) => {
             status: 'done'
         });
         res.status(201).json({ message });
+    } catch (error) {
+        next(error);
+    }
+});
+// ── GET /api/projects/:id/versions — Get history of project versions ──
+router.get("/:id/versions", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const project = await Project.findOne({ _id: req.params.id, userId });
+        
+        if (!project) return res.status(404).json({ error: "Project not found" });
+        
+        // Exclude the heavy fileTree field for the list view
+        const versions = await Version.find({ projectId: project._id })
+            .select('-fileTree')
+            .sort({ createdAt: -1 });
+            
+        res.json({ versions, activeVersionId: project.activeVersionId });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ── POST /api/projects/:id/versions/:versionId/restore — Restore a specific version ──
+router.post("/:id/versions/:versionId/restore", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const project = await Project.findOne({ _id: req.params.id, userId });
+        
+        if (!project) return res.status(404).json({ error: "Project not found" });
+        
+        const version = await Version.findOne({ _id: req.params.versionId, projectId: project._id });
+        if (!version) return res.status(404).json({ error: "Version not found" });
+        
+        project.currentFileTree = version.fileTree;
+        project.activeVersionId = version._id;
+        await project.save();
+        
+        res.json({ message: "Restored successfully", project });
     } catch (error) {
         next(error);
     }

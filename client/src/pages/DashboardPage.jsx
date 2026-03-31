@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Plus, Mic, ArrowUp, MessageSquare } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth, useUser } from '@clerk/clerk-react'
 import { useAuthStore } from '../stores/authStore'
 import { useProjectStore } from '../stores/projectStore'
@@ -18,6 +18,7 @@ const PROMPTS = [
 
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { isLoaded, isSignedIn, getToken } = useAuth()
   const { user: clerkUser } = useUser()
   const { userData, fetchUserData } = useAuthStore()
@@ -77,7 +78,8 @@ export default function DashboardPage() {
         const trimmed = promptValue.trim()
         if (trimmed) {
             const token = await getToken();
-            const newProjectId = await createProject(trimmed, token);
+            const folderId = searchParams.get('folder');
+            const newProjectId = await createProject(trimmed, token, folderId || null);
             
             // Redirect to the real project URL — no more style params here!
             const url = `/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`;

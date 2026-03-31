@@ -3,6 +3,7 @@ const IORedis = require('ioredis');
 const { callModel } = require('../services/modelRouter.js');
 const { enhance } = require('../services/promptEnhancer.js');
 const { assemble } = require('../services/templateAssembler.js');
+const { generateRawHtml } = require('../services/rawHtmlGenerator.js');
 const { buildSummaryPrompt } = require('../utils/promptBuilder.js');
 
 const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0.1:6379', {
@@ -25,7 +26,7 @@ const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0
  */
 const aiWorker = new Worker('AI_Generation_Queue', async job => {
   console.log(`[Worker] Job ${job.id} started for project: ${job.data.projectId}`);
-  const { prompt, existingFiles, enhanceOptions } = job.data;
+  const { projectId, prompt, existingFiles, enhanceOptions } = job.data;
   if (!prompt) throw new Error("Missing 'prompt' in job data");
 
   // ─── STEP 1: ENHANCE PROMPT ────────────────────────────────────
@@ -34,10 +35,51 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     payload: { message: 'Understanding your request...' }
   });
 
+  let isModification = false;
+  let previousLayoutSpec = null;
+  let enhanceOptionsOverride = { ...(enhanceOptions || {}) };
+
+  const mongoose = require('mongoose');
+  if (projectId && mongoose.Types.ObjectId.isValid(projectId)) {
+    try {
+      const Project = require('../models/Project');
+      const project = await Project.findById(projectId);
+      
+      if (project && project.isConfigured) {
+        isModification = true;
+        console.log(`[Worker] 🔄 MODIFICATION MODE — project "${project.websiteName || project.name}" is already configured`);
+        // Inherit previous meta config
+        enhanceOptionsOverride.theme = project.theme;
+        enhanceOptionsOverride.websiteName = project.websiteName;
+        enhanceOptionsOverride.description = project.description;
+        enhanceOptionsOverride.isModification = true;
+
+        // Try to fetch previous layoutSpec from the latest Message that has one
+        const Message = require('../models/Message');
+        const lastMsg = await Message.findOne({ 
+          projectId, 
+          role: 'assistant', 
+          layoutSpec: { $exists: true, $ne: null } 
+        }).sort({ createdAt: -1 });
+
+        if (lastMsg && lastMsg.layoutSpec) {
+          previousLayoutSpec = lastMsg.layoutSpec;
+          console.log(`[Worker] ✅ Found previous layoutSpec with ${previousLayoutSpec.sections?.length || 0} sections from message ${lastMsg._id}`);
+        } else {
+          console.warn(`[Worker] ⚠️ No previous layoutSpec found in messages — modification will regenerate from scratch`);
+        }
+      } else {
+        console.log(`[Worker] 🆕 NEW GENERATION — project not yet configured`);
+      }
+    } catch (dbErr) {
+      console.warn(`[Worker] Failed to fetch previous project state:`, dbErr.message);
+    }
+  }
+
   let enhanced;
   try {
-    enhanced = await enhance(prompt, { ...(enhanceOptions || {}), existingFiles });
-    console.log(`[Worker] PromptEnhancer ✅ — site: ${enhanced.siteType}, theme: ${enhanced.themeName}`);
+    enhanced = await enhance(prompt, { ...enhanceOptionsOverride, existingFiles });
+    console.log(`[Worker] PromptEnhancer ✅ — site: ${enhanced.siteType}, theme: ${enhanced.themeName}, isModification: ${isModification}`);
   } catch (e) {
     console.warn(`[Worker] PromptEnhancer failed, using minimal defaults:`, e.message);
     enhanced = {
@@ -53,7 +95,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
         tone: 'professional',
         tagline: '',
         contentHints: null,
-        isModification: false,
+        isModification: isModification,
       },
       enhancedPrompt: prompt,
       siteType: 'default',
@@ -78,19 +120,16 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
   let result;
   try {
-    result = await assemble(enhanced.enrichedSpec, (progress) => {
+    console.log(`[Worker] ⚡ Routing to Template Auto-Prediction Generator Track`);
+    result = await generateRawHtml(enhanced.enrichedSpec, (progress) => {
       job.updateProgress({
         event: progress.event,
-        payload: {
-          type: progress.type,
-          file: progress.file,
-          message: progress.message,
-        }
+        payload: { type: progress.type, file: progress.file, message: progress.message }
       });
     });
   } catch (e) {
-    console.error(`[Worker] Assembly failed:`, e.message);
-    throw new Error(`Website assembly failed: ${e.message}`);
+    console.error(`[Worker] Generation failed:`, e.message);
+    throw new Error(`Website generation failed: ${e.message}`);
   }
 
   // ─── STEP 4: SUMMARIZE ─────────────────────────────────────────
@@ -134,13 +173,35 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
       const mongoose = require('mongoose');
       if (mongoose.Types.ObjectId.isValid(job.data.projectId)) {
           const Project = require('../models/Project');
+          const Version = require('../models/Version');
+
+          // Create a Version snapshot for the timeline
+          let versionId = null;
+          try {
+            const allFiles = { ...finalFiles, ...result.files };
+            const newVersion = await Version.create({
+              projectId: job.data.projectId,
+              messageId: job.data.messageId || null,
+              name: summary ? summary.substring(0, 100) : 'Generation',
+              trigger: 'generation',
+              fileTree: allFiles
+            });
+            versionId = newVersion._id;
+            console.log(`[Worker] Created Version snapshot ${versionId}`);
+          } catch (vErr) {
+            console.error(`[Worker] Version persist failed:`, vErr.message);
+          }
+
           await Project.findByIdAndUpdate(job.data.projectId, {
             isConfigured: true,
             status: 'done',
+            currentFileTree: { ...finalFiles, ...result.files },
+            outputTrack: 'html',
             // Use themeId for backend/frontend consistency
             theme: enhanced.enrichedSpec?.themeId || 'modern-dark',
             websiteName: enhanced.enrichedSpec?.businessName,
-            description: enhanced.enrichedSpec?.description
+            description: enhanced.enrichedSpec?.description,
+            ...(versionId && { activeVersionId: versionId })
           });
           console.log(`[Worker] ✅ HARD-SAVED Project ${job.data.projectId} as configured`);
       } else {
