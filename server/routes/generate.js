@@ -3,17 +3,43 @@ const { QueueEvents } = require('bullmq');
 const IORedis = require('ioredis');
 // Ensure worker is spawned when routes load
 require('../workers/aiWorker.js');
+const { notifyCliRoomSwitch } = require('../services/websocket.js');
 
 const mongoose = require('mongoose');
 const Message = require('../models/Message');
+const { verifyToken } = require("@clerk/express");
 
 const express = require("express")
 const router = express.Router()
 
+/**
+ * Auth middleware for generation route
+ */
+const clerkAuth = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: "No authorization token provided" });
+    }
+    try {
+        const token = authHeader.split(' ')[1];
+        const payload = await verifyToken(token, {
+            secretKey: process.env.CLERK_SECRET_KEY,
+        });
+        const userId = payload.sub;
+        if (!userId) return res.status(401).json({ error: "Invalid token" });
+        req.auth = { userId };
+        next();
+    } catch (error) {
+        console.error('[ClerkAuth/Generate] Token verification failed:', error.message);
+        return res.status(401).json({ error: "Invalid or expired token" });
+    }
+};
+
 // ── POST /api/generate — Start AI generation ──
-router.post("/", async (req, res, next) => {
+router.post("/", clerkAuth, async (req, res, next) => {
     try {
         const { projectId, prompt, model, existingFiles } = req.body
+        const userId = req.auth.userId;
 
         if (!projectId || !prompt) {
             return res.status(400).json({ error: "projectId and prompt are required" })
@@ -51,9 +77,12 @@ router.post("/", async (req, res, next) => {
             projectId,
             existingFiles,
             messageId: assistantMessageId,
-            model: model || 'qwen', // 'qwen' (default with fallback) or 'mistral' (direct)
-            userId: "local_test_user"
+            model: model || 'qwen',
+            userId
         });
+
+        // Auto-switch any CLI clients for this user to the new project room
+        notifyCliRoomSwitch(userId, projectId);
 
         console.log(`[API Generate] Job ${job.id} dispatched for project ${projectId} (bound Msg ID: ${assistantMessageId})`);
 
@@ -116,8 +145,19 @@ router.get("/stream/:jobId", async (req, res) => {
     // Listen for job completion
     queueEvents.on('completed', ({ jobId: id, returnvalue }) => {
         if (id === jobId && !isCleanedUp) {
-            const stringifiedData = typeof returnvalue === 'object' ? JSON.stringify(returnvalue) : (returnvalue || '"done"');
-            res.write(`event: complete\ndata: ${stringifiedData}\n\n`);
+            // BullMQ QueueEvents returns returnvalue as a JSON string already.
+            // We must NOT double-stringify it. If it's an object, stringify it.
+            // If it's already a string, check if it's valid JSON and use as-is.
+            let sseData;
+            if (typeof returnvalue === 'string') {
+                // Already a JSON string from BullMQ — use directly
+                sseData = returnvalue;
+            } else if (typeof returnvalue === 'object' && returnvalue !== null) {
+                sseData = JSON.stringify(returnvalue);
+            } else {
+                sseData = '"done"';
+            }
+            res.write(`event: complete\ndata: ${sseData}\n\n`);
             // Add a small delay before cleanup to ensure the buffer flushes
             setTimeout(cleanup, 500);
         }

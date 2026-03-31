@@ -18,6 +18,28 @@ function stripFences(str) {
 }
 
 /**
+ * Extract actual code content from a JSON wrapper envelope.
+ * Models sometimes return: {"status": "fixed", "file": "...code..."} 
+ * or {"code": "...code..."} even when told to return raw code.
+ */
+function extractCodeFromJSON(str) {
+  if (!str || !str.trimStart().startsWith('{')) return str;
+  try {
+    const parsed = JSON.parse(str);
+    // Check all known wrapper keys the model might use
+    const code = parsed.file || parsed.code || parsed.content || parsed.html || 
+                 parsed.fixedCode || parsed.fixed_code || parsed.result;
+    if (code && typeof code === 'string' && code.length > 20) {
+      console.log('[AutoFixer] Extracted code from JSON wrapper envelope');
+      return code;
+    }
+  } catch {
+    // Not valid JSON — return as-is
+  }
+  return str;
+}
+
+/**
  * Attempt to surgically fix a single file based on a classified error.
  * 
  * @param {object} opts
@@ -38,7 +60,7 @@ async function fixFile({ filePath, fileContent, fixInstruction, outputTrack, max
       const systemPrompt = buildFixFilePrompt(currentContent, fixInstruction);
       const result = await callModel('fix_error', `Fix the file: ${filePath}`, systemPrompt);
       
-      const fixedContent = stripFences(result.content);
+      const fixedContent = extractCodeFromJSON(stripFences(result.content));
       
       if (!fixedContent || fixedContent.length < 20) {
         console.warn(`[AutoFixer] Fix attempt ${attempt} returned empty/tiny content`);

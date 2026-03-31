@@ -59,7 +59,7 @@ function getRulesForPhase(phaseName) {
       return [CACHE.section3, CACHE.section4, CACHE.section5, CACHE.section6, CACHE.section8].join(SEP);
     case 'generate_nextjs':
     case 'phase3_nextjs':
-      return [CACHE.section3, CACHE.section4, CACHE.section5, CACHE.section7, CACHE.section8, CACHE.section9].join(SEP);
+      return [CACHE.section3, CACHE.section4, CACHE.section5, CACHE.section7, CACHE.section8].join(SEP);
 
     // ── Error Fixing ──
     case 'error_fix':
@@ -71,7 +71,7 @@ function getRulesForPhase(phaseName) {
     case 'iteration_html':
       return [CACHE.section10, CACHE.section3, CACHE.section4, CACHE.section5, CACHE.section6, CACHE.section8].join(SEP);
     case 'iteration_nextjs':
-      return [CACHE.section10, CACHE.section3, CACHE.section4, CACHE.section5, CACHE.section7, CACHE.section8].join(SEP);
+      return [CACHE.section10, CACHE.section7, CACHE.section8].join(SEP);
 
     // ── Validation ──
     case 'validate':

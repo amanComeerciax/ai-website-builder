@@ -13,7 +13,7 @@ function initWebSocket(httpServer) {
   });
 
   io.on("connection", (socket) => {
-    console.log(`[WebSocket] CLI Client connected: ${socket.id}`);
+    console.log(`[WebSocket] Client connected: ${socket.id}`);
 
     // Room registration: a CLI client only listens for updates for its specific project
     socket.on("join-project", (projectId) => {
@@ -22,12 +22,18 @@ function initWebSocket(httpServer) {
       console.log(`[WebSocket] Client ${socket.id} joined project room: ${projectId}`);
     });
 
+    // CLI clients register their userId so the server can auto-switch rooms
+    socket.on("cli-register-user", (userId) => {
+      socket.userId = userId;
+      socket.isCli = true;
+      console.log(`[WebSocket] CLI client ${socket.id} registered for user: ${userId}`);
+    });
+
     // Handle tunnel URL broadcasting back to the frontend
     socket.on("cli-tunnel-ready", ({ url }) => {
       const pId = socket.projectId;
       if (!pId) return;
       console.log(`[WebSocket] Tunneled project ${pId} available at: ${url}`);
-      // Broadcast this URL to everyone in the room (specifically the web UI)
       io.to(pId).emit("tunnel-active", { url });
     });
 
@@ -41,18 +47,14 @@ function initWebSocket(httpServer) {
         const project = await Project.findById(pId);
         if (!project) return;
         
-        // 1. Classify the error using Groq
         const fixInstruction = await classifyError(error, project.files);
-        if (!fixInstruction) return; // Not auto-fixable
+        if (!fixInstruction) return;
 
-        // 2. Perform the targeted fix using Mistral
         const fixedFile = await fixFile(fixInstruction.fileToFix, fixInstruction.instruction, project.files);
         
-        // 3. Save the fix to the database
         project.files.set(fixedFile.path, fixedFile.content);
         await project.save();
 
-        // 4. Push the fix back down the WebSocket tunnel to the CLI so it triggers HMR!
         broadcastFileUpdate(pId, fixedFile.path, fixedFile.content);
         console.log(`[WebSocket] ✅ Auto-fix complete! Deployed ${fixedFile.path} to CLI via tunnel.`);
       } catch (err) {
@@ -71,7 +73,6 @@ function initWebSocket(httpServer) {
 // Global broadcast function exposed to aiWorker/projectStore equivalents
 function broadcastFileUpdate(projectId, path, content) {
   if (!io) return;
-  // Only broadcast actual file content (strings), skip metadata objects
   if (typeof content !== 'string') {
     console.log(`[WebSocket] Skipping non-string broadcast for key: ${path}`);
     return;
@@ -80,4 +81,23 @@ function broadcastFileUpdate(projectId, path, content) {
   console.log(`[WebSocket] Broadcasted change: ${path} to project: ${projectId}`);
 }
 
-module.exports = { initWebSocket, broadcastFileUpdate };
+/**
+ * Auto-switch all CLI clients for a given user to a new project room.
+ * Called when a new generation starts — ensures the CLI receives updates.
+ */
+function notifyCliRoomSwitch(userId, newProjectId) {
+  if (!io) return;
+  const sockets = io.sockets.sockets;
+  for (const [, socket] of sockets) {
+    if (socket.isCli && socket.userId === userId && socket.projectId !== newProjectId) {
+      const oldRoom = socket.projectId;
+      if (oldRoom) socket.leave(oldRoom);
+      socket.join(newProjectId);
+      socket.projectId = newProjectId;
+      socket.emit("room-switch", { oldProjectId: oldRoom, newProjectId });
+      console.log(`[WebSocket] Auto-switched CLI ${socket.id} from ${oldRoom} → ${newProjectId}`);
+    }
+  }
+}
+
+module.exports = { initWebSocket, broadcastFileUpdate, notifyCliRoomSwitch };

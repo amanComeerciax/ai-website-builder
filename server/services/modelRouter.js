@@ -47,8 +47,8 @@ const ROUTING_TABLE = {
   // ── Code Generation → Mistral (quality code output) ──
   generate_html:   { model: 'mistral', temperature: 0.2, jsonMode: false, fallbackChain: ['groq', 'qwen'] },
   generate_file:   { model: 'mistral', temperature: 0.2, jsonMode: true,  fallbackChain: ['groq', 'qwen'] },
-  fix_file:        { model: 'mistral', temperature: 0.2, jsonMode: true,  fallbackChain: ['groq', 'qwen'] },
-  fix_error:       { model: 'mistral', temperature: 0.2, jsonMode: true,  fallbackChain: ['groq', 'qwen'] },
+  fix_file:        { model: 'mistral', temperature: 0.2, jsonMode: false, fallbackChain: ['groq', 'qwen'] },
+  fix_error:       { model: 'mistral', temperature: 0.2, jsonMode: false, fallbackChain: ['groq', 'qwen'] },
 
   // ── Local Fallback → Qwen (when all cloud models fail) ──
   fallback_file:   { model: 'qwen',   temperature: 0.2, jsonMode: true,  fallbackChain: ['groq'] },
@@ -92,9 +92,12 @@ async function callModel(task, userMessage, systemPrompt, options = {}) {
     throw new Error(`[Model Router] Unknown task: "${task}". Valid tasks: ${Object.keys(ROUTING_TABLE).join(', ')}`);
   }
 
+  const isCodeTask = ['generate_file', 'generate_html', 'fix_file', 'fix_error'].includes(task);
+
   const config = {
     temperature: options.temperature ?? route.temperature,
     jsonMode: options.jsonMode ?? route.jsonMode,
+    maxTokens: options.maxTokens ?? (isCodeTask ? 16384 : 4096),
   };
 
   const targetModel = options.forceModel || route.model;

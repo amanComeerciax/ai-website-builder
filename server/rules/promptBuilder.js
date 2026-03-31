@@ -225,33 +225,39 @@ ${scaffoldingSection}
 ${rules}
 </agent_instructions>
 
-CRITICAL STYLING INSTRUCTIONS:
-1. You MUST apply the \`colorScheme\` from <file_objective> by creating CSS variables in \`app/globals.css\` as dictated by the Color System Rules.
-2. You MUST apply the \`fonts\` from <file_objective> by configuring them in \`app/layout.js\` (or dynamically) as dictated by the Typography Rules.
-3. Use Tailwind CSS utility classes extensively. Ensure every component has proper padding, responsive grids, and modern, high-quality professional UI aesthetics. Do not generate plain blank sections.
-4. IMPORTANT: You have been provided with a library of reusable UI components in Section 9 of your <agent_instructions> (e.g., Button, RevealOnScroll, CardStack). You MUST write these exact components into their own files (e.g., 'components/Button.jsx') and IMPORT them into your pages. Do NOT use plain HTML tags like <button> when a custom Component is provided.
+CRITICAL ARCHITECTURE RULE:
+You MUST generate a SELF-CONTAINED Next.js application using EXACTLY 3 files.
+ALL components, data, and logic MUST be defined INLINE inside app/page.js.
+Do NOT create separate component files. Do NOT import from '../components/' paths.
+Every section (Hero, Products, Footer, etc.) should be a function defined inside page.js.
 
-CRITICAL: Your output MUST be a single JSON object with this exact schema:
+CRITICAL STYLING INSTRUCTIONS:
+1. Apply the \`colorScheme\` from <file_objective> by creating CSS variables in \`app/globals.css\`.
+2. Apply the \`fonts\` from <file_objective> by importing Google Fonts in \`app/layout.js\` via <link> tags in <head>.
+3. Use Tailwind CSS utility classes extensively. Every section must have proper padding, responsive grids, and premium aesthetics.
+4. Include a Tailwind CSS CDN script tag in layout.js: <script src="https://cdn.tailwindcss.com"></script>
+
+CRITICAL: Your output MUST be a single JSON object with this EXACT schema:
 {
   "files": {
-    "app/page.js": "// full component code as a string here",
-    "app/layout.js": "// full component code as a string here",
-    "app/globals.css": "/* full CSS here */"
+    "app/globals.css": "/* Full CSS with :root variables, @tailwind directives, and custom styles */",
+    "app/layout.js": "// Root layout with <html>, <head> (Google Fonts, Tailwind CDN), and <body>",
+    "app/page.js": "// COMPLETE page with ALL components defined inline. This MUST be fully self-contained."
   }
 }
 
-Rules:
+RULES:
 - The top-level key MUST be "files"
-- Each key inside "files" is a file path (string)
-- Each value inside "files" is the complete file code (string)
-- Include at minimum: app/page.js, app/layout.js, app/globals.css
+- You MUST include EXACTLY these 3 files: app/globals.css, app/layout.js, app/page.js
+- app/page.js MUST have "use client"; as the VERY FIRST LINE
+- app/page.js MUST contain ALL components as named functions BEFORE the default export
+- Do NOT import from any local paths like '../components/' or './utils/'
+- External npm imports (lucide-react, framer-motion) are allowed
 - Do NOT use arrays. Every value must be a string.
-- Do NOT add metadata keys like "path", "installCommand", "dependencies" at top level.
 - Output ONLY the JSON. No markdown fences. No explanation.
-
-CRITICAL FINAL REMINDER (DO NOT IGNORE):
-1. Any file using framer-motion, lucide-react, or React hooks (useState, useEffect) MUST have "use client"; at the very first line.
-2. NEVER use hex colors like text-[#ff0000]. ALWAYS use tailwind standard colors (text-red-500) or CSS variables (text-[var(--primary)]).`;
+- Generate COMPLETE, PRODUCTION-QUALITY code. Do NOT use placeholder comments like "// Add more items here"
+- Include realistic mock data (product names, prices, images, descriptions)
+- NEVER use hex colors like text-[#ff0000]. ALWAYS use tailwind standard colors or CSS variables.`;
 }
 
 // ═══════════════════════════════════════════════
@@ -346,7 +352,11 @@ ${fileContent.substring(0, 3000)}
 ${rules}
 </agent_instructions>
 
-Return ONLY the complete corrected file content. No markdown fences. No explanation.`;
+Return ONLY the complete corrected file content as raw code.
+NEVER wrap the output in JSON like {"status":"fixed","file":"..."}.
+NEVER add markdown fences.
+NEVER add explanations before or after the code.
+The first character of your response must be the first character of the fixed file.`;
 }
 
 module.exports = {

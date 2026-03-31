@@ -10,13 +10,12 @@ async function pullProject(projectId, envUrl) {
 
   try {
     // 1. Fetch initial state
-    // We append ?cli=true to bypass standard auth for dev (or use a real token in production)
-    // Actually, let's bypass mockUser by sending a dummy CLI header
     const response = await axios.get(`${envUrl}/api/projects/${projectId}/files`, {
       headers: { 'x-cli-token': 'stackforge-dev-cli' }
     });
 
     const fileMap = response.data.files;
+    const userId = response.data.userId || null;
     
     spinner.succeed(`Secure handshake complete.`);
     console.log(chalk.gray(`\n⬇️  Synchronizing ${Object.keys(fileMap).length} files to disk...\n`));
@@ -32,7 +31,33 @@ async function pullProject(projectId, envUrl) {
     socket.on('connect', () => {
       // Authenticate to room
       socket.emit('join-project', projectId);
+      
+      // Register user ID so server can auto-switch us to new projects
+      if (userId) {
+        socket.emit('cli-register-user', userId);
+        console.log(chalk.gray(`   Registered as user: ${userId}`));
+      }
+      
       console.log(chalk.bold.green(`\n🔌 WebSocket Tunnel Activated! HMR is enabled.\n`));
+      console.log(chalk.gray(`   Watching project: ${projectId}`));
+    });
+
+    // Handle auto-room-switch when user starts a new generation in the browser
+    socket.on('room-switch', ({ oldProjectId, newProjectId }) => {
+      console.log(chalk.cyan(`\n🔄 Auto-switched to new project: ${newProjectId}`));
+      console.log(chalk.gray(`   (Previous: ${oldProjectId})`));
+      
+      // Fetch and sync the new project's files
+      axios.get(`${envUrl}/api/projects/${newProjectId}/files`, {
+        headers: { 'x-cli-token': 'stackforge-dev-cli' }
+      }).then(res => {
+        if (res.data.files) {
+          console.log(chalk.gray(`⬇️  Syncing ${Object.keys(res.data.files).length} files from new project...\n`));
+          syncFiles(res.data.files, process.cwd());
+        }
+      }).catch(err => {
+        console.log(chalk.yellow(`   Could not fetch new project files: ${err.message}`));
+      });
     });
 
     // Listeners from AI worker updates

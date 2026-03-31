@@ -92,6 +92,17 @@ class ApiClient {
         }, token)
     }
 
+    // ── Versions ──
+    getProjectVersions(id, token) {
+        return this.request(`/projects/${id}/versions`, {}, token)
+    }
+
+    restoreVersion(projectId, versionId, token) {
+        return this.request(`/projects/${projectId}/versions/${versionId}/restore`, {
+            method: 'POST',
+        }, token)
+    }
+
     // ── Messages ──
     createMessage(projectId, content, role, token) {
         return this.request(`/projects/${projectId}/messages`, {

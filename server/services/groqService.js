@@ -35,6 +35,7 @@ async function callGroq(systemPrompt, userPrompt, options = {}) {
         { role: 'user', content: userPrompt }
       ],
       temperature: temperature,
+      max_tokens: options.maxTokens || 8192,
     };
 
     // Note: Groq expects raw JSON parsing rules but optionally accepts response_format natively.

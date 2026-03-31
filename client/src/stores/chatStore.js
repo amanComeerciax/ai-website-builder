@@ -90,6 +90,8 @@ export const useChatStore = create(
                 if (projectId && projectId !== 'new' && projectId.length === 24) {
                     try {
                         const data = await apiClient.getWorkspace(projectId);
+                        
+                        // Hydrate messages
                         if (data && data.messages && data.messages.length > 0) {
                             const dbMessages = data.messages.map(m => ({
                                 id: m._id,
@@ -111,6 +113,52 @@ export const useChatStore = create(
                                     projectData: newProjectData
                                 };
                             });
+                        }
+
+                        // Hydrate files from DB into the editor store
+                        // This ensures cross-browser/device file sync and handles refresh mid-generation
+                        if (data?.project?.currentFileTree && Object.keys(data.project.currentFileTree).length > 0) {
+                            const editorStore = useEditorStore.getState();
+                            const existingFiles = editorStore.files;
+                            const hasRealFiles = Object.keys(existingFiles).some(k => k !== 'App.jsx' || existingFiles[k]?.content !== '// Initializing...');
+                            
+                            // Detect stale generation state (user refreshed mid-generation but backend completed)
+                            const localPhase = get().generationPhase;
+                            const projectDone = data.project.status === 'done';
+                            const wasGenerating = ['thinking', 'streaming_logs', 'idle'].includes(localPhase) || get().isGenerating;
+                            const shouldForceHydrate = projectDone && wasGenerating;
+                            
+                            // Hydrate if: editor is empty, has placeholder content, OR project completed while we were away
+                            if (!hasRealFiles || Object.keys(existingFiles).length <= 1 || shouldForceHydrate) {
+                                const fileMap = {};
+                                for (const [path, content] of Object.entries(data.project.currentFileTree)) {
+                                    fileMap[path] = { content };
+                                }
+                                editorStore.setFiles(fileMap);
+                                
+                                // Open the first file
+                                const firstFile = Object.keys(data.project.currentFileTree)[0];
+                                if (firstFile) editorStore.setActiveFile(firstFile);
+                                
+                                // Set preview type
+                                const outputTrack = data.project.outputTrack || 'html';
+                                const previewType = outputTrack === 'nextjs' ? 'sandpack' : 'srcdoc';
+                                const htmlContent = previewType === 'srcdoc' ? data.project.currentFileTree['index.html'] : null;
+                                editorStore.setPreview(previewType, htmlContent);
+                                
+                                // If the backend already completed but we missed it, update the generation state
+                                if (shouldForceHydrate) {
+                                    get()._sync({
+                                        generationPhase: 'complete',
+                                        isGenerating: false,
+                                        generationSummary: data.messages?.[data.messages.length - 1]?.content || 'Generation completed.',
+                                    });
+                                    set({ isIdeVisible: true, activeView: 'preview' });
+                                    console.log('[ChatStore] Recovered from stale generation state — backend had completed');
+                                }
+                                
+                                console.log(`[ChatStore] Hydrated ${Object.keys(fileMap).length} files from DB`);
+                            }
                         }
                     } catch (err) {
                         console.warn('[ChatStore] DB hydration skipped:', err.message);

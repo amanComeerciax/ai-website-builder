@@ -36,6 +36,24 @@ function safeParseJSON(str) {
 }
 
 /**
+ * Helper: extract actual code from a JSON wrapper envelope
+ * Models sometimes return: {"status":"fixed","file":"...code..."} even when told not to
+ */
+function extractCodeFromWrapper(str) {
+  if (!str || typeof str !== 'string' || !str.trimStart().startsWith('{')) return str;
+  try {
+    const parsed = JSON.parse(str);
+    const code = parsed.file || parsed.code || parsed.content || parsed.html || 
+                 parsed.fixedCode || parsed.fixed_code || parsed.result;
+    if (code && typeof code === 'string' && code.length > 20) {
+      console.log('[Worker V3] Extracted code from JSON wrapper');
+      return code;
+    }
+  } catch { /* not JSON */ }
+  return str;
+}
+
+/**
  * Normalize AI multi-file response into a flat { "filepath": "code" } map.
  * Handles all known Mistral response formats.
  */
@@ -199,9 +217,34 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   // ─── LAYER 3+4: GENERATE + VALIDATE ──────────────────────────────
   let finalFiles = {};
 
+  // Detect if this is a follow-up prompt (user wants to modify existing code, not start fresh)
+  const isFollowUp = existingFiles && Object.keys(existingFiles).length > 0;
+  let existingCodeContext = '';
+  
+  if (isFollowUp) {
+    // Extract existing file contents to inject as context
+    // The VFS format from the editor is { "path": { content: "..." } }
+    const fileEntries = Object.entries(existingFiles)
+      .filter(([_, val]) => val && (typeof val === 'string' || val.content))
+      .map(([path, val]) => {
+        const content = typeof val === 'string' ? val : val.content;
+        return `--- ${path} ---\n${content}`;
+      });
+    
+    if (fileEntries.length > 0) {
+      existingCodeContext = `\n\n<existing_website_code>\nThe user has an EXISTING website. They want you to MODIFY it, not rebuild from scratch.\nYou MUST preserve all existing structure, styles, and content EXCEPT for the specific changes the user requested.\nDo NOT generate a completely new website. Only apply the requested changes.\n\n${fileEntries.join('\n\n')}\n</existing_website_code>`;
+      
+      console.log(`[Worker V3] Follow-up detected — injecting ${fileEntries.length} existing files as context`);
+    }
+  }
+
   if (!isNextjs) {
     // ─── TRACK A: HTML ────────────────────────────────────
     const trackAPrompt = buildTrackAPrompt(planDetails, matchedTemplateFiles);
+    // For follow-ups, append the existing code context to the system prompt
+    const finalSystemPrompt = isFollowUp && existingCodeContext
+      ? trackAPrompt + existingCodeContext
+      : trackAPrompt;
     let htmlContent = '';
     let generated = false;
 
@@ -214,9 +257,26 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
           });
         }
 
-        const result = await callModel('generate_html', prompt, trackAPrompt);
-        htmlContent = result.content
-          .replace(/^```html?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+        const result = await callModel('generate_html', prompt, finalSystemPrompt);
+        let rawHtml = result.content
+          .replace(/^```(?:html|json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+
+        // Handle case where model returns HTML wrapped in JSON
+        // e.g. {"file": "<!DOCTYPE html>..."} or {"html": "..."}
+        if (rawHtml.startsWith('{') && !rawHtml.startsWith('<!')) {
+          try {
+            const parsed = JSON.parse(rawHtml);
+            const extracted = parsed.file || parsed.html || parsed.content || parsed.code || parsed['index.html'];
+            if (extracted && typeof extracted === 'string' && extracted.includes('<')) {
+              rawHtml = extracted;
+              console.log('[Worker V3] Extracted HTML from JSON wrapper');
+            }
+          } catch {
+            // Not valid JSON — treat as raw HTML
+          }
+        }
+
+        htmlContent = rawHtml;
 
         const validation = validateCode(htmlContent, 'html');
         if (validation.isValid) {
@@ -242,7 +302,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
         });
 
         if (fixResult.fixed) {
-          htmlContent = fixResult.content;
+          htmlContent = extractCodeFromWrapper(fixResult.content);
           console.log(`[Worker V3] Layer 3+4 ✅ HTML auto-fixed after ${fixResult.attempts} fix attempt(s)`);
           generated = true;
           break;
@@ -260,6 +320,10 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   } else {
     // ─── TRACK B: NEXT.JS ─────────────────────────────────
     const trackBPrompt = buildTrackBPrompt(planDetails, matchedTemplateFiles);
+    // For follow-ups, append the existing code context to the system prompt
+    const finalTrackBPrompt = isFollowUp && existingCodeContext
+      ? trackBPrompt + existingCodeContext
+      : trackBPrompt;
     let generated = false;
 
     for (let retry = 0; retry < 2; retry++) {
@@ -271,7 +335,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
           });
         }
 
-        const result = await callModel('generate_file', prompt, trackBPrompt);
+        const result = await callModel('generate_file', prompt, finalTrackBPrompt);
         const rawContent = result.content
           .replace(/^```json?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
 
@@ -333,7 +397,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
           if (fixResult.fixed) {
             // Replace the broken file and accept all others
-            filesObj[failedFile] = fixResult.content;
+            filesObj[failedFile] = extractCodeFromWrapper(fixResult.content);
             finalFiles = { ...filesObj };
             console.log(`[Worker V3] Layer 3+4 ✅ Next.js auto-fixed ${failedFile} after ${fixResult.attempts} attempt(s)`);
             generated = true;
@@ -352,6 +416,112 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     if (!generated || Object.keys(finalFiles).length === 0) {
       throw new Error('Next.js generation exhausted after all attempts');
     }
+
+    // ── SAFETY NET: Ensure minimum viable Next.js file set ──
+    // If the AI only generated a partial set (e.g. just globals.css), 
+    // merge with template scaffolding to create a working project
+    const requiredFiles = ['app/page.js', 'app/layout.js', 'app/globals.css'];
+    const missingFiles = requiredFiles.filter(f => !finalFiles[f]);
+    
+    if (missingFiles.length > 0) {
+      console.warn(`[Worker V3] Next.js output missing critical files: ${missingFiles.join(', ')}`);
+      
+      // Fill from template scaffolding first
+      if (matchedTemplateFiles && Array.isArray(matchedTemplateFiles)) {
+        for (const templateFile of matchedTemplateFiles) {
+          if (!templateFile.isFolder && !finalFiles[templateFile.path]) {
+            finalFiles[templateFile.path] = templateFile.content;
+            console.log(`[Worker V3] Filled missing ${templateFile.path} from template scaffolding`);
+          }
+        }
+      }
+      
+      // If still missing critical files, generate minimal defaults
+      if (!finalFiles['app/layout.js']) {
+        finalFiles['app/layout.js'] = `import './globals.css';\n\nexport default function RootLayout({ children }) {\n  return (\n    <html lang="en">\n      <body className="antialiased min-h-screen">\n        {children}\n      </body>\n    </html>\n  );\n}`;
+        console.log('[Worker V3] Generated fallback app/layout.js');
+      }
+      if (!finalFiles['app/page.js']) {
+        finalFiles['app/page.js'] = `export default function Home() {\n  return (\n    <main className="flex min-h-screen flex-col items-center justify-center p-24">\n      <h1 className="text-4xl font-bold">Welcome</h1>\n      <p className="mt-4 text-lg text-gray-500">Your Next.js app is ready.</p>\n    </main>\n  );\n}`;
+        console.log('[Worker V3] Generated fallback app/page.js');
+      }
+      if (!finalFiles['app/globals.css']) {
+        finalFiles['app/globals.css'] = `@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n:root {\n  --background: #ffffff;\n  --foreground: #171717;\n}\n\nbody {\n  background-color: var(--background);\n  color: var(--foreground);\n}`;
+        console.log('[Worker V3] Generated fallback app/globals.css');
+      }
+    }
+    
+    // Ensure package.json always exists with required scripts for Sandpack
+    if (!finalFiles['package.json']) {
+      finalFiles['package.json'] = JSON.stringify({
+        name: "stackforge-nextjs-app",
+        private: true,
+        scripts: {
+          dev: "next dev",
+          build: "next build",
+          start: "next start"
+        },
+        dependencies: {
+          "next": "^14.0.0",
+          "react": "^18.0.0",
+          "react-dom": "^18.0.0"
+        },
+        devDependencies: {
+          "tailwindcss": "^3.4.0",
+          "postcss": "^8.4.31",
+          "autoprefixer": "^10.4.17"
+        }
+      }, null, 2);
+      console.log('[Worker V3] Added package.json with scripts for Sandpack compatibility');
+    } else {
+      // If package.json exists but lacks scripts, add them
+      try {
+        const pkg = JSON.parse(finalFiles['package.json']);
+        if (!pkg.scripts || !pkg.scripts.dev) {
+          pkg.scripts = { dev: "next dev", build: "next build", start: "next start", ...pkg.scripts };
+          finalFiles['package.json'] = JSON.stringify(pkg, null, 2);
+          console.log('[Worker V3] Patched package.json with missing scripts.dev');
+        }
+      } catch { /* not valid JSON, leave as-is */ }
+    }
+    // ── POST-PROCESS: Remove broken local imports ──
+    // If the AI generated imports to files that don't exist in the output, strip them
+    const allGeneratedPaths = Object.keys(finalFiles);
+    for (const [filePath, content] of Object.entries(finalFiles)) {
+      if (typeof content !== 'string') continue;
+      const lines = content.split('\n');
+      const cleanedLines = lines.filter(line => {
+        // Match: import X from '../components/...' or './someFile'
+        const localImportMatch = line.match(/import\s+.*\s+from\s+['"](\.\/.+|\.\.\/[^'"]*)['"];?\s*$/);
+        if (!localImportMatch) return true; // keep non-import lines
+        
+        const importPath = localImportMatch[1];
+        // Resolve relative to the file's directory
+        const fileDir = filePath.includes('/') ? filePath.substring(0, filePath.lastIndexOf('/')) : '';
+        const resolvedBase = fileDir ? `${fileDir}/${importPath}`.replace(/\/\.\//g, '/') : importPath.replace(/^\.\//, '');
+        // Normalize: remove leading ./  and resolve ../
+        const normalized = resolvedBase.replace(/[^/]+\/\.\.\//g, '');
+        
+        // Check if any generated file matches this import (with or without extension)
+        const exists = allGeneratedPaths.some(p => 
+          p === normalized || 
+          p === normalized + '.js' || p === normalized + '.jsx' || 
+          p === normalized + '.ts' || p === normalized + '.tsx'
+        );
+        
+        if (!exists) {
+          console.warn(`[Worker V3] Stripping broken import from ${filePath}: "${line.trim()}"`);
+          return false; // remove this line
+        }
+        return true;
+      });
+      
+      if (cleanedLines.length !== lines.length) {
+        finalFiles[filePath] = cleanedLines.join('\n');
+      }
+    }
+    
+    console.log(`[Worker V3] Final Next.js output: ${Object.keys(finalFiles).length} files — [${Object.keys(finalFiles).join(', ')}]`);
   }
 
   // ─── LAYER 5: SUMMARIZE ──────────────────────────────────────────

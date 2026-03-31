@@ -137,7 +137,7 @@ router.get("/:id/files", clerkAuth, async (req, res, next) => {
         
         if (!project) return res.status(404).json({ error: "Project not found" });
         
-        res.json({ files: project.currentFileTree || {} });
+        res.json({ files: project.currentFileTree || {}, userId });
     } catch (error) {
         next(error);
     }

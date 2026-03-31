@@ -50,8 +50,14 @@ function stripNextjsCode(code) {
         .replace(/^\s*export\s+const\s+metadata\s*=\s*\{[\s\S]*?\};?\s*\n?/m, '')
         // Remove font declarations like `const inter = Inter({ subsets: ["latin"], variable: "--font-body" })`
         .replace(/^\s*const\s+\w+\s*=\s*\w+\(\s*\{[^}]*subsets[^}]*\}\s*\);?\s*\n?/gm, '')
-        // Remove className template literals referencing font variables: className={`${body.variable} ${heading.variable}`}
-        .replace(/\s*className=\{`\$\{[^}]+\.variable\}[^`]*`\}/g, '');
+        // Remove className template literals referencing font variables
+        .replace(/\s*className=\{`\$\{[^}]+\.variable\}[^`]*`\}/g, '')
+        // Convert Next.js <Image /> to <img />
+        .replace(/<Image\b/g, '<img')
+        .replace(/<\/Image>/g, '</img>')
+        // Convert Next.js <Link href="..."> to <a href="...">
+        .replace(/<Link\b/g, '<a')
+        .replace(/<\/Link>/g, '</a>');
 }
 
 export default function PreviewPanel() {
@@ -107,8 +113,8 @@ export default function PreviewPanel() {
     }, [files])
 
     // ── TRACK B: Build Sandpack file map ─────────────────────────────
-    // IMPORTANT: Always uses the "react" Sandpack template.
-    // Next.js files (app/page.tsx etc.) are transformed into React-compatible format.
+    // Next.js files are transformed into plain React format using the
+    // "react-ts" template (Sandpack v2 does NOT have a 'nextjs' template).
     const sandpackFiles = useMemo(() => {
         if (isSrcdoc || showLocalPreview) return {};
 
@@ -124,43 +130,54 @@ export default function PreviewPanel() {
             // vanilla — already handled above
         } else if (isNextjsOutput) {
             // ══════════════════════════════════════════════════════════
-            // ── Native Next.js Routing ──
-            // We use Sandpack's 'nextjs' template which natively supports
-            // app/ routing, next/link, and next/image.
+            // ── Next.js → React Transformation ──
+            // Transform Next.js App Router files into plain React so
+            // Sandpack's "react-ts" template can render them.
             // ══════════════════════════════════════════════════════════
+            const transformed = {};
 
-            // Just add tsconfig.json to support @/ aliases natively
-            result['/tsconfig.json'] = JSON.stringify({
-                "compilerOptions": {
-                    "baseUrl": ".",
-                    "paths": {
-                        "@/*": ["./*"]
-                    }
-                }
-            }, null, 2);
+            // 1. Find and transform app/page.js → /App.tsx (the main component)
+            const pagePath = fileNames.find(f => f.match(/\/app\/page\.(js|jsx|ts|tsx)$/));
+            if (pagePath) {
+                transformed['/App.tsx'] = stripNextjsCode(result[pagePath]);
+            }
 
-            // Add basic next.config to disable image optimization in preview
-            result['/next.config.mjs'] = `
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
-  images: { unoptimized: true },
-};
-export default nextConfig;
-`.trim();
+            // 2. Find and transform app/globals.css → /styles.css
+            const cssPath = fileNames.find(f => f.match(/\/app\/globals\.css$/));
+            if (cssPath) {
+                // Remove @tailwind directives — tailwind is loaded via CDN
+                let css = result[cssPath] || '';
+                css = css.replace(/^@tailwind\s+\w+;\s*$/gm, '').trim();
+                transformed['/styles.css'] = css;
+            }
 
-            // We still need package.json to declare dependencies
-            result['/package.json'] = JSON.stringify({
-                name: "stackforge-nextjs-app",
+            // 3. Carry over any non-app files (components, etc.)
+            for (const [path, content] of Object.entries(result)) {
+                // Skip app/ files (already transformed) and package.json
+                if (path.startsWith('/app/') || path === '/package.json') continue;
+                transformed[path] = stripNextjsCode(content);
+            }
+
+            // 4. Create the React entry point
+            transformed['/index.tsx'] = [
+                `import React, { StrictMode } from "react";`,
+                `import { createRoot } from "react-dom/client";`,
+                cssPath ? `import "./styles.css";` : '',
+                `import App from "./App";`,
+                `const root = createRoot(document.getElementById("root")!);`,
+                `root.render(<StrictMode><App /></StrictMode>);`
+            ].filter(Boolean).join('\n');
+
+            // 5. Create package.json with detected deps
+            transformed['/package.json'] = JSON.stringify({
+                name: "stackforge-app",
                 version: "1.0.0",
-                private: true,
-                dependencies: {
-                    ...detectedDeps,
-                    "next": "latest",
-                    "react": "latest",
-                    "react-dom": "latest"
-                }
+                main: "/index.tsx",
+                dependencies: detectedDeps
             }, null, 2);
+
+            return transformed;
+
         } else {
             // ── Standard React files ──
             const appPath = fileNames.find(f => 
@@ -302,7 +319,7 @@ export default nextConfig;
                     ) : (
                         /* ── TRACK B: Sandpack Preview ── */
                         <SandpackProvider
-                            template={isNextjsOutput ? "nextjs" : "react-ts"}
+                            template="react-ts"
                             theme="dark"
                             files={sandpackFiles}
                             options={{

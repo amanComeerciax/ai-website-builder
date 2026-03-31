@@ -14,69 +14,67 @@ export default function HistoryPanel({ projectId }) {
   const [isRestoring, setIsRestoring] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    async function fetchVersions() {
-        if (!projectId || projectId === 'new') return;
-        setIsLoading(true);
-        try {
-            // Using direct fetch temporarily until apiClient wrapper is updated
-            const res = await fetch(`/api/projects/${projectId}/versions`, {
-                headers: { 'Authorization': 'Bearer placeholder' }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setVersions(data.versions || []);
-                setActiveVersionId(data.activeVersionId);
-            }
-        } catch (err) {
-            console.error("Failed to load versions:", err);
-            setError("Failed to load version history.");
-        } finally {
-            setIsLoading(false);
-        }
+  // Fetch versions using the apiClient (auto-injects Clerk token)
+  const fetchVersions = async () => {
+    if (!projectId || projectId === 'new') return;
+    setIsLoading(true);
+    try {
+      const data = await apiClient.getProjectVersions(projectId);
+      setVersions(data.versions || []);
+      setActiveVersionId(data.activeVersionId);
+    } catch (err) {
+      console.error("Failed to load versions:", err);
+      setError("Failed to load version history.");
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchVersions();
   }, [projectId]);
+
+  // Re-fetch versions when generation completes
+  const generationPhase = useChatStore(s => s.generationPhase);
+  useEffect(() => {
+    if (generationPhase === 'complete' && projectId) {
+      // Small delay to ensure DB has committed the version
+      const timer = setTimeout(() => fetchVersions(), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [generationPhase, projectId]);
 
   const handleRestore = async (versionId) => {
       if (!confirm("Are you sure you want to restore this version? Your current code will be overwritten.")) return;
       
       setIsRestoring(true);
       try {
-          const res = await fetch(`/api/projects/${projectId}/versions/${versionId}/restore`, {
-              method: 'POST',
-              headers: { 'Authorization': 'Bearer placeholder', 'Content-Type': 'application/json' }
-          });
+          const data = await apiClient.restoreVersion(projectId, versionId);
           
-          if (res.ok) {
-              const data = await res.json();
-              setActiveVersionId(versionId);
+          setActiveVersionId(versionId);
+          
+          // Force the editor to ingest the newly restored files directly from the server response
+          if (data.project && data.project.currentFileTree) {
+              const restoredFiles = data.project.currentFileTree;
               
-              // Force the editor to ingest the newly restored files directly from the server response
-              if (data.project && data.project.currentFileTree) {
-                  const restoredFiles = data.project.currentFileTree;
-                  
-                  // 1. Inject files into the virtual file system
-                  useEditorStore.getState().loadGeneratedFiles(restoredFiles);
-                  
-                  // 2. Fix the preview binding! If it's HTML, we MUST update htmlContent
-                  const isHtml = data.project.outputTrack === 'html' || 
-                                (!data.project.outputTrack && restoredFiles['index.html'] && Object.keys(restoredFiles).length === 1);
-                                
-                  if (isHtml) {
-                      const htmlRaw = typeof restoredFiles['index.html'] === 'string' 
-                          ? restoredFiles['index.html'] 
-                          : restoredFiles['index.html']?.content || '';
-                      useEditorStore.getState().setPreview('srcdoc', htmlRaw);
-                  } else {
-                      useEditorStore.getState().setPreview('sandpack', null);
-                  }
-                  
-                  // Optional: Switch back to the preview so the user instantly sees the restored UI
-                  useChatStore.getState().setActiveView('preview');
+              // 1. Inject files into the virtual file system
+              useEditorStore.getState().loadGeneratedFiles(restoredFiles);
+              
+              // 2. Fix the preview binding! If it's HTML, we MUST update htmlContent
+              const isHtml = data.project.outputTrack === 'html' || 
+                            (!data.project.outputTrack && restoredFiles['index.html'] && Object.keys(restoredFiles).length === 1);
+                            
+              if (isHtml) {
+                  const htmlRaw = typeof restoredFiles['index.html'] === 'string' 
+                      ? restoredFiles['index.html'] 
+                      : restoredFiles['index.html']?.content || '';
+                  useEditorStore.getState().setPreview('srcdoc', htmlRaw);
+              } else {
+                  useEditorStore.getState().setPreview('sandpack', null);
               }
-          } else {
-              throw new Error("Restore failed");
+              
+              // Optional: Switch back to the preview so the user instantly sees the restored UI
+              useChatStore.getState().setActiveView('preview');
           }
       } catch (err) {
           console.error("Failed to restore version:", err);
