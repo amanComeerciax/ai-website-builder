@@ -489,8 +489,8 @@ SITE BLUEPRINT FOR "${siteType.toUpperCase()}":
 - Theme style: ${isDark ? 'DARK — use dark, rich, moody content' : 'LIGHT — use clean, airy, minimal content'}
 
 RULES:
-1. Use EXACTLY the hero variant specified: "${blueprint.heroVariant}"
-2. Use the feature component specified: "${blueprint.featureComponent}"
+ 1. Prefer the hero variant: "${blueprint.heroVariant}", but adapt if the prompt suggests a different style.
+ 2. Prefer the feature component: "${blueprint.featureComponent}", but you are free to use others (e.g. BentoGrid, Portfolio) if they fit better.
 3. Generate content that is 100% specific to "${brandName}" — no generic placeholder text
 4. Items arrays must have 4-6 entries minimum, each unique and specific
 5. For BentoGrid: vary className — use "md:col-span-2" on 2nd and 4th items
@@ -519,8 +519,8 @@ Target audience: ${enrichedSpec.targetAudience || 'professionals'}
 CRITICAL:
 - Every text, title, description must sound like it was written specifically for "${brandName}"
 - NOT generic — make content unique to this exact business type
-- Use the "${blueprint.heroVariant}" hero variant — do NOT change this
-- Use "${blueprint.featureComponent}" for features — do NOT change this`;
+ - Use the "${blueprint.heroVariant}" hero variant as a baseline, but adapt to the prompt's specific needs.
+ - Use "${blueprint.featureComponent}" as the main feature set, but feel free to add or swap components to make it unique.`;
 
   if (previousLayoutSpec) {
     console.log(`[LayoutPlanner] 🔄 Modification mode — injecting ${previousLayoutSpec.sections?.length || 0} existing sections into prompt`);
@@ -540,9 +540,9 @@ CRITICAL MODIFICATION RULES:
     const seededTemplate = getRandomTemplate(siteType);
     if (seededTemplate) {
       console.log(`[LayoutPlanner] 📥 SEED MODE — Injecting pristine template for "${siteType}"`);
-      userMessage += `\n\n=== REFERENCE BLUEPRINT TEMPLATE ===
-I have selected a pristine, highly-optimized component layout for this business type.
-YOUR JOB is to act as a copywriter. Keep the EXACT component structure, variants, and prop keys, but rewrite the text content, items, and placeholders to perfectly match "${brandName}" and the user's prompt.
+       userMessage += `\n\n=== REFERENCE BLUEPRINT TEMPLATE (GUIDE ONLY) ===
+ I have selected a high-quality component layout for this business type.
+ YOUR JOB is to use this as a strong starting point, but you are ENCOURAGED to be creative. You can add, remove, or reorder sections to perfectly match "${brandName}" and the user's unique request. Don't just copy-paste — craft a bespoke, boutique experience.
 
 Here is the structure you MUST use:
 ${JSON.stringify(seededTemplate.sections, null, 2)}
@@ -556,8 +556,9 @@ CRITICAL SEEDING RULES:
   }
 
   let layoutSpec = null;
+  const maxAttempts = seededTemplate ? 1 : 3;  // If we have a template, only try AI once — template is our safety net
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const result = await callModel('plan_layout', userMessage, systemPrompt);
       let rawContent = result.content.trim();
@@ -577,8 +578,11 @@ CRITICAL SEEDING RULES:
       console.log(`[LayoutPlanner] ✅ ${parsed.sections.length} sections planned (attempt ${attempt})`);
       break;
     } catch (e) {
-      console.error(`[LayoutPlanner] Attempt ${attempt}/3 failed:`, e.message);
-      if (attempt === 3) layoutSpec = buildFallbackLayout(enrichedSpec, blueprint);
+      console.error(`[LayoutPlanner] Attempt ${attempt}/${maxAttempts} failed:`, e.message);
+      if (attempt === maxAttempts) {
+        console.log(`[LayoutPlanner] 🛡️ Using fallback layout (seeded template available: ${!!seededTemplate})`);
+        layoutSpec = buildFallbackLayout(enrichedSpec, blueprint, seededTemplate);
+      }
       await new Promise(r => setTimeout(r, 500 * attempt));
     }
   }
@@ -924,9 +928,29 @@ function injectImages(sections, siteType) {
 // ─────────────────────────────────────────────
 // Fallback — siteType-aware, never the same
 // ─────────────────────────────────────────────
-function buildFallbackLayout(spec, blueprint) {
+function buildFallbackLayout(spec, blueprint, template = null) {
   const brandName = spec.businessName || 'My Website';
   const siteType = spec.siteType || 'default';
+
+  // ─── OPTION 1: If we have a seeded template, use it as the high-end fallback ───
+  if (template && template.sections) {
+    console.log(`[LayoutPlanner] 🛡️ FALLBACK MODE — Recovering using pristine seeded template for "${siteType}"`);
+    
+    // Process the template sections to inject brand name and images
+    let sections = autoFixLayout(template.sections, spec, blueprint);
+    sections = applyDefaults(sections);
+    sections = injectImages(sections, siteType);
+
+    return {
+      meta: {
+        title: `${brandName} — ${siteType.replace(/-/g, ' ')}`,
+        description: spec.description || template.meta?.description || `Welcome to ${brandName}`,
+      },
+      sections
+    };
+  }
+
+  // ─── OPTION 2: Standard programmatic fallback (if no template exists) ───
   const bp = blueprint || SITE_BLUEPRINTS[siteType] || SITE_BLUEPRINTS['default'];
   const images = getImagesForSiteType(siteType);
 

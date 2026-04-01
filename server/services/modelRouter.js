@@ -13,16 +13,17 @@
 const { generateWithQwen } = require('./qwenService.js');
 const { callMistral } = require('./mistralService.js');
 const { callGroq } = require('./groqService.js');
+const { callOpenRouter } = require('./openRouterService.js');
 
 /**
  * Routing table — maps task names to model + config
  */
 const ROUTING_TABLE = {
   // Reasoning tasks → Mistral (fast, good at structured output)
-  parse_prompt:   { model: 'mistral', temperature: 0.3, jsonMode: true },
-  plan_structure:  { model: 'mistral', temperature: 0.3, jsonMode: true },
-  plan_layout:     { model: 'mistral', temperature: 0.4, jsonMode: true },   // Component Kit layout planner
-  summarize:       { model: 'mistral', temperature: 0.5, jsonMode: true },
+  parse_prompt:   { model: 'mistral', temperature: 0.3, jsonMode: true, fallbackToGroq: true },
+  plan_structure:  { model: 'mistral', temperature: 0.3, jsonMode: true, fallbackToGroq: true },
+  plan_layout:     { model: 'mistral', temperature: 0.6, jsonMode: true, fallbackToGroq: true },   // Component Kit layout planner
+  summarize:       { model: 'mistral', temperature: 0.5, jsonMode: true, fallbackToGroq: true },
   template_selector: { model: 'mistral', temperature: 0.2, jsonMode: false },
   html_to_jsx:     { model: 'mistral', temperature: 0.2, jsonMode: false },
 
@@ -93,20 +94,45 @@ async function callModel(task, userMessage, systemPrompt, options = {}) {
     throw new Error(`[Model Router] Unknown model target: "${targetModel}"`);
 
   } catch (error) {
-    // ─── AUTOMATIC FALLBACK: Qwen/Mistral → Groq ───
-    if (route.fallbackToGroq && (targetModel === 'qwen' || targetModel === 'mistral')) {
+    // ─── TRIPLE FALLBACK CHAIN: Mistral -> Groq -> Qwen ───
+    if (route.fallbackToGroq) {
       console.warn(`[Model Router] ${targetModel} failed for "${task}": ${error.message}`);
-      console.log(`[Model Router] Auto-escalating to Groq fallback...`);
       
+      // Step 2: Try Groq if primary (Mistral) failed
+      if (targetModel === 'mistral') {
+        try {
+          console.log(`[Model Router] 🔄 Step 2: Falling back to Groq...`);
+          const result = await callGroq(systemPrompt, userMessage, {
+            ...config,
+            temperature: 0.2
+          });
+          return { ...result, fallbackUsed: true };
+        } catch (groqError) {
+          console.warn(`[Model Router] Groq also failed: ${groqError.message}`);
+          
+          // Step 3: Try OpenRouter (Master Backup)
+          try {
+            console.log(`[Model Router] 🔄 Step 3: Falling back to OpenRouter...`);
+            const result = await callOpenRouter(systemPrompt, userMessage, {
+              ...config,
+              temperature: 0.3
+            });
+            return { ...result, fallbackUsed: true };
+          } catch (orError) {
+            console.warn(`[Model Router] OpenRouter also failed: ${orError.message}`);
+            // Proceed to Step 4
+          }
+        }
+      }
+
+      // Step 4: Final Fallback to local Qwen
       try {
-        const result = await callGroq(systemPrompt, userMessage, {
-          ...config,
-          temperature: 0.2 // Lower temp for code fallback
-        });
-        return { ...result, fallbackUsed: true };
-      } catch (groqError) {
-        console.error(`[Model Router] Groq fallback also failed:`, groqError.message);
-        throw new Error(`All models failed for task "${task}". ${targetModel}: ${error.message}. Groq: ${groqError.message}`);
+        console.log(`[Model Router] 🔄 Step 4: Falling back to Qwen (Ultimate Backup)...`);
+        const content = await generateWithQwen(systemPrompt, userMessage, config.jsonMode, 2, 'qwen');
+        return { content, model: 'qwen', durationMs: 0, fallbackUsed: true };
+      } catch (qwenError) {
+        console.error(`[Model Router] ❌ All models (Mistral, Groq, OpenRouter, Qwen) failed for "${task}"`);
+        throw new Error(`QUADRUPLE_FAILURE: All providers exhausted. Last error: ${qwenError.message}`);
       }
     }
 

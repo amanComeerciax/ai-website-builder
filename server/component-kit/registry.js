@@ -25,7 +25,7 @@ const COMPONENT_REGISTRY = {
   },
 
   HeroSection: {
-    variants: ['centered', 'split', 'fullImage', 'glass', 'parallax', 'aurora', 'sparkles'],
+    variants: ['centered', 'split', 'fullImage', 'glass', 'parallax', 'aurora', 'sparkles', 'salient', 'radiant', 'stuxen'],
     requiredProps: ['heading', 'subtext', 'ctaText'],
     optionalProps: ['ctaLink', 'bgImage', 'secondaryCtaText', 'secondaryCtaLink', 'badgeText'],
     defaultProps: {
@@ -68,7 +68,7 @@ const COMPONENT_REGISTRY = {
   },
 
   FeatureGrid: {
-    variants: ['cards', 'icons', 'glass'],
+    variants: ['cards', 'icons', 'glass', 'salient', 'radiant'],
     requiredProps: ['heading', 'items'],
     optionalProps: ['subtext'],
     defaultProps: {

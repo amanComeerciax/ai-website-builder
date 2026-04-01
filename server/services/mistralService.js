@@ -5,14 +5,14 @@
  * Routes: parse_prompt, plan_structure, summarize
  * 
  * Model: mistral-small-latest (or MISTRAL_MODEL env var)
- * Retry: on 429 with 5s backoff, max 2 retries
+ * Retry: on 429 with 5s backoff, max 3 retries
  */
 
 const { Mistral } = require('@mistralai/mistralai');
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const MISTRAL_MODEL = process.env.MISTRAL_MODEL || 'mistral-small-latest';
-const MISTRAL_MAX_RETRIES = parseInt(process.env.MISTRAL_MAX_RETRIES) || 2;
+const MISTRAL_MAX_RETRIES = parseInt(process.env.MISTRAL_MAX_RETRIES) || 3;
 
 const client = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY }) : null;
 

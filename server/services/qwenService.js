@@ -14,7 +14,7 @@
 const { Mistral } = require('@mistralai/mistralai');
 
 const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://localhost:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:latest';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b';
 const QWEN_TIMEOUT_MS = parseInt(process.env.QWEN_TIMEOUT_MS) || 30000; // 30s per token
 const QWEN_MAX_RETRIES = parseInt(process.env.QWEN_MAX_RETRIES) || 3;
 const MAX_INPUT_CHARS = 14000;

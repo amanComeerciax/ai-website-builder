@@ -120,19 +120,23 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
   let result;
   try {
-    console.log(`[Worker] ⚡ Routing to Template Auto-Prediction Generator Track`);
-    result = await generateRawHtml(enhanced.enrichedSpec, (progress) => {
+    console.log(`[Worker] ⚡ Routing to Component Kit Assembly Track`);
+    result = await assemble(enhanced.enrichedSpec, (progress) => {
       job.updateProgress({
         event: progress.event,
         payload: { type: progress.type, file: progress.file, message: progress.message }
       });
-    });
+    }, previousLayoutSpec);
   } catch (e) {
     console.error(`[Worker] Generation failed:`, e.message);
     throw new Error(`Website generation failed: ${e.message}`);
   }
 
   // ─── STEP 4: SUMMARIZE ─────────────────────────────────────────
+  // Briefly wait to avoid burst rate limits after the main generation call
+  // Increased to 5s for better stability
+  await new Promise(resolve => setTimeout(resolve, 5000));
+  
   let summary = `Generated your ${enhanced.siteType} website successfully.`;
   let appName = enhanced.enrichedSpec.businessName || 'Website';
   let suggestedActions = ['Change the color scheme', 'Add more sections', 'Update the content', 'Download Next.js project'];
