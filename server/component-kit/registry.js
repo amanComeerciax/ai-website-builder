@@ -25,7 +25,7 @@ const COMPONENT_REGISTRY = {
   },
 
   HeroSection: {
-    variants: ['centered', 'split', 'fullImage', 'glass', 'parallax', 'aurora', 'sparkles'],
+    variants: ['centered', 'split', 'fullImage', 'glass', 'parallax', 'aurora', 'sparkles', 'aurora-plus', 'sparkles-v2'],
     requiredProps: ['heading', 'subtext', 'ctaText'],
     optionalProps: ['ctaLink', 'bgImage', 'secondaryCtaText', 'secondaryCtaLink', 'badgeText'],
     defaultProps: {
@@ -36,7 +36,7 @@ const COMPONENT_REGISTRY = {
   },
 
   BentoGrid: {
-    variants: ['modern', 'glass'],
+    variants: ['modern', 'glass', 'interactive-bento'],
     requiredProps: ['heading', 'items'],
     optionalProps: ['subtext'],
     defaultProps: {
@@ -68,7 +68,7 @@ const COMPONENT_REGISTRY = {
   },
 
   FeatureGrid: {
-    variants: ['cards', 'icons', 'glass', 'radiant', 'salient', 'warm', 'bold', 'energetic', 'clean'],
+    variants: ['cards', 'icons', 'glass', 'radiant', 'salient', 'warm', 'bold', 'energetic', 'clean', 'radiant-cards'],
     requiredProps: ['heading', 'items'],
     optionalProps: ['subtext'],
     defaultProps: {

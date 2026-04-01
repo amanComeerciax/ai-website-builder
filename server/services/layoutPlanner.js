@@ -447,11 +447,18 @@ const SITE_BLUEPRINTS = {
     iconSet: ['BookOpen', 'GraduationCap', 'Users', 'Star', 'Award', 'Clock', 'Globe', 'Lightbulb'],
   },
   'ecommerce': {
-    heroVariant: 'split', featureComponent: 'BentoGrid', featureVariant: 'cards',
+    heroVariant: 'split', featureComponent: 'BentoGrid', featureVariant: 'interactive-bento',
     navVariant: 'default', footerVariant: 'default', testimonialVariant: 'grid',
     sections: ['NavBar', 'HeroSection', 'BentoGrid', 'AboutSection', 'TestimonialSection', 'CTASection', 'FooterSection'],
     tone: 'vibrant, exciting, trustworthy',
     iconSet: ['ShoppingBag', 'Star', 'Shield', 'Truck', 'Gift', 'Heart', 'Award', 'Zap'],
+  },
+  'premium': {
+    heroVariant: 'aurora-plus', featureComponent: 'BentoGrid', featureVariant: 'interactive-bento',
+    navVariant: 'transparent', footerVariant: 'magazine', testimonialVariant: 'spotlight',
+    sections: ['NavBar', 'HeroSection', 'BentoGrid', 'FeatureGrid', 'AboutSection', 'TestimonialSection', 'FAQSection', 'CTASection', 'FooterSection'],
+    tone: 'ultra-premium, sophisticated, state-of-the-art',
+    iconSet: ['Zap', 'Shield', 'Globe', 'Cpu', 'Trophy', 'Layers', 'Diamond', 'Crown'],
   },
   'default': {
     heroVariant: 'salient', featureComponent: 'FeatureGrid', featureVariant: 'cards',
@@ -471,45 +478,42 @@ async function planLayout(enrichedSpec) {
   const themeId = enrichedSpec.themeId || 'modern-dark';
   const isDark = ['modern-dark', 'premium-dark', 'bold', 'elegant'].includes(themeId);
 
-  const systemPrompt = `You are an expert website layout planner for ${siteType} businesses.
+  const systemPrompt = `You are an expert Website Layout Architect for world-class ${siteType} businesses.
 
-AVAILABLE COMPONENTS:
+AVAILABLE COMPONENTS CATALOG:
 ${catalog.map(c => `- ${c.name} (variants: ${c.variants.join(', ')})
   Required: ${c.requiredProps.join(', ')}
   Optional: ${c.optionalProps.join(', ')}
   ${c.itemSchema ? `Items: ${JSON.stringify(c.itemSchema)}` : ''}`).join('\n')}
 
-SITE BLUEPRINT FOR "${siteType.toUpperCase()}":
-- Hero variant to use: ${blueprint.heroVariant}
-- Feature component: ${blueprint.featureComponent}
-- Feature variant to use: ${blueprint.featureVariant || 'cards'}
-- Recommended sections: ${blueprint.sections.join(' → ')}
-- Tone: ${blueprint.tone}
-- Relevant icons: ${blueprint.iconSet.join(', ')}
-- Theme style: ${isDark ? 'DARK — use dark, rich, moody content' : 'LIGHT — use clean, airy, minimal content'}
+YOUR TASK:
+Read the user's business description and autonomously architect the optimal website structure.
+- Select the most appropriate components from the catalog based on the industry and goal.
+- Order them logically (e.g., hero at top, then features/about, then testimonials/pricing, then footer).
+- Choose the BEST visual variant for each component from its available variants list.
+- Generate highly specific, non-generic content tailored specifically to "${brandName}".
 
 RULES:
-1. Use EXACTLY the hero variant specified: "${blueprint.heroVariant}"
-2. Use the feature component specified: "${blueprint.featureComponent}" with variant: "${blueprint.featureVariant || 'cards'}"
-3. Generate content that is 100% specific to "${brandName}" — no generic placeholder text
-4. Items arrays must have 4-6 entries minimum, each unique and specific
-5. For BentoGrid: vary className — use "md:col-span-2" on 2nd and 4th items
-6. For PortfolioSection: 4-6 items with real project names related to "${siteType}"
-7. Write in tone: ${blueprint.tone}
-8. Start with NavBar, end with FooterSection — always
-9. For FeatureGrid: use variant "${blueprint.featureVariant || 'cards'}" — do NOT use any other variant
+1. You are the Architect. You decide which sections are needed. Do not include unnecessary sections.
+2. Every section must have a valid component name and a chosen variant from the catalog.
+3. Items arrays must have 4-6 entries minimum.
+4. For BentoGrid: vary className — use "md:col-span-2" on 2nd and 4th items. Use "interactive-bento" for a high-end feel.
+5. PREFER PREMIUM VARIANTS: Use "aurora-plus" or "sparkles-v2" for HeroSection and "radiant-cards" for FeatureGrid if the brand feels high-end or technical.
+6. Write in tone: ${blueprint.tone}
+7. Always start with NavBar and end with FooterSection.
+8. Theme style: ${isDark ? 'DARK — use dark, rich, moody content' : 'LIGHT — use clean, airy, minimal content'}
 
 RETURN ONLY VALID JSON:
 {
   "meta": { "title": "...", "description": "..." },
   "sections": [
-    { "component": "NavBar", "variant": "transparent", "props": { ... } },
-    { "component": "HeroSection", "variant": "${blueprint.heroVariant}", "props": { ... } },
+    { "component": "NavBar", "variant": "<choose_from_variants>", "props": { ... } },
+    { "component": "HeroSection", "variant": "<choose_from_variants>", "props": { ... } },
     ...
   ]
 }`;
 
-  const userMessage = `Plan a world-class ${siteType} website:
+  const userMessage = `Architect a world-class ${siteType} website:
 
 Brand: "${brandName}"
 Theme: ${enrichedSpec.themeName || 'Modern Dark'}
@@ -518,10 +522,9 @@ Tone: ${enrichedSpec.tone || blueprint.tone}
 Target audience: ${enrichedSpec.targetAudience || 'professionals'}
 
 CRITICAL:
-- Every text, title, description must sound like it was written specifically for "${brandName}"
-- NOT generic — make content unique to this exact business type
-- Use the "${blueprint.heroVariant}" hero variant — do NOT change this
-- Use "${blueprint.featureComponent}" for features — do NOT change this`;
+- Every text, title, and description must sound like it was written specifically for "${brandName}".
+- NOT generic — make content unique to this exact business type.
+- Fully autonomous architecture: YOU decide the components, the order, and the variants.`;
 
   let layoutSpec = null;
 
@@ -573,19 +576,19 @@ function autoFixLayout(sections, spec, blueprint) {
           props.links = getSiteNavLinks(siteType);
         }
         if (!props.ctaText) props.ctaText = getSiteCtaText(siteType);
-        if (!section.variant) section.variant = bp.navVariant || 'default';
+        // Let AI decide, fallback to blueprint if missing
+        if (!section.variant || section.variant === '<choose_from_variants>') section.variant = bp.navVariant || 'default';
         break;
 
       case 'HeroSection':
         if (!props.heading) props.heading = `Welcome to ${brandName}`;
         if (!props.subtext) props.subtext = spec.description || `Premium ${siteType} experience tailored for you.`;
         if (!props.ctaText) props.ctaText = getSiteCtaText(siteType);
-        // NEVER override variant — use what AI or blueprint specified
+        if (!section.variant || section.variant === '<choose_from_variants>') section.variant = bp.heroVariant || 'split';
         break;
 
       case 'BentoGrid':
         if (!props.heading) props.heading = 'What We Offer';
-        // Only add items if completely missing — never replace AI-generated ones
         if (!props.items || props.items.length === 0) {
           props.items = getDefaultBentoItems(siteType, bp.iconSet);
         }
@@ -596,10 +599,7 @@ function autoFixLayout(sections, spec, blueprint) {
         if (!props.items || props.items.length === 0) {
           props.items = getDefaultFeatureItems(siteType, bp.iconSet);
         }
-        // Use the dedicated featureVariant, NOT the heroVariant
-        if (!section.variant || section.variant === bp.heroVariant) {
-          section.variant = bp.featureVariant || 'cards';
-        }
+        if (!section.variant || section.variant === '<choose_from_variants>') section.variant = bp.featureVariant || 'cards';
         break;
 
       case 'PricingSection':
@@ -614,7 +614,7 @@ function autoFixLayout(sections, spec, blueprint) {
         if (!props.items || props.items.length === 0) {
           props.items = getDefaultTestimonials(brandName);
         }
-        if (!section.variant) section.variant = bp.testimonialVariant || 'default';
+        if (!section.variant || section.variant === '<choose_from_variants>') section.variant = bp.testimonialVariant || 'default';
         break;
 
       case 'FAQSection':
@@ -640,12 +640,22 @@ function autoFixLayout(sections, spec, blueprint) {
 
       case 'FooterSection':
         if (!props.brand) props.brand = brandName;
-        if (!section.variant) section.variant = bp.footerVariant || 'default';
+        if (!section.variant || section.variant === '<choose_from_variants>') section.variant = bp.footerVariant || 'default';
         break;
     }
 
     return { ...section, props };
   });
+
+  // Structural Safety Checks
+  if (fixedSections.length > 0 && fixedSections[0].component !== 'NavBar') {
+    fixedSections.unshift({ component: 'NavBar', variant: bp.navVariant || 'default', props: { brand: brandName, links: getSiteNavLinks(siteType) } });
+  }
+  if (fixedSections.length > 0 && fixedSections[fixedSections.length - 1].component !== 'FooterSection') {
+    fixedSections.push({ component: 'FooterSection', variant: bp.footerVariant || 'default', props: { brand: brandName } });
+  }
+
+  return fixedSections;
 }
 
 // ─────────────────────────────────────────────

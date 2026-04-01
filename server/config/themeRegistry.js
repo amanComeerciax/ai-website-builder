@@ -274,23 +274,49 @@ function getThemeList() {
   }));
 }
 
+const tinycolor = require('tinycolor2');
+
 /**
  * Merge user's brand colors into a theme.
- * If user provides their own colors, they override the theme's accent.
+ * If user provides their own colors, they override the theme's palette.
+ * Automatically generates a cohesive design system using tinycolor. 
+ * 
  * @param {object} theme - Theme from THEMES
- * @param {string[]} brandColors - User's brand colors
+ * @param {string[]} brandColors - User's brand colors [accent, bg/surface]
  * @returns {object} Theme with merged colors
  */
 function mergeUserColors(theme, brandColors) {
   if (!brandColors || brandColors.length === 0) return theme;
 
   const merged = JSON.parse(JSON.stringify(theme)); // deep clone
-  if (brandColors[0]) {
-    merged.colorScheme.accent = brandColors[0];
+  const primary = brandColors[0];
+  if (!primary) return theme;
+
+  const tc = tinycolor(primary);
+  const isDarkBase = theme.id.includes('dark');
+
+  // Dynamically generate the color scheme
+  merged.colorScheme.accent = primary;
+  merged.colorScheme.accentHover = tc.darken(10).toString();
+  
+  if (isDarkBase) {
+      // For dark themes, create deep surfaces from the primary
+      merged.colorScheme.bg = tinycolor(primary).darken(45).desaturate(20).toString();
+      merged.colorScheme.surface = tinycolor(primary).darken(40).desaturate(15).toString();
+      merged.colorScheme.border = tinycolor(primary).darken(30).desaturate(10).toString();
+      merged.colorScheme.textDim = tinycolor(primary).lighten(40).desaturate(30).toString();
+  } else {
+      // For light themes, keep it clean but tinted
+      merged.colorScheme.bg = tinycolor(primary).lighten(48).desaturate(30).toString();
+      merged.colorScheme.surface = '#ffffff';
+      merged.colorScheme.border = tinycolor(primary).lighten(40).desaturate(10).toString();
+      merged.colorScheme.textDim = tinycolor(primary).darken(20).desaturate(20).toString();
   }
-  if (brandColors[1]) {
-    merged.colorScheme.surface = brandColors[1];
-  }
+
+  // Update Gradient
+  const secondary = tc.spin(30).brighten(10).toString();
+  merged.colorScheme.gradient = `from-[${primary}] to-[${secondary}]`;
+
   return merged;
 }
 

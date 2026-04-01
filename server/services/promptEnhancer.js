@@ -235,6 +235,8 @@ async function llmEnrich(ruleSpec) {
     '  "tagline": "string — a short catchy tagline for the hero section",',
     '  "targetAudience": "string — who this site is for",',
     '  "tone": "string — the writing tone (e.g. warm, professional, playful)",',
+    '  "primaryColor": "string — a HEX color for the primary brand identity (e.g. #4b2c20 for coffee)",',
+    '  "accentColor": "string — a HEX color for highlights and buttons (should pair well with primary)",',
     '  "contentHints": {',
     '    "heroHeading": "string — main hero heading text",',
     '    "heroSubtext": "string — hero paragraph text",',
@@ -257,12 +259,15 @@ async function llmEnrich(ruleSpec) {
     const parsed = JSON.parse(result.content);
 
     // Merge LLM output into the spec
+    const brandColors = ruleSpec.brandColors || [parsed.primaryColor, parsed.accentColor].filter(Boolean);
+
     return {
       ...ruleSpec,
       businessName: ruleSpec.websiteName || parsed.businessName || 'MyWebsite',
       tagline: parsed.tagline || '',
       targetAudience: parsed.targetAudience || 'general audience',
       tone: parsed.tone || 'professional',
+      brandColors: brandColors.length > 0 ? brandColors : null,
       contentHints: parsed.contentHints || null,
     };
   } catch (e) {

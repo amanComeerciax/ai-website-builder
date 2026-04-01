@@ -226,22 +226,29 @@ function renderHeroSection(props, theme, variant) {
 </section>`;
   }
 
-  // ── AURORA (SaaS / Tech) ──
-  if (v === 'aurora' || v === 'sparkles') {
+  // ── AURORA / SPARKLES (Premium SaaS) ──
+  if (v === 'aurora' || v === 'sparkles' || v === 'aurora-plus' || v === 'sparkles-v2') {
+    const isPlus = v === 'aurora-plus' || v === 'sparkles-v2';
+    
     return `
 <section class="min-h-screen flex items-center justify-center relative overflow-hidden bg-theme-bg">
   <div class="absolute inset-0 overflow-hidden pointer-events-none">
-    <div class="absolute w-[900px] h-[900px] -top-[300px] left-1/2 -translate-x-1/2 bg-[radial-gradient(circle,var(--tw-gradient-stops))] from-theme-accent/20 to-transparent animate-pulse" style="animation-duration: 8s;"></div>
-    <div class="absolute w-[600px] h-[600px] -bottom-[200px] -left-[100px] bg-[radial-gradient(circle,var(--tw-gradient-stops))] from-theme-accent/15 to-transparent animate-pulse" style="animation-duration: 12s; animation-direction: reverse;"></div>
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,var(--tw-gradient-stops))] from-theme-accent/10 to-transparent bg-[length:40px_40px] opacity-50"></div>
+    <div class="absolute w-[1200px] h-[1200px] -top-[400px] left-1/2 -translate-x-1/2 bg-[radial-gradient(circle,var(--tw-gradient-stops))] from-theme-accent/25 via-theme-accent/5 to-transparent animate-aurora-mesh opacity-70"></div>
+    ${isPlus ? `<div class="absolute w-[800px] h-[800px] -bottom-[200px] -right-[100px] bg-[radial-gradient(circle,var(--tw-gradient-stops))] from-purple-500/20 to-transparent animate-pulse" style="animation-duration: 15s;"></div>` : ''}
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,var(--tw-gradient-stops))] from-theme-accent/15 to-transparent bg-[length:32px_32px] ${isPlus ? 'opacity-40' : 'opacity-20'}"></div>
+    ${v.includes('sparkles') ? `<div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.08] mix-blend-overlay"></div>` : ''}
   </div>
-  <div class="relative z-10 text-center max-w-4xl px-6 pt-32 pb-24 mx-auto">
-    ${props.badgeText ? `<div class="inline-flex items-center gap-2 bg-theme-accent/10 border border-theme-accent/20 text-theme-accent font-body text-xs font-bold px-4 py-1.5 rounded-full mb-8 tracking-widest uppercase backdrop-blur-sm">${props.badgeText}</div>` : ''}
-    <h1 class="font-heading text-5xl md:text-7xl font-black leading-[1.05] tracking-tight text-theme-text mb-8">${props.heading}</h1>
-    <p class="font-body text-lg md:text-xl leading-relaxed text-theme-dim mx-auto mb-10 max-w-2xl">${props.subtext}</p>
-    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-      <a href="${props.ctaLink || '#contact'}" class="inline-flex w-full sm:w-auto justify-center items-center gap-2.5 bg-theme-accent hover:bg-theme-hover text-white px-8 py-4 rounded-theme font-body text-base font-bold transition-all duration-300 shadow-xl shadow-theme-accent/30 hover:-translate-y-1 hover:shadow-2xl hover:shadow-theme-accent/40">${props.ctaText} ${icon('ArrowRight', 18)}</a>
-      ${props.secondaryCtaText ? `<a href="${props.secondaryCtaLink || '#about'}" class="inline-flex w-full sm:w-auto justify-center items-center gap-2.5 border ${dark ? 'border-white/10 hover:border-theme-accent hover:bg-theme-accent/5 text-white/90' : 'border-black/10 hover:border-theme-accent hover:bg-theme-accent/5 text-black/90'} px-8 py-4 rounded-theme font-body text-base font-medium transition-all duration-200 backdrop-blur-md">${props.secondaryCtaText}</a>` : ''}
+  <div class="relative z-10 text-center max-w-5xl px-6 pt-32 pb-24 mx-auto">
+    ${props.badgeText ? `<div class="inline-flex items-center gap-2 bg-theme-accent/15 border border-theme-accent/30 text-theme-accent font-body text-[10px] font-black px-5 py-2 rounded-full mb-10 tracking-[0.2em] uppercase backdrop-blur-md shadow-2xl shadow-theme-accent/20 animate-bounce-subtle">${props.badgeText}</div>` : ''}
+    <h1 class="font-heading text-6xl md:text-9xl font-black leading-[0.95] tracking-tight text-theme-text mb-10 text-balance animate-fade-in-up">${props.heading}</h1>
+    <p class="font-body text-xl md:text-2xl leading-relaxed text-theme-dim mx-auto mb-14 max-w-3xl animate-fade-in-up" style="animation-delay: 0.1s;">${props.subtext}</p>
+    <div class="flex flex-col sm:flex-row gap-6 justify-center items-center animate-fade-in-up" style="animation-delay: 0.2s;">
+      <a href="${props.ctaLink || '#contact'}" class="group relative inline-flex w-full sm:w-auto justify-center items-center gap-3 bg-theme-accent hover:bg-theme-hover text-white px-10 py-5 rounded-theme font-body text-lg font-bold transition-all duration-500 shadow-2xl shadow-theme-accent/40 hover:-translate-y-1.5 hover:shadow-theme-accent/60 overflow-hidden">
+        <span class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer"></span>
+        <span class="relative">${props.ctaText}</span>
+        <span class="relative group-hover:translate-x-1.5 transition-transform duration-300 transform scale-125">${icon('ArrowRight', 20)}</span>
+      </a>
+      ${props.secondaryCtaText ? `<a href="${props.secondaryCtaLink || '#about'}" class="inline-flex w-full sm:w-auto justify-center items-center gap-3 border border-theme-border hover:border-theme-accent/30 hover:bg-theme-accent/10 text-theme-text px-10 py-5 rounded-theme font-body text-lg font-bold transition-all duration-300 backdrop-blur-xl group">${props.secondaryCtaText} <span class="group-hover:rotate-45 transition-transform duration-300">${icon('ArrowUpRight', 18)}</span></a>` : ''}
     </div>
   </div>
 </section>`;
@@ -469,6 +476,63 @@ function renderFeatureGrid(props, theme, v) {
           <div>
             <h3 class="font-heading text-base font-bold text-theme-text mb-1.5">${item.title}</h3>
             <p class="font-body text-theme-dim text-sm leading-relaxed">${item.description}</p>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</section>`;
+  }
+
+  // ── INTERACTIVE BENTO ──
+  if (v === 'interactive-bento') {
+    return `
+<section class="py-32 bg-theme-bg px-6 relative overflow-hidden">
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--theme-accent-light),transparent)] opacity-10 blur-3xl"></div>
+  <div class="max-w-7xl mx-auto relative z-10">
+    <div class="mb-20 text-center max-w-2xl mx-auto">
+      <h2 class="font-heading text-4xl md:text-6xl font-black tracking-tight text-theme-text mb-6">${props.heading}</h2>
+      <p class="font-body text-xl text-theme-dim">${props.subtext || ''}</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-6 auto-rows-[300px]">
+      ${(props.items || []).map((item, i) => `
+        <div class="group relative rounded-3xl overflow-hidden border border-theme-border bg-theme-surface hover:bg-theme-hover transition-all duration-500 shadow-xl hover:shadow-2xl hover:-translate-y-2 ${item.className || ''}">
+          <div class="absolute inset-0 bg-gradient-to-br from-theme-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="p-8 h-full flex flex-col justify-end relative z-10">
+            ${item.header ? `<div class="absolute top-0 left-0 w-full h-1/2 overflow-hidden">${item.header.includes('http') ? `<img src="${item.header}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">` : `<div class="w-full h-full bg-theme-accent/10 flex items-center justify-center">${icon(item.icon || 'Sparkles', 48)}</div>`}</div>` : ''}
+            <div class="mt-auto">
+              ${icon(item.icon || 'Circle', 24, 'text-theme-accent mb-4')}
+              <h3 class="font-heading text-2xl font-bold text-theme-text mb-2">${item.title}</h3>
+              <p class="font-body text-sm text-theme-dim leading-relaxed">${item.description}</p>
+            </div>
+          </div>
+          <div class="absolute bottom-0 left-0 h-1 w-0 bg-theme-accent group-hover:w-full transition-all duration-500"></div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</section>`;
+  }
+
+  // ── RADIANT CARDS ──
+  if (v === 'radiant-cards') {
+    return `
+<section class="py-32 bg-theme-bg px-6 relative overflow-hidden">
+  <div class="max-w-7xl mx-auto relative z-10">
+    <div class="mb-20">
+      <h2 class="font-heading text-4xl md:text-5xl font-black text-theme-text mb-6">${props.heading}</h2>
+      <p class="font-body text-xl text-theme-dim max-w-2xl">${props.subtext || ''}</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      ${(props.items || []).map(item => `
+        <div class="relative p-[1px] rounded-3xl overflow-hidden group">
+          <div class="absolute inset-0 bg-gradient-to-br from-theme-accent/50 via-theme-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
+          <div class="relative h-full bg-theme-surface rounded-3xl p-10 border border-theme-border/50 group-hover:border-theme-accent/30 transition-colors">
+            <div class="w-16 h-16 rounded-2xl bg-theme-accent/10 flex items-center justify-center mb-8 rotate-3 group-hover:rotate-0 group-hover:scale-110 transition-all">
+              ${icon(item.icon || 'Zap', 32, 'text-theme-accent')}
+            </div>
+            <h3 class="font-heading text-2xl font-bold text-theme-text mb-4">${item.title}</h3>
+            <p class="font-body text-zinc-500 leading-relaxed">${item.description}</p>
           </div>
         </div>
       `).join('')}
@@ -1180,6 +1244,18 @@ function renderToHTML(layoutSpec, themeConfig) {
     }
   </script>
   <style>
+    :root {
+      --color-bg: ${theme.bg};
+      --color-surface: ${theme.surface};
+      --color-border: ${theme.border};
+      --color-text: ${theme.text};
+      --color-text-dim: ${theme.textDim};
+      --color-accent: ${theme.accent};
+      --color-accent-hover: ${theme.accentHover};
+      --font-heading: '${theme.fontHeading}', system-ui, sans-serif;
+      --font-body: '${theme.fontBody}', system-ui, sans-serif;
+      --radius-theme: ${theme.borderRadius};
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
     body {
