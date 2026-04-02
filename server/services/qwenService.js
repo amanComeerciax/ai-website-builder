@@ -15,7 +15,7 @@ const { Mistral } = require('@mistralai/mistralai');
 
 const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b';
-const QWEN_TIMEOUT_MS = parseInt(process.env.QWEN_TIMEOUT_MS) || 30000; // 30s per token
+const QWEN_TIMEOUT_MS = parseInt(process.env.QWEN_TIMEOUT_MS) || 90000; // 90s per token
 const QWEN_MAX_RETRIES = parseInt(process.env.QWEN_MAX_RETRIES) || 3;
 const MAX_INPUT_CHARS = 14000;
 
@@ -31,9 +31,10 @@ const mistralClient = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY })
  * @param {boolean} jsonMode - Whether to request JSON output format
  * @param {number} retries - Max local retry attempts
  * @param {string} preferredModel - 'qwen' | 'mistral'
+ * @param {string} modelOverride - Optional specific Ollama model name (e.g. 'llama3.2:1b')
  * @returns {string} Generated content
  */
-async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retries = QWEN_MAX_RETRIES, preferredModel = 'qwen') {
+async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retries = QWEN_MAX_RETRIES, preferredModel = 'qwen', modelOverride = null) {
   // ─── GUARD: Direct Mistral routing ───
   if (preferredModel === 'mistral') {
     if (!mistralClient) {
@@ -55,20 +56,21 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
   const url = `${OLLAMA_HOST}/api/generate`;
 
   const payload = {
-    model: OLLAMA_MODEL,
+    model: modelOverride || OLLAMA_MODEL,
     system: systemPrompt,
     prompt: userPrompt,
     stream: true,                    // FIX 1: Stream NDJSON chunks
     format: jsonMode ? 'json' : undefined,
     options: {
       temperature: 0.1,
-      num_ctx: 4096,                 // FIX 2: Hard cap context window
+      num_ctx: 8192,                 // FIX 2: Increased for complex layout planning
     }
   };
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`[Qwen Service] Attempt ${attempt}/${retries} — Streaming from Ollama (num_ctx: 4096)...`);
+      const activeModel = modelOverride || OLLAMA_MODEL;
+      console.log(`[Qwen Service] Attempt ${attempt}/${retries} — Streaming from Ollama (model: ${activeModel}, num_ctx: 8192)...`);
       const startTime = Date.now();
 
       // FIX 3: Token-level AbortController — resets on each received chunk

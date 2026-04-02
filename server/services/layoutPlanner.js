@@ -471,14 +471,13 @@ async function planLayout(enrichedSpec, previousLayoutSpec = null) {
   const brandName = enrichedSpec.businessName || 'My Business';
   const themeId = enrichedSpec.themeId || 'modern-dark';
   const isDark = ['modern-dark', 'premium-dark', 'bold', 'elegant'].includes(themeId);
+  let seededTemplate = null;
 
   const systemPrompt = `You are an expert website layout planner for ${siteType} businesses.
 
 AVAILABLE COMPONENTS:
 ${catalog.map(c => `- ${c.name} (variants: ${c.variants.join(', ')})
-  Required: ${c.requiredProps.join(', ')}
-  Optional: ${c.optionalProps.join(', ')}
-  ${c.itemSchema ? `Items: ${JSON.stringify(c.itemSchema)}` : ''}`).join('\n')}
+  Required props: ${c.requiredProps.join(', ')}`).join('\n')}
 
 SITE BLUEPRINT FOR "${siteType.toUpperCase()}":
 - Hero variant to use: ${blueprint.heroVariant}
@@ -537,7 +536,7 @@ CRITICAL MODIFICATION RULES:
 - DO NOT regenerate sections from scratch — only apply targeted changes.`;
   } else {
     // NEW TEMPLATE SEEDING LOGIC
-    const seededTemplate = getRandomTemplate(siteType);
+    seededTemplate = getRandomTemplate(siteType);
     if (seededTemplate) {
       console.log(`[LayoutPlanner] 📥 SEED MODE — Injecting pristine template for "${siteType}"`);
        userMessage += `\n\n=== REFERENCE BLUEPRINT TEMPLATE (GUIDE ONLY) ===

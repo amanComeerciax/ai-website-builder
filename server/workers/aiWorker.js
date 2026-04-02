@@ -135,7 +135,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   // ─── STEP 4: SUMMARIZE ─────────────────────────────────────────
   // Briefly wait to avoid burst rate limits after the main generation call
   // Increased to 5s for better stability
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
   let summary = `Generated your ${enhanced.siteType} website successfully.`;
   let appName = enhanced.enrichedSpec.businessName || 'Website';
