@@ -8,6 +8,7 @@ import DashboardLayout from './layouts/DashboardLayout'
 import ProjectsPage from './pages/ProjectsPage'
 import AuthPage from './pages/AuthPage'
 import { Toaster } from 'react-hot-toast'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const ProtectedRoute = ({ children }) => (
   <>
@@ -80,7 +81,7 @@ function App() {
           {/* Editor route */}
           <Route
             path="/chat/:projectId"
-            element={<ProtectedRoute><ChatPage /></ProtectedRoute>}
+            element={<ProtectedRoute><ErrorBoundary><ChatPage /></ErrorBoundary></ProtectedRoute>}
           />
 
           {/* Authentication routes powered by unified Lovable Layout */}

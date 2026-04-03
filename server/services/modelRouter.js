@@ -13,6 +13,7 @@
 const { generateWithQwen } = require('./qwenService.js');
 const { callMistral } = require('./mistralService.js');
 const { callGroq } = require('./groqService.js');
+const { callGLM } = require('./glmService.js');
 
 /**
  * Routing table — maps task names to model + config
@@ -87,6 +88,12 @@ async function callModel(task, userMessage, systemPrompt, options = {}) {
     // ─── GROQ (cloud fast fallback) ───
     if (targetModel === 'groq') {
       const result = await callGroq(systemPrompt, userMessage, config);
+      return { ...result, fallbackUsed: false };
+    }
+
+    // ─── GLM (Zhipu AI) ───
+    if (targetModel === 'glm') {
+      const result = await callGLM(systemPrompt, userMessage, config);
       return { ...result, fallbackUsed: false };
     }
 

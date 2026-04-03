@@ -1,12 +1,13 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import { 
     Send, Bot, User, Lightbulb, RefreshCw, Package, 
-    FileEdit, FilePlus, Bookmark, ThumbsUp, ThumbsDown, 
-    Copy, MoreHorizontal, Plus, MousePointer2, MessageSquare, 
-    Mic, ArrowUp, ArrowRight, ChevronRight, ChevronDown, Cpu, Cloud,
-    Palette, ExternalLink, Sparkles
+    FileEdit, FilePlus, Bookmark,
+    Plus, MessageSquare, 
+    Mic, ArrowUp, ArrowRight, ChevronRight, ChevronDown,
+    Palette, ExternalLink, Sparkles, Camera, Paperclip, X,
+    Eye, Upload, Monitor, ImagePlus, Zap
 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import WebsiteStylePicker from './WebsiteStylePicker'
@@ -17,9 +18,11 @@ export default function ChatPanel() {
     const { 
         messages, isGenerating, generationPhase, generationLogs, 
         generationSummary, generationTaskName, isDetailsExpanded,
-        isIdeVisible, selectedModel, generationTheme, generationSiteType,
+        isIdeVisible, selectedModel, generationSiteType,
         isConfigured, addMessage, startGeneration, setDetailsExpanded, 
-        setIdeVisible, setSelectedModel, completeProjectConfig
+        setIdeVisible, setSelectedModel, completeProjectConfig, setActiveView,
+        isVisualEditMode, toggleVisualEditMode,
+        selectedElements, removeSelectedElement
     } = useChatStore()
     const { getToken } = useAuth()
     
@@ -33,45 +36,166 @@ export default function ChatPanel() {
         logoUrl: '', 
         brandColors: [] 
     })
+    const [attachments, setAttachments] = useState([])
+    const [showAttachMenu, setShowAttachMenu] = useState(false)
+    const [isDragOver, setIsDragOver] = useState(false)
+    
     const messagesEndRef = useRef(null)
+    const fileInputRef = useRef(null)
+    const attachMenuRef = useRef(null)
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages, generationPhase, generationLogs])
 
+    // Close attach menu on outside click
+    useEffect(() => {
+        if (!showAttachMenu) return
+        const handler = (e) => {
+            if (attachMenuRef.current && !attachMenuRef.current.contains(e.target)) {
+                setShowAttachMenu(false)
+            }
+        }
+        document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [showAttachMenu])
+
+    // File processing
+    const processFiles = useCallback((fileList) => {
+        Array.from(fileList).forEach(file => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader()
+                reader.onload = (ev) => {
+                    setAttachments(prev => [...prev, {
+                        id: Date.now() + Math.random(),
+                        file,
+                        preview: ev.target.result,
+                        type: 'image',
+                        name: file.name
+                    }])
+                }
+                reader.readAsDataURL(file)
+            } else {
+                const reader = new FileReader()
+                reader.onload = (ev) => {
+                    setAttachments(prev => [...prev, {
+                        id: Date.now() + Math.random(),
+                        file,
+                        preview: null,
+                        type: 'file',
+                        name: file.name,
+                        content: ev.target.result
+                    }])
+                }
+                reader.readAsText(file)
+            }
+        })
+    }, [])
+
+    const removeAttachment = (id) => {
+        setAttachments(prev => prev.filter(a => a.id !== id))
+    }
+
+    // Drag and drop
+    const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(true) }
+    const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(false) }
+    const handleDrop = (e) => {
+        e.preventDefault(); e.stopPropagation(); setIsDragOver(false)
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            processFiles(e.dataTransfer.files)
+        }
+    }
+
+    // Screenshot
+    const handleScreenshot = () => {
+        setShowAttachMenu(false)
+        try {
+            const iframe = document.querySelector('.pp-iframe-wrapper iframe')
+            if (!iframe) {
+                addMessage({ role: 'assistant', content: 'No preview available to screenshot. Generate a website first!' })
+                return
+            }
+            addMessage({ role: 'assistant', content: '📸 Screenshot captured! Use ⌘+Shift+4 (Mac) or Win+Shift+S (Windows) to capture and paste your screenshot, or drag & drop the image here.' })
+        } catch (err) {
+            addMessage({ role: 'assistant', content: 'Screenshot capture failed. Use your OS screenshot tool instead.' })
+        }
+    }
+
     const handleSend = () => {
         const trimmed = input.trim()
-        if (!trimmed || isGenerating) return
+        const hasAttachments = attachments.length > 0
+        if (!trimmed && !hasAttachments) return
+        if (isGenerating) return
 
-        addMessage({ role: 'user', content: trimmed })
-        setInput('')
+        let messageContent = trimmed
+        const attachDescs = []
         
-        // GATING: Only generate if configured
+        attachments.forEach(att => {
+            if (att.type === 'image') attachDescs.push('[Attached image: ' + att.name + ']')
+            else if (att.type === 'file') attachDescs.push('[Attached file: ' + att.name + ']')
+        })
+
+        if (attachDescs.length > 0) {
+            messageContent = (trimmed ? trimmed + '\n\n' : '') + attachDescs.join('\n')
+        }
+
+        // Add visual edit elements context if present
+        if (selectedElements && selectedElements.length > 0) {
+            const elementDescs = selectedElements.map(el => {
+                const tag = el.tag || 'element'
+                const id = el.id ? `#${el.id}` : ''
+                const text = el.text ? ` ("${el.text.substring(0, 40)}")` : ''
+                return `<${tag}${id}>${text}`
+            }).join(', ')
+            messageContent = `[Visual Edit on: ${elementDescs}]\n${messageContent}`
+        }
+
+        const msgImages = attachments
+            .filter(a => a.type === 'image')
+            .map(a => a.preview)
+
+        addMessage({ 
+            role: 'user', 
+            content: messageContent,
+            images: msgImages.length > 0 ? msgImages : undefined
+        })
+        
+        setInput('')
+        setAttachments([])
+        
         if (!isConfigured) {
-            // Delay for natural feel
             setTimeout(() => {
                 addMessage({ 
                     role: 'assistant', 
                     content: "I'm still waiting for you to complete the design setup above! Please finish the steps so I can start building your site correctly. 😊" 
-                });
-            }, 600);
-            return;
+                })
+            }, 600)
+            return
         }
 
-        // CHATBOT LOGIC: Don't build for simple greetings
-        const greetings = ['hi', 'hello', 'hey', 'yo', 'sup', 'hola'];
+        const greetings = ['hi', 'hello', 'hey', 'yo', 'sup', 'hola']
         if (greetings.includes(trimmed.toLowerCase().replace(/[?.,!]/g, ''))) {
             setTimeout(() => {
                 addMessage({ 
                     role: 'assistant', 
                     content: "Hello! I'm your AI builder. How can I help you with your website today?" 
-                });
-            }, 600);
-            return;
+                })
+            }, 600)
+            return
         }
 
-        // Pass the style options (theme + brand info) to the generator
-        startGeneration(trimmed, projectId, null, styleOptions)
+        // If visual edit elements are selected, prepend context
+        if (selectedElements && selectedElements.length > 0) {
+            const elementDescs = selectedElements.map(el => {
+                const tag = el.tag || 'element'
+                const id = el.id ? `#${el.id}` : ''
+                const text = el.text ? ` ("${el.text.substring(0, 40)}")` : ''
+                return `<${tag}${id}>${text}`
+            }).join(', ')
+            messageContent = `[Visual Edit on: ${elementDescs}]\n${messageContent}`
+        }
+
+        startGeneration(messageContent, projectId, null, styleOptions)
     }
 
     const actionChips = [
@@ -82,10 +206,7 @@ export default function ChatPanel() {
         "Deploy to production"
     ]
 
-    const handleChipClick = (chip) => {
-        setInput(chip)
-        // input field focuses automatically via standard interaction, but could add ref
-    }
+    const handleChipClick = (chip) => { setInput(chip) }
 
     const getLogIcon = (type) => {
         switch (type) {
@@ -99,49 +220,71 @@ export default function ChatPanel() {
     }
 
     const handleNextStep = async () => {
-        const token = await getToken();
+        const token = await getToken()
         
-        let userContent = "";
-        let assistantNext = "";
+        let userContent = ''
+        let assistantNext = ''
         
         if (configStep === 0) {
-            userContent = `The name is **${styleOptions.websiteName}**.`;
-            assistantNext = "Nice name! Can you give me a short description of what your website or business is about?";
+            userContent = 'The name is **' + styleOptions.websiteName + '**.'
+            assistantNext = "Nice name! Can you give me a short description of what your website or business is about?"
         } else if (configStep === 1) {
-            userContent = `Description: ${styleOptions.description}`;
-            assistantNext = "Perfect. Lastly, do you have a logo URL or specific hex colors you'd like to use? (Optional)";
+            userContent = 'Description: ' + styleOptions.description
+            assistantNext = "Perfect. Lastly, do you have a logo URL or specific hex colors you'd like to use? (Optional)"
         } else if (configStep === 2) {
-            // Finalize!
-            completeProjectConfig(projectId, token, styleOptions);
-            return;
+            completeProjectConfig(projectId, token, styleOptions)
+            return
         }
 
-        addMessage({ role: 'user', content: userContent });
+        addMessage({ role: 'user', content: userContent })
         
-        // Delay assistant message slightly for more natural feel
         setTimeout(() => {
-            addMessage({ role: 'assistant', content: assistantNext });
-            setConfigStep(prev => prev + 1);
-        }, 600);
+            addMessage({ role: 'assistant', content: assistantNext })
+            setConfigStep(prev => prev + 1)
+        }, 600)
     }
 
+    const canSend = (input.trim().length > 0 || attachments.length > 0) && !isGenerating
+
     return (
-        <div className="chat-panel">
+        <div 
+            className={'chat-panel' + (isDragOver ? ' cp-drag-over' : '')}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+        >
+            {isDragOver && (
+                <div className="cp-drag-overlay">
+                    <div className="cp-drag-content">
+                        <Upload size={40} />
+                        <p>Drop files here</p>
+                        <span>Images, screenshots, or code files</span>
+                    </div>
+                </div>
+            )}
+
             <div className="cp-messages">
                 {messages.length === 0 && (
                     <div className="cp-empty">
                         <Bot size={32} className="cp-empty-icon" />
                         <p>Describe what you want to build or change.</p>
-                        <p className="cp-empty-hint">Try: "Add a dark navbar with a logo"</p>
+                        <p className="cp-empty-hint">Try: &quot;Add a dark navbar with a logo&quot;</p>
                     </div>
                 )}
 
                 {messages.map((msg) => (
-                    <div key={msg.id} className={`cp-msg cp-msg-${msg.role}`}>
+                    <div key={msg.id} className={'cp-msg cp-msg-' + msg.role}>
                         <div className="cp-msg-avatar">
                             {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                         </div>
                         <div className="cp-msg-content">
+                            {msg.images && msg.images.length > 0 && (
+                                <div className="cp-msg-images">
+                                    {msg.images.map((src, i) => (
+                                        <img key={i} src={src} alt="Attachment" className="cp-msg-image" />
+                                    ))}
+                                </div>
+                            )}
                             <p>{msg.content}</p>
                         </div>
                     </div>
@@ -151,7 +294,6 @@ export default function ChatPanel() {
                 {(isGenerating || generationPhase !== 'idle') && (
                     <div className="cp-ai-stream-container">
                         
-                        {/* STATE 1: Thinking */}
                         {(generationPhase === 'thinking' || generationPhase === 'streaming_logs' || generationLogs.length > 0) && (
                             <div className="cp-thought-row" onClick={() => setIsThoughtExpanded(!isThoughtExpanded)}>
                                 <Lightbulb size={16} className="cp-amber cp-pulse" />
@@ -160,48 +302,38 @@ export default function ChatPanel() {
                             </div>
                         )}
 
-                        {isThoughtExpanded && (
+                        {isThoughtExpanded && generationLogs.length > 0 && (
                             <div className="cp-thought-box">
-                                <i>I need to parse the user's intent, review the existing layout, and determine which files to read, edit, or create to fulfill the requirement safely.</i>
+                                <em>Analyzing your request and determining the best approach...</em>
                             </div>
                         )}
 
-                        {/* STATE 2: Streaming Logs */}
                         {generationLogs.length > 0 && (
                             <div className="cp-logs-list">
                                 {generationLogs.map((log, idx) => (
                                     <div key={idx} className="cp-log-row cp-slide-up">
                                         {getLogIcon(log.type)}
                                         <span className="cp-log-type">{log.type}</span>
-                                        {log.file && <span className="cp-log-pill">{log.file}</span>}
+                                        <span className="cp-log-pill">{log.file}</span>
                                     </div>
                                 ))}
                             </div>
                         )}
 
-                        {/* STATE 3: Finished Thinking */}
-                        {(generationPhase === 'finished_thinking' || generationPhase === 'complete') && (
-                            <div className="cp-finished-text">Finished thinking</div>
+                        {generationPhase === 'complete' && generationSummary && (
+                            <div className="cp-finished-text">
+                                <p className="cp-summary-paragraph">{generationSummary}</p>
+                            </div>
                         )}
 
-                        {/* STATE 4: Summary Paragraph */}
-                        {generationPhase === 'complete' && (
-                            <p className="cp-summary-paragraph">
-                                {generationSummary.replace('Simple Task Hub', '')}
-                                <strong>Simple Task Hub</strong>
-                                {generationSummary.split('Simple Task Hub')[1]}
-                            </p>
-                        )}
-
-                        {/* COMPLETION CARD */}
                         {generationPhase === 'complete' && (
                             <div className="cp-completion-card">
                                 <div className="cp-cc-header">
-                                    <div className="flex flex-col gap-0.5">
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                         <span className="cp-cc-title">{generationTaskName}</span>
-                                        {generationTheme && (
-                                            <span className="text-[10px] text-[#888] flex items-center gap-1">
-                                                <Palette size={10} className="text-[#3a3aff]" /> {generationTheme} • {generationSiteType || 'Website'}
+                                        {generationSiteType && (
+                                            <span style={{ fontSize: '10px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <Palette size={10} style={{ color: '#3a3aff' }} /> {generationSiteType} &bull; AI Generated
                                             </span>
                                         )}
                                     </div>
@@ -212,44 +344,36 @@ export default function ChatPanel() {
                                     <button 
                                         className="cp-cc-btn"
                                         onClick={() => {
-                                            if (!isIdeVisible) setIdeVisible(true);
-                                            setDetailsExpanded(!isDetailsExpanded);
+                                            if (!isIdeVisible) setIdeVisible(true)
+                                            setActiveView('preview')
                                         }}
                                     >
-                                        {isDetailsExpanded && isIdeVisible ? 'Hide details' : 'Show details'}
+                                        <Monitor size={14} /> Preview
                                     </button>
                                     <button 
                                         className="cp-cc-btn"
                                         onClick={() => {
-                                            setIdeVisible(true);
-                                            setDetailsExpanded(false);
+                                            if (!isIdeVisible) setIdeVisible(true)
+                                            setActiveView('code')
                                         }}
                                     >
-                                        Preview
+                                        <ExternalLink size={14} /> View Code
                                     </button>
                                 </div>
 
-                                <p className="cp-cc-bottom-summary">
-                                    Built <strong>Simple Task Hub</strong> — interface updated with new layout components.
-                                </p>
+                                {isDetailsExpanded && (
+                                    <div className="cp-cc-bottom-summary">
+                                        <p>{generationSummary}</p>
+                                    </div>
+                                )}
 
-                                <div className="cp-cc-actions">
-                                    <button className="cp-icon-btn"><ThumbsUp size={16} /></button>
-                                    <button className="cp-icon-btn"><ThumbsDown size={16} /></button>
-                                    <button className="cp-icon-btn"><Copy size={16} /></button>
-                                    <button className="cp-icon-btn"><MoreHorizontal size={16} /></button>
+                                <div className="cp-chips-container">
+                                    {actionChips.map(chip => (
+                                        <button key={chip} className="cp-chip" onClick={() => handleChipClick(chip)}>
+                                            {chip}
+                                        </button>
+                                    ))}
                                 </div>
-                            </div>
-                        )}
-
-                        {/* ACTION CHIPS */}
-                        {generationPhase === 'complete' && (
-                            <div className="cp-chips-container">
-                                {actionChips.map((chip, idx) => (
-                                    <button key={idx} className="cp-chip" onClick={() => handleChipClick(chip)}>
-                                        {chip}
-                                    </button>
-                                ))}
                             </div>
                         )}
                     </div>
@@ -258,116 +382,198 @@ export default function ChatPanel() {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* INPUT AREA */}
-            <div className="cp-input-area">
-                {/* CONVERSATIONAL PIPELINE: Multi-step Intake */}
-                {!isConfigured && !isGenerating && (
-                    <div style={{ marginBottom: '16px' }}>
-                        <div className="website-style-picker-container">
-                            <WebsiteStylePicker 
-                                step={configStep} 
-                                value={styleOptions} 
-                                onChange={setStyleOptions} 
-                            />
-                        </div>
+            {/* STYLE CONFIGURATOR */}
+            {!isConfigured && messages.length > 0 && (
+                <div className="website-style-picker-container">
+                    <WebsiteStylePicker 
+                        value={styleOptions}
+                        onChange={setStyleOptions}
+                        step={configStep}
+                    />
+                    <button 
+                        style={{
+                            width: '100%', padding: '14px',
+                            background: configStep === 2 
+                                ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' 
+                                : 'linear-gradient(135deg, #3a8bfd 0%, #4466ff 100%)',
+                            color: '#fff', border: 'none',
+                            borderRadius: '14px', fontSize: '14px', fontWeight: '600',
+                            cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', gap: '8px',
+                            boxShadow: configStep === 2 
+                                ? '0 4px 20px rgba(139,92,246,0.3)' 
+                                : '0 4px 20px rgba(59,130,246,0.25)',
+                            transition: 'all 0.3s ease',
+                            marginTop: '12px',
+                            letterSpacing: '-0.01em',
+                        }}
+                        onClick={handleNextStep}
+                    >
+                        {configStep === 2 ? (
+                            <><Sparkles size={16} /> Build Your Website</>
+                        ) : (
+                            <>Continue <ArrowRight size={16} /></>
+                        )}
+                    </button>
+                    
+                    {configStep > 0 && (
                         <button 
                             style={{
-                                width: '100%', padding: '14px 20px',
-                                background: configStep === 2 
-                                    ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' 
-                                    : 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                                color: '#fff', border: 'none',
-                                borderRadius: '14px', fontSize: '14px', fontWeight: '600',
-                                cursor: 'pointer', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                boxShadow: configStep === 2 
-                                    ? '0 4px 20px rgba(139,92,246,0.3)' 
-                                    : '0 4px 20px rgba(59,130,246,0.25)',
-                                transition: 'all 0.3s ease',
-                                marginTop: '12px',
+                                width: '100%', padding: '10px',
+                                background: 'transparent', color: 'rgba(255,255,255,0.35)',
+                                border: 'none', borderRadius: '10px',
+                                fontSize: '12px', fontWeight: '500',
+                                cursor: 'pointer', marginTop: '6px',
+                                transition: 'all 0.2s',
                                 letterSpacing: '-0.01em',
                             }}
-                            onClick={handleNextStep}
-                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.filter = 'brightness(1.1)'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.filter = 'brightness(1)'; }}
+                            onClick={() => setConfigStep(prev => prev - 1)}
                         >
-                            {configStep === 2 ? (
-                                <><Sparkles size={16} /> Build Your Website</>
-                            ) : (
-                                <>Continue <ArrowRight size={16} /></>
-                            )}
+                            &larr; Back to previous step
                         </button>
-                        
-                        {configStep > 0 && (
-                            <button 
-                                style={{
-                                    width: '100%', padding: '10px',
-                                    background: 'transparent', color: 'rgba(255,255,255,0.35)',
-                                    border: 'none', borderRadius: '10px',
-                                    fontSize: '12px', fontWeight: '500',
-                                    cursor: 'pointer', marginTop: '6px',
-                                    transition: 'all 0.2s',
-                                    letterSpacing: '-0.01em',
-                                }}
-                                onClick={() => setConfigStep(prev => prev - 1)}
-                                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
-                            >
-                                ← Back to previous step
-                            </button>
-                        )}
+                    )}
+                </div>
+            )}
+
+            <div className="cp-input-tabs">
+                <button className="cp-input-tab-left">&larr; Back to Preview</button>
+                <button className="cp-input-tab-right active">Details</button>
+            </div>
+            
+            <div className="cp-input-box">
+                {/* Attachment thumbnails */}
+                {attachments.length > 0 && (
+                    <div className="cp-attachments-strip">
+                        {attachments.map(att => (
+                            <div key={att.id} className="cp-attachment-thumb">
+                                {att.preview ? (
+                                    <img src={att.preview} alt={att.name} />
+                                ) : (
+                                    <div className="cp-attachment-file">
+                                        <Paperclip size={14} />
+                                        <span>{att.name}</span>
+                                    </div>
+                                )}
+                                <button className="cp-attachment-remove" onClick={() => removeAttachment(att.id)}>
+                                    <X size={12} />
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 )}
 
-                <div className="cp-input-tabs">
-                    <button className="cp-input-tab-left">&larr; Back to Preview</button>
-                    <button className="cp-input-tab-right active">Details</button>
-                </div>
+                {/* Selected element tag chips (always shown when elements selected) */}
+                {selectedElements && selectedElements.length > 0 && (
+                    <div className="cp-selected-elements">
+                        {selectedElements.map((el, i) => (
+                            <span key={el.xpath || i} className={`cp-el-tag cp-el-tag-${el.tag}`}>
+                                <span className="cp-el-tag-icon">{getTagIcon(el.tag)}</span>
+                                {el.tag}{el.id ? `#${el.id}` : ''}
+                                <button className="cp-el-tag-x" onClick={() => removeSelectedElement(el.xpath)}>
+                                    <X size={10} />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                <textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask Simple Task Hub..."
+                    className="cp-textarea"
+                    rows={1}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            handleSend()
+                        }
+                    }}
+                />
                 
-                <div className="cp-input-box">
-                    <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask Simple Task Hub..."
-                        className="cp-textarea"
-                        rows={1}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault()
-                                handleSend()
-                            }
-                        }}
-                    />
-                    
                 <div className="cp-input-toolbar">
-                        <div className="cp-toolbar-left">
-                            <button className="cp-tiny-btn"><Plus size={18} /></button>
-                            <div className="cp-model-selector">
-                                <select 
-                                    value={selectedModel} 
-                                    onChange={(e) => setSelectedModel(e.target.value)}
-                                    className="cp-model-dropdown"
-                                    disabled={isGenerating}
-                                >
-                                    <option value="qwen">⚡ Qwen (Local)</option>
-                                    <option value="mistral">☁️ Mistral (Cloud)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="cp-toolbar-right">
-                            <button className="cp-tiny-btn"><MessageSquare size={18} /></button>
-                            <button className="cp-tiny-btn"><Mic size={18} /></button>
+                    <div className="cp-toolbar-left">
+                        {/* Attachment menu */}
+                        <div className="cp-attach-container" ref={attachMenuRef}>
                             <button 
-                                className={`cp-send-btn ${input.trim() ? 'active' : ''}`}
-                                onClick={handleSend}
-                                disabled={!input.trim() || isGenerating}
+                                className="cp-tiny-btn" 
+                                onClick={() => setShowAttachMenu(!showAttachMenu)}
                             >
-                                <ArrowUp size={18} />
+                                <Plus size={18} />
                             </button>
+                            
+                            {showAttachMenu && (
+                                <div className="cp-attach-menu">
+                                    <button className="cp-attach-item" onClick={() => {
+                                        if (fileInputRef.current) fileInputRef.current.click()
+                                        setShowAttachMenu(false)
+                                    }}>
+                                        <ImagePlus size={16} />
+                                        <span>Add files or photos</span>
+                                    </button>
+                                    <button className="cp-attach-item" onClick={handleScreenshot}>
+                                        <Camera size={16} />
+                                        <span>Take a screenshot</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
+
+                        <input 
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept="image/*,.html,.css,.js,.jsx,.tsx,.json,.txt,.md"
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                    processFiles(e.target.files)
+                                }
+                                e.target.value = ''
+                            }}
+                        />
+
+                        <div className="cp-model-selector">
+                            <select 
+                                value={selectedModel} 
+                                onChange={(e) => setSelectedModel(e.target.value)}
+                                className="cp-model-dropdown"
+                                disabled={isGenerating}
+                            >
+                                <option value="qwen">⚡ Qwen (Local)</option>
+                                <option value="mistral">☁️ Mistral (Cloud)</option>
+                                <option value="glm">🌏 GLM-4 (Cloud)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="cp-toolbar-right">
+                        <button 
+                            className={`ep-pill-btn ${isVisualEditMode ? 'active' : ''}`}
+                            onClick={toggleVisualEditMode}
+                            style={{ padding: '4px 10px', fontSize: '12px', background: isVisualEditMode ? '#4466ff' : 'transparent', color: isVisualEditMode ? '#fff' : '#ccc', border: '1px solid #333' }}
+                        >
+                            <span style={{ fontSize: '12px' }}>✏️</span> Visual edits
+                        </button>
+                        <button className="cp-tiny-btn"><MessageSquare size={18} /></button>
+                        <button className="cp-tiny-btn"><Mic size={18} /></button>
+                        <button 
+                            className={'cp-send-btn' + (canSend ? ' active' : '')}
+                            onClick={handleSend}
+                            disabled={!canSend}
+                        >
+                            <ArrowUp size={18} />
+                        </button>
                     </div>
                 </div>
             </div>
+
+
         </div>
     )
+}
+
+function getTagIcon(tag) {
+    if (!tag) return '?'
+    const map = { h1: 'H', h2: 'H', h3: 'H', h4: 'H', p: 'P', span: 'S', div: 'D', a: 'A', button: 'B', input: 'I', img: 'I', section: 'S', nav: 'N', header: 'H', footer: 'F' }
+    return map[tag.toLowerCase()] || tag[0]?.toUpperCase() || '?'
 }

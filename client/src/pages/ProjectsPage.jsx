@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Search, ChevronDown, LayoutGrid, List, Heart, Users, LayoutTemplate, MoreVertical, Trash2, Clock, Star } from 'lucide-react'
+import { Search, ChevronDown, LayoutGrid, List, Heart, Users, LayoutTemplate, MoreVertical, Trash2, Clock, Star, Edit2 } from 'lucide-react'
 import { useAuth } from '@clerk/clerk-react'
 import { useAuthStore } from '../stores/authStore'
 import { useProjectStore } from '../stores/projectStore'
@@ -35,7 +35,7 @@ export default function ProjectsPage() {
     const { type, folderId } = useParams() // 'mine', 'starred', 'shared', 'all', or undefined if /projects/folder/:folderId
     const { isLoaded, isSignedIn, getToken } = useAuth()
     const { userData } = useAuthStore()
-    const { projects, fetchProjects, deleteProject, toggleStar } = useProjectStore()
+    const { projects, fetchProjects, deleteProject, toggleStar, renameProject } = useProjectStore()
     const [activeDropdown, setActiveDropdown] = useState(null)
     
     // Attempt to pull in folderStore to get the name of the folder for the title
@@ -73,6 +73,22 @@ export default function ProjectsPage() {
         setActiveDropdown(null);
     }
 
+    const handleRename = async (e, proj) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setActiveDropdown(null);
+        const newName = window.prompt('Rename project:', proj.name);
+        if (newName && newName.trim() && newName.trim() !== proj.name) {
+            const token = await getToken();
+            const success = await renameProject(proj.id, newName.trim(), token);
+            if (success) {
+                toast.success('Project renamed successfully');
+            } else {
+                toast.error('Failed to rename project');
+            }
+        }
+    }
+
     const handleToggleStar = async (e, projectId) => {
         e.preventDefault();
         e.stopPropagation();
@@ -99,15 +115,23 @@ export default function ProjectsPage() {
 
     // Filter projects based on type or folderId
     const renderedProjects = projects.filter(p => {
+        // If we're inside a specific folder, show only its projects
         if (folderId) return p.folderId === folderId;
         
-        // If type is 'all' or 'mine', act like a "Root" directory and hide projects in folders
-        if (type === 'all' || type === 'mine') {
+        // "Created by me" (type === 'mine') acts as the "Root" directory (no folder)
+        if (type === 'mine') {
              return !p.folderId;
         }
 
+        // "All projects" doesn't filter by folder at all
+        if (type === 'all') {
+            return true;
+        }
+
+        // Other categories
         if (type === 'starred') return p.isStarred;
         if (type === 'shared') return p.isShared;
+        
         return true;
     })
 
@@ -234,6 +258,14 @@ export default function ProjectsPage() {
                                         
                                         {activeDropdown === proj.id && (
                                             <div className="pp-dropdown">
+                                                <button className="pp-dropdown-item" onClick={(e) => handleRename(e, proj)}>
+                                                    <Edit2 size={14} />
+                                                    <span>Rename</span>
+                                                </button>
+                                                <button className="pp-dropdown-item" onClick={(e) => handleToggleStar(e, proj.id)}>
+                                                    <Star size={14} fill={proj.isStarred ? '#fbbf24' : 'none'} stroke={proj.isStarred ? '#fbbf24' : 'currentColor'} />
+                                                    <span>{proj.isStarred ? 'Unstar' : 'Star'}</span>
+                                                </button>
                                                 <button className="pp-dropdown-item delete" onClick={(e) => handleDelete(e, proj.id)}>
                                                     <Trash2 size={14} />
                                                     <span>Delete</span>

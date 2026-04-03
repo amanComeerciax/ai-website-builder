@@ -26,8 +26,11 @@ const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0
  */
 const aiWorker = new Worker('AI_Generation_Queue', async job => {
   console.log(`[Worker] Job ${job.id} started for project: ${job.data.projectId}`);
-  const { projectId, prompt, existingFiles, enhanceOptions } = job.data;
+  const { projectId, prompt, existingFiles, enhanceOptions, model } = job.data;
+  let existingHtmlForEdit = null;
   if (!prompt) throw new Error("Missing 'prompt' in job data");
+
+  const currentModel = model || 'mistral';
 
   // ─── STEP 1: ENHANCE PROMPT ────────────────────────────────────
   await job.updateProgress({
@@ -37,7 +40,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
   let isModification = false;
   let previousLayoutSpec = null;
-  let enhanceOptionsOverride = { ...(enhanceOptions || {}) };
+  let enhanceOptionsOverride = { ...(enhanceOptions || {}), requestModel: currentModel };
 
   const mongoose = require('mongoose');
   if (projectId && mongoose.Types.ObjectId.isValid(projectId)) {
@@ -64,9 +67,15 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
         if (lastMsg && lastMsg.layoutSpec) {
           previousLayoutSpec = lastMsg.layoutSpec;
-          console.log(`[Worker] ✅ Found previous layoutSpec with ${previousLayoutSpec.sections?.length || 0} sections from message ${lastMsg._id}`);
+          console.log(`[Worker] ✅ Found previous layoutSpec from message ${lastMsg._id}`);
+        }
+
+        // CRITICAL: Grab the existing generated HTML for contextual editing
+        if (project.currentFileTree && project.currentFileTree['index.html']) {
+          existingHtmlForEdit = project.currentFileTree['index.html'];
+          console.log(`[Worker] ✅ Found existing HTML (${existingHtmlForEdit.length} chars) for contextual editing`);
         } else {
-          console.warn(`[Worker] ⚠️ No previous layoutSpec found in messages — modification will regenerate from scratch`);
+          console.warn(`[Worker] ⚠️ No existing HTML found — will regenerate from scratch`);
         }
       } else {
         console.log(`[Worker] 🆕 NEW GENERATION — project not yet configured`);
@@ -108,7 +117,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     payload: {
       type: 'Reading',
       file: 'prompt analysis',
-      message: `Creating ${enhanced.siteType} site with ${enhanced.themeName} theme`
+      message: isModification ? 'Preparing your requested changes...' : `Designing your ${enhanced.siteType} website`
     }
   });
 
@@ -120,13 +129,17 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
   let result;
   try {
-    console.log(`[Worker] ⚡ Routing to Template Auto-Prediction Generator Track`);
+    if (isModification && existingHtmlForEdit) {
+      console.log(`[Worker] ✏️ Routing to CONTEXTUAL EDIT mode`);
+    } else {
+      console.log(`[Worker] 🆕 Routing to FRESH GENERATION mode`);
+    }
     result = await generateRawHtml(enhanced.enrichedSpec, (progress) => {
       job.updateProgress({
         event: progress.event,
         payload: { type: progress.type, file: progress.file, message: progress.message }
       });
-    });
+    }, isModification ? existingHtmlForEdit : null, currentModel);
   } catch (e) {
     console.error(`[Worker] Generation failed:`, e.message);
     throw new Error(`Website generation failed: ${e.message}`);

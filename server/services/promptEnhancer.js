@@ -226,7 +226,7 @@ function ruleBasedEnrich(prompt, options = {}) {
  * - Suggest content tone
  * - Interpret any vague phrases in the prompt
  */
-async function llmEnrich(ruleSpec) {
+async function llmEnrich(ruleSpec, requestModel = null) {
   const systemPrompt = [
     'You are a website planning assistant. Given a website request and detected site type,',
     ruleSpec.isModification ? 'The user is requesting an EDIT to their EXISTING website. If they ask to change the name or theme, update the properties accordingly.' : 'fill in the missing details to help a code generator produce a complete website.',
@@ -255,7 +255,7 @@ async function llmEnrich(ruleSpec) {
   ].filter(Boolean).join('\n');
 
   try {
-    const result = await callModel('parse_prompt', userMessage, systemPrompt);
+    const result = await callModel('parse_prompt', userMessage, systemPrompt, { forceModel: requestModel });
     const parsed = JSON.parse(result.content);
 
     // Merge LLM output into the spec
@@ -369,7 +369,7 @@ async function enhance(prompt, options = {}) {
   console.log(`[PromptEnhancer] Rule-based → siteType: ${ruleSpec.siteType}, sections: ${ruleSpec.sections.length}, theme: ${ruleSpec.themeName}`);
 
   // Layer 2: LLM-based (Mistral, ~1-2 seconds)
-  const enrichedSpec = await llmEnrich(ruleSpec);
+  const enrichedSpec = await llmEnrich(ruleSpec, options.requestModel);
   console.log(`[PromptEnhancer] LLM-enriched → name: "${enrichedSpec.businessName}", audience: "${enrichedSpec.targetAudience}"`);
 
   // Build the final enhanced prompt string

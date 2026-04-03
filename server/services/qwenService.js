@@ -15,9 +15,9 @@ const { Mistral } = require('@mistralai/mistralai');
 
 const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:latest';
-const QWEN_TIMEOUT_MS = parseInt(process.env.QWEN_TIMEOUT_MS) || 30000; // 30s per token
+const QWEN_TIMEOUT_MS = parseInt(process.env.QWEN_TIMEOUT_MS) || 300000; // 5 mins per token for large prompts
 const QWEN_MAX_RETRIES = parseInt(process.env.QWEN_MAX_RETRIES) || 3;
-const MAX_INPUT_CHARS = 14000;
+const MAX_INPUT_CHARS = parseInt(process.env.QWEN_MAX_INPUT_CHARS) || 150000;
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const mistralClient = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY }) : null;
@@ -62,13 +62,13 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
     format: jsonMode ? 'json' : undefined,
     options: {
       temperature: 0.1,
-      num_ctx: 4096,                 // FIX 2: Hard cap context window
+      num_ctx: 32768,                 // FIX 2: Increased context window for large websites
     }
   };
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`[Qwen Service] Attempt ${attempt}/${retries} — Streaming from Ollama (num_ctx: 4096)...`);
+      console.log(`[Qwen Service] Attempt ${attempt}/${retries} — Streaming from Ollama (num_ctx: 32768)...`);
       const startTime = Date.now();
 
       // FIX 3: Token-level AbortController — resets on each received chunk

@@ -11,6 +11,7 @@ import PreviewPanel from '../components/editor/PreviewPanel'
 import DetailsPanel from '../components/editor/DetailsPanel'
 import HistoryPanel from '../components/editor/HistoryPanel'
 import ProjectPopover from '../components/editor/ProjectPopover'
+import VisualEditPanel from '../components/editor/VisualEditPanel'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import { useChatStore } from '../stores/chatStore'
@@ -25,12 +26,12 @@ export default function ChatPage() {
     const navigate = useNavigate()
     const { getProjectById } = useProjectStore()
     const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-    const [chatWidth, setChatWidth] = useState(400) // Default pixel width
+    const [chatWidth, setChatWidth] = useState(() => Math.round(window.innerWidth * 0.2))
     const [isDragging, setIsDragging] = useState(false)
     const { 
         isGenerating, generationStatus, isDetailsExpanded, setDetailsExpanded,
         isIdeVisible, setIdeVisible, activeView, setActiveView, messages, addMessage, startGeneration,
-        generationPhase
+        generationPhase, isVisualEditMode
     } = useChatStore()
     const { files } = useEditorStore()
     
@@ -46,41 +47,31 @@ export default function ChatPage() {
     const project = getProjectById(projectId)
     const projectName = project ? project.name : (projectId === 'new' ? 'Untitled Project' : 'Unknown Project')
     
-    // Resizer logic
+
+    // Resizer logic — capped between 15% and 30% of viewport
     useEffect(() => {
         const handleMouseMove = (e) => {
-            if (!isDragging) return;
-            // Native fix: If the user released the mouse outside the window, un-stick it!
-            if (e.buttons === 0) {
-                setIsDragging(false);
-                return;
-            }
-            // Cap at 40% of viewport width max
-            const maxWidth = window.innerWidth * 0.4;
-            const newWidth = Math.min(Math.max(e.clientX, 280), maxWidth);
-            setChatWidth(newWidth);
-        };
-        const handleMouseUp = () => setIsDragging(false);
-        const handleMouseLeave = (e) => {
-            if (e.buttons === 0) setIsDragging(false);
-        };
-
+            if (!isDragging) return
+            if (e.buttons === 0) { setIsDragging(false); return }
+            const minW = Math.round(window.innerWidth * 0.15)
+            const maxW = Math.round(window.innerWidth * 0.30)
+            const newWidth = Math.min(Math.max(e.clientX, minW), maxW)
+            setChatWidth(newWidth)
+        }
+        const handleMouseUp = () => setIsDragging(false)
         if (isDragging) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            document.addEventListener('mouseleave', handleMouseLeave);
-            // Add user select none to body to prevent text highlighting while dragging
-            document.body.style.userSelect = 'none';
+            document.addEventListener('mousemove', handleMouseMove)
+            document.addEventListener('mouseup', handleMouseUp)
+            document.body.style.userSelect = 'none'
         } else {
-            document.body.style.userSelect = '';
+            document.body.style.userSelect = ''
         }
         return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-            document.addEventListener('mouseleave', handleMouseLeave);
-            document.body.style.userSelect = '';
-        };
-    }, [isDragging]);
+            document.removeEventListener('mousemove', handleMouseMove)
+            document.removeEventListener('mouseup', handleMouseUp)
+            document.body.style.userSelect = ''
+        }
+    }, [isDragging])
 
     // Switch completely isolated IDE workspaces when the URL changes
     useEffect(() => {
@@ -248,9 +239,30 @@ export default function ChatPage() {
 
             {/* Workspace: centered chat-only OR 2-panel split */}
             <div className={`ep-workspace ${isDragging ? 'resizing' : ''} ${!showRightPanel ? 'ep-centered' : ''}`}>
-                {/* Left: Chat Panel */}
+                {/* Left: Chat/Agent Panel (20%, draggable) */}
                 <div className="ep-panel ep-chat" style={showRightPanel ? { width: chatWidth } : {}}>
-                    <ChatPanel />
+                    <div className="ep-chat-container">
+                        <ChatPanel />
+                        
+                        <div className={`ep-visual-edit-overlay ${isVisualEditMode ? 'active' : ''}`}>
+                            {isVisualEditMode && (
+                                <VisualEditPanel 
+                                    onApplyStyle={(xpath, prop, value) => {
+                                        const iframe = document.querySelector('.pp-iframe-wrapper iframe')
+                                        if (iframe) {
+                                            try {
+                                                iframe.contentWindow.postMessage(
+                                                    { type: 'VE_APPLY_STYLE', xpath, prop, value },
+                                                    '*'
+                                                )
+                                            } catch(e) {}
+                                        }
+                                    }}
+                                    onClose={() => useChatStore.getState().setVisualEditMode(false)}
+                                />
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {showRightPanel && (
@@ -263,7 +275,7 @@ export default function ChatPage() {
                             <div className="ep-resizer-line"></div>
                         </div>
 
-                        {/* Right: Toggleable Active View Panel */}
+                        {/* Right: Preview/Code Panel (80%, takes remaining) */}
                         <div className="ep-panel ep-main-view">
                             {activeView === 'agent' && <DetailsPanel />}
                             {activeView === 'code' && (

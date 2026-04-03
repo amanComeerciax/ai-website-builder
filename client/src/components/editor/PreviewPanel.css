@@ -101,3 +101,79 @@
     border: none;
     background: #fff;
 }
+
+/* ── Floating Visual Edit Bar ── */
+.ve-floating-bar-wrapper {
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10000;
+}
+.ve-floating-bar {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 24px;
+    padding: 6px 6px 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    pointer-events: auto;
+    width: 400px;
+    max-width: 90%;
+    transition: all 0.2s;
+}
+.ve-floating-bar:focus-within {
+    border-color: #555;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,255,255,0.05);
+}
+.ve-floating-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+}
+.ve-floating-input::placeholder {
+    color: #888;
+}
+.ve-floating-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.ve-floating-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background: transparent;
+    border: none;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.ve-floating-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+.ve-floating-btn.primary {
+    background: #333;
+    color: #fff;
+}
+.ve-floating-btn.primary:hover {
+    background: #444;
+}
+.ve-floating-divider {
+    width: 1px;
+    height: 16px;
+    background: #333;
+    margin: 0 4px;
+}

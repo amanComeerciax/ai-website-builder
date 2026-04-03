@@ -12,8 +12,8 @@ export const useChatStore = create(
             messages: [],
             isGenerating: false,
             
-            // Model selection: 'qwen' (local + fallback) or 'mistral' (direct cloud)
-            selectedModel: 'qwen',
+            // Model selection: 'mistral' (direct cloud) or 'qwen' (local + fallback)
+            selectedModel: 'mistral',
             
             // Generation states: 'idle' | 'thinking' | 'streaming_logs' | 'finished_thinking' | 'summary' | 'complete'
             generationPhase: 'idle', 
@@ -175,12 +175,47 @@ export const useChatStore = create(
             isDetailsExpanded: false, // For the completion card details expansion
             activeView: 'preview',    // 'preview' | 'code' - which right panel is shown
             
+            // Visual Edit Mode
+            isVisualEditMode: false,
+            selectedElements: [],     // [{ tag, id, classes, xpath, styles, text }]
+            
             // Internal: EventSource reference for cleanup
             _eventSource: null,
 
             setIdeVisible: (visible) => set({ isIdeVisible: visible }),
             setActiveView: (view) => set({ activeView: view, isIdeVisible: true }),
             setSelectedModel: (model) => set({ selectedModel: model }),
+            
+            // Visual Edit actions
+            toggleVisualEditMode: () => set((state) => {
+                const next = !state.isVisualEditMode
+                return { 
+                    isVisualEditMode: next, 
+                    selectedElements: next ? state.selectedElements : [],
+                    activeView: next ? 'preview' : state.activeView,
+                    isIdeVisible: true
+                }
+            }),
+            setVisualEditMode: (on) => set({ 
+                isVisualEditMode: on, 
+                selectedElements: on ? [] : [],
+                activeView: on ? 'preview' : 'preview',
+                isIdeVisible: true
+            }),
+            addSelectedElement: (el) => set((state) => {
+                const exists = state.selectedElements.find(e => e.xpath === el.xpath)
+                if (exists) return {}
+                return { selectedElements: [...state.selectedElements, el] }
+            }),
+            removeSelectedElement: (xpath) => set((state) => ({
+                selectedElements: state.selectedElements.filter(e => e.xpath !== xpath)
+            })),
+            clearSelectedElements: () => set({ selectedElements: [] }),
+            updateElementStyle: (xpath, prop, value) => set((state) => ({
+                selectedElements: state.selectedElements.map(e =>
+                    e.xpath === xpath ? { ...e, styles: { ...e.styles, [prop]: value } } : e
+                )
+            })),
 
             addMessage: (message) =>
                 get()._sync((state) => ({
@@ -215,7 +250,7 @@ export const useChatStore = create(
                     // Add a system message to keep user informed
                     get().addMessage({ 
                         role: 'assistant', 
-                        content: `Got it! I'm now building your website using the **${styleOptions.theme}** theme and **${styleOptions.websiteName || 'custom'}** branding.` 
+                        content: `Got it! I'm now building your **${styleOptions.websiteName || 'website'}**. Sit tight while the AI designs something beautiful for you.` 
                     });
 
                     // Start generation with the first user message as prompt
@@ -230,7 +265,7 @@ export const useChatStore = create(
             
             // ── Real AI Generation via Backend SSE ──
             startGeneration: async (promptText, projectId, token, styleOptions = {}) => {
-                const currentModel = get().selectedModel || 'qwen';
+                const currentModel = get().selectedModel || 'mistral';
                 // Reset UI state for new generation
                 get()._sync({ 
                     isGenerating: true, 
