@@ -1,0 +1,277 @@
+/**
+ * Next.js Export Engine
+ * Converts HTML snippet layouts into a complete Next.js project structure.
+ */
+
+/**
+ * Basic HTML to JSX transformer.
+ * Handles common attributes and void elements.
+ */
+function htmlToJsx(html) {
+  if (!html) return '';
+
+  return html
+    .replace(/class=/g, 'className=')
+    .replace(/for=/g, 'htmlFor=')
+    .replace(/tabindex=/g, 'tabIndex=')
+    .replace(/onclick=/g, 'onClick=')
+    // SVG attributes
+    .replace(/stroke-linecap=/g, 'strokeLinecap=')
+    .replace(/stroke-linejoin=/g, 'strokeLinejoin=')
+    .replace(/stroke-width=/g, 'strokeWidth=')
+    .replace(/fill-rule=/g, 'fillRule=')
+    .replace(/clip-rule=/g, 'clipRule=')
+    .replace(/viewbox=/g, 'viewBox=')
+    // Void elements closure
+    .replace(/<(img|input|br|hr|meta|link)([^>]*?)>/g, (match, tag, attrs) => {
+      if (match.endsWith('/>')) return match;
+      return `<${tag}${attrs} />`;
+    })
+    // Inline styles (very basic handling)
+    .replace(/style="([^"]*?)"/g, (match, styleStr) => {
+      const reactStyle = styleStr.split(';').reduce((acc, style) => {
+        const [prop, value] = style.split(':').map(s => s.trim());
+        if (prop && value) {
+          const camelProp = prop.replace(/-([a-z])/g, g => g[1].toUpperCase());
+          acc[camelProp] = value;
+        }
+        return acc;
+      }, {});
+      return `style={${JSON.stringify(reactStyle)}}`;
+    });
+}
+
+/**
+ * Generates the full Next.js project file structure.
+ * @param {string} stitchedHtml - The raw stitched HTML sections.
+ * @param {object} layoutSpec - The AI's layout specification (design tokens, meta).
+ * @returns {object} A map of file paths to their content.
+ */
+function exportToNextJs(stitchedHtml, layoutSpec) {
+  const { designTokens, meta = {} } = layoutSpec;
+  const brandName = meta.brandName || 'MyWebsite';
+
+  const files = {};
+
+  // 1. package.json
+  files['package.json'] = JSON.stringify({
+    name: brandName.toLowerCase().replace(/\s+/g, '-'),
+    version: '0.1.0',
+    private: true,
+    scripts: {
+      dev: 'next dev',
+      build: 'next build',
+      start: 'next start',
+      lint: 'next lint'
+    },
+    dependencies: {
+      'next': 'latest',
+      'react': 'latest',
+      'react-dom': 'latest',
+      'lucide-react': 'latest',
+      'gsap': 'latest'
+    },
+    devDependencies: {
+      'typescript': 'latest',
+      '@types/node': 'latest',
+      '@types/react': 'latest',
+      '@types/react-dom': 'latest',
+      'tailwindcss': 'latest',
+      'postcss': 'latest',
+      'autoprefixer': 'latest'
+    }
+  }, null, 2);
+
+  // 2. tailwind.config.ts
+  files['tailwind.config.ts'] = `import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        theme: {
+          bg: "${designTokens.bg}",
+          surface: "${designTokens.surface}",
+          accent: "${designTokens.accent}",
+          hover: "${designTokens.accentHover || designTokens.accent}",
+          text: "${designTokens.text}",
+          dim: "${designTokens.textDim}",
+          border: "${designTokens.border}",
+        },
+      },
+      fontFamily: {
+        heading: ["var(--font-heading)"],
+        body: ["var(--font-body)"],
+      },
+      animation: {
+        shimmer: "shimmer 2s linear infinite",
+      },
+      keyframes: {
+        shimmer: {
+          from: { transform: "translateX(-100%)" },
+          to: { transform: "translateX(100%)" },
+        },
+      },
+    },
+  },
+  plugins: [],
+};
+export default config;
+`;
+
+  // 3. app/globals.css
+  files['app/globals.css'] = `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: ${designTokens.bg};
+  --foreground: ${designTokens.text};
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+}
+
+.premium-glass {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.inner-glow {
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
+}
+`;
+
+  // 4. app/layout.tsx
+  // Convert font names to a format next/font/google expects (e.g. "Plus Jakarta Sans" -> "Plus_Jakarta_Sans")
+  const formatFont = (name) => name.replace(/\s+/g, '_');
+  const headingFontName = formatFont(designTokens.fontHeading || 'Inter');
+  const bodyFontName = formatFont(designTokens.fontBody || 'Inter');
+  
+  files['app/layout.tsx'] = `import type { Metadata } from "next";
+import { ${headingFontName}, ${bodyFontName} } from "next/font/google";
+import "./globals.css";
+
+const fontHeading = ${headingFontName}({
+  subsets: ["latin"],
+  variable: "--font-heading",
+});
+
+const fontBody = ${bodyFontName}({
+  subsets: ["latin"],
+  variable: "--font-body",
+});
+
+export const metadata: Metadata = {
+  title: "${brandName} | Generated by AI",
+  description: "${meta.description || 'Welcome to our website'}",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body className={\`\${fontHeading.variable} \${fontBody.variable} antialiased\`}>
+        {children}
+      </body>
+    </html>
+  );
+}
+`;
+
+  // 5. app/page.tsx
+  const jsxContent = htmlToJsx(stitchedHtml);
+  files['app/page.tsx'] = `"use client";
+import React, { useEffect } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+export default function Home() {
+  useEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Initial reveal
+    gsap.from("main", { opacity: 0, duration: 1, ease: "power2.out" });
+
+    // Fade Up
+    document.querySelectorAll('[data-gsap="fade-up"]').forEach((el) => {
+      gsap.from(el, {
+        scrollTrigger: {
+          trigger: el,
+          start: "top 85%",
+          toggleActions: "play none none none",
+        },
+        y: 60,
+        opacity: 0,
+        duration: 1.2,
+        ease: "power3.out",
+      });
+    });
+
+    // Stagger List
+    document.querySelectorAll('[data-gsap="stagger-list"]').forEach((parent) => {
+      gsap.from(Array.from(parent.children), {
+        scrollTrigger: {
+          trigger: parent,
+          start: "top 80%",
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.15,
+        ease: "power2.out",
+      });
+    });
+
+    return () => {
+      ScrollTrigger.getAll().forEach((t) => t.kill());
+    };
+  }, []);
+
+  return (
+    <main className="min-h-screen">
+      ${jsxContent}
+    </main>
+  );
+}
+`;
+
+  // 6. next.config.mjs
+  files['next.config.mjs'] = `/** @type {import('next').NextConfig} */
+const nextConfig = {};
+
+export default nextConfig;
+`;
+
+  // 7. postcss.config.mjs
+  files['postcss.config.mjs'] = `/** @type {import('postcss-load-config').Config} */
+const config = {
+  plugins: {
+    tailwindcss: {},
+  },
+};
+
+export default config;
+`;
+
+  return files;
+}
+
+module.exports = {
+  htmlToJsx,
+  exportToNextJs
+};

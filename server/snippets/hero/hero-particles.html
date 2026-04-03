@@ -1,0 +1,35 @@
+<!-- META: {"name": "Particle Hero", "bestFor": "AI platforms, data-driven, futuristic apps"} -->
+<section class="pt-32 relative min-h-screen flex items-center justify-center bg-black overflow-hidden px-6 pt-32 text-center">
+  <!-- Particle Background Layer (Simulated with static dots and animation) -->
+  <div class="absolute inset-0 z-10 pointer-events-none opacity-40">
+    <div class="absolute w-1 h-1 bg-white rounded-full left-[10%] top-[20%] animate-ping" style="animation-duration: 3s;"></div>
+    <div class="absolute w-1 h-1 bg-white rounded-full left-[30%] top-[70%] animate-ping" style="animation-duration: 4s;"></div>
+    <div class="absolute w-1 h-1 bg-white rounded-full left-[80%] top-[40%] animate-ping" style="animation-duration: 2.5s;"></div>
+    <div class="absolute w-1 h-1 bg-white rounded-full left-[60%] top-[80%] animate-ping" style="animation-duration: 5s;"></div>
+    <div class="absolute w-1 h-1 bg-white rounded-full left-[40%] top-[10%] animate-ping" style="animation-duration: 3.5s;"></div>
+  </div>
+  
+  <!-- Subtle Gradients -->
+  <div class="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,theme(colors.theme.accent/20%)_0%,transparent_100%)]"></div>
+
+  <div class="max-w-5xl mx-auto relative z-20">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-theme-border bg-theme-surface/50 text-xs font-bold text-theme-accent mb-10 font-body">
+       <span class="w-1.5 h-1.5 bg-theme-accent rounded-full animate-pulse"></span>
+       {{badgeText}}
+    </div>
+    <h1 class="text-6xl md:text-9xl font-black mb-10 tracking-tighter text-white font-heading leading-tight">
+      {{heading}}
+    </h1>
+    <p class="text-xl md:text-2xl text-[#a1a1aa] mb-16 max-w-3xl mx-auto font-body leading-relaxed">
+      {{subtext}}
+    </p>
+    <div class="flex flex-col sm:flex-row gap-6 justify-center">
+       <button class="px-12 py-5 rounded-3xl bg-theme-accent text-white font-black text-xl hover:shadow-[0_0_50px_-10px_theme(colors.theme.accent)] transition-all font-body">
+         {{ctaText}}
+       </button>
+       <button class="px-12 py-5 rounded-3xl border border-white/20 text-white font-black text-xl hover:bg-white/10 transition-all font-body">
+         {{secondaryCtaText}}
+       </button>
+    </div>
+  </div>
+</section>

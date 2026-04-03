@@ -1,0 +1,64 @@
+<!-- META: {"name": "Pricing Table", "bestFor": "Feature-heavy plans, comparison, detailed pricing"} -->
+<section id="pricing" class="py-32 px-6 bg-theme-bg relative overflow-hidden">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-20 text-center" data-animate="fade-up">
+      <h2 class="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-theme-text font-heading">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto leading-relaxed font-body opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+    
+    <div class="overflow-x-auto" data-animate="fade-up">
+      <table class="w-full text-left border-collapse premium-glass inner-glow rounded-[2.5rem] overflow-hidden">
+        <thead>
+          <tr class="bg-theme-surface/50">
+            <th class="p-8 text-theme-dim font-bold uppercase tracking-widest text-sm border-r border-theme-border font-body">Features</th>
+            <th class="p-8 text-theme-text font-black text-2xl font-heading border-r border-theme-border">
+              {{plan1Name}} <div class="text-sm font-normal text-theme-dim mt-2 tracking-normal">{{plan1Price}}/mo</div>
+            </th>
+            <th class="p-8 text-theme-text font-black text-2xl font-heading border-r border-theme-border bg-theme-accent/5">
+              {{plan2Name}} <div class="text-sm font-normal text-theme-accent mt-2 tracking-normal">{{plan2Price}}/mo</div>
+            </th>
+            <th class="p-8 text-theme-text font-black text-2xl font-heading">
+              {{plan3Name}} <div class="text-sm font-normal text-theme-dim mt-2 tracking-normal">{{plan3Price}}</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="text-theme-text font-body">
+          <tr class="border-t border-theme-border">
+            <td class="p-8 border-r border-theme-border font-bold">{{feature1Name}}</td>
+            <td class="p-8 border-r border-theme-border text-center text-xl">✅</td>
+            <td class="p-8 border-r border-theme-border text-center bg-theme-accent/5 text-xl">✅</td>
+            <td class="p-8 text-center text-xl">✅</td>
+          </tr>
+          <tr class="border-t border-theme-border">
+            <td class="p-8 border-r border-theme-border font-bold">{{feature2Name}}</td>
+            <td class="p-8 border-r border-theme-border text-center text-xl">❌</td>
+            <td class="p-8 border-r border-theme-border text-center bg-theme-accent/5 text-xl">✅</td>
+            <td class="p-8 text-center text-xl">✅</td>
+          </tr>
+          <tr class="border-t border-theme-border">
+            <td class="p-8 border-r border-theme-border font-bold">{{feature3Name}}</td>
+            <td class="p-8 border-r border-theme-border text-center text-xl">❌</td>
+            <td class="p-8 border-r border-theme-border text-center bg-theme-accent/5 text-xl">❌</td>
+            <td class="p-8 text-center text-xl">✅</td>
+          </tr>
+          <tr class="border-t border-theme-border bg-theme-surface/30">
+            <td class="p-8 border-r border-theme-border"></td>
+            <td class="p-8 border-r border-theme-border text-center">
+              <a href="#" class="btn-premium px-6 py-2.5 rounded-xl bg-theme-surface border border-theme-border text-theme-text font-bold text-sm inline-block"><span class="relative z-10">{{plan1Cta}}</span></a>
+            </td>
+            <td class="p-8 border-r border-theme-border text-center bg-theme-accent/5">
+              <a href="#" class="btn-premium px-6 py-2.5 rounded-xl bg-theme-accent text-theme-bg font-bold text-sm shadow-[0_0_20px_-5px_theme(colors.theme.accent)] inline-block"><span class="relative z-10">{{plan2Cta}}</span></a>
+            </td>
+            <td class="p-8 text-center">
+              <a href="#" class="btn-premium px-6 py-2.5 rounded-xl bg-theme-surface border border-theme-border text-theme-text font-bold text-sm inline-block"><span class="relative z-10">{{plan3Cta}}</span></a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

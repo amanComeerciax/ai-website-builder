@@ -1,0 +1,81 @@
+<!-- META: {"name": "Gallery Masonry", "bestFor": "Photography, portfolios, visual showcases"} -->
+<section class="py-32 px-6 bg-theme-bg overflow-hidden relative">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-20 text-center" data-animate="fade-up">
+      <h2 class="text-4xl md:text-6xl font-heading font-black mb-6 tracking-tighter text-theme-text">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto font-body leading-relaxed opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+
+    <div class="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6" data-animate="stagger-children">
+      <!-- Image 1 -->
+      <div class="group break-inside-avoid rounded-[2rem] overflow-hidden border border-theme-border hover:border-theme-accent/30 transition-all duration-500 relative cursor-pointer">
+        <img src="{{image1Url}}" alt="{{image1Title}}" class="w-full aspect-[4/3] object-cover" loading="lazy" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
+          <div>
+            <h3 class="text-lg font-bold text-white font-heading">{{image1Title}}</h3>
+            <p class="text-sm text-white/60 font-body">{{image1Category}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image 2 (tall) -->
+      <div class="group break-inside-avoid rounded-[2rem] overflow-hidden border border-theme-border hover:border-theme-accent/30 transition-all duration-500 relative cursor-pointer">
+        <img src="{{image2Url}}" alt="{{image2Title}}" class="w-full aspect-[3/4] object-cover" loading="lazy" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
+          <div>
+            <h3 class="text-lg font-bold text-white font-heading">{{image2Title}}</h3>
+            <p class="text-sm text-white/60 font-body">{{image2Category}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image 3 -->
+      <div class="group break-inside-avoid rounded-[2rem] overflow-hidden border border-theme-border hover:border-theme-accent/30 transition-all duration-500 relative cursor-pointer">
+        <img src="{{image3Url}}" alt="{{image3Title}}" class="w-full aspect-[4/3] object-cover" loading="lazy" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
+          <div>
+            <h3 class="text-lg font-bold text-white font-heading">{{image3Title}}</h3>
+            <p class="text-sm text-white/60 font-body">{{image3Category}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image 4 (tall) -->
+      <div class="group break-inside-avoid rounded-[2rem] overflow-hidden border border-theme-border hover:border-theme-accent/30 transition-all duration-500 relative cursor-pointer">
+        <img src="{{image4Url}}" alt="{{image4Title}}" class="w-full aspect-[3/4] object-cover" loading="lazy" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
+          <div>
+            <h3 class="text-lg font-bold text-white font-heading">{{image4Title}}</h3>
+            <p class="text-sm text-white/60 font-body">{{image4Category}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image 5 -->
+      <div class="group break-inside-avoid rounded-[2rem] overflow-hidden border border-theme-border hover:border-theme-accent/30 transition-all duration-500 relative cursor-pointer">
+        <img src="{{image5Url}}" alt="{{image5Title}}" class="w-full aspect-video object-cover" loading="lazy" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
+          <div>
+            <h3 class="text-lg font-bold text-white font-heading">{{image5Title}}</h3>
+            <p class="text-sm text-white/60 font-body">{{image5Category}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image 6 -->
+      <div class="group break-inside-avoid rounded-[2rem] overflow-hidden border border-theme-border hover:border-theme-accent/30 transition-all duration-500 relative cursor-pointer">
+        <img src="{{image6Url}}" alt="{{image6Title}}" class="w-full aspect-[4/3] object-cover" loading="lazy" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
+          <div>
+            <h3 class="text-lg font-bold text-white font-heading">{{image6Title}}</h3>
+            <p class="text-sm text-white/60 font-body">{{image6Category}}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

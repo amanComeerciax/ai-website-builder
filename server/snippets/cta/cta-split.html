@@ -1,0 +1,28 @@
+<!-- META: {"name": "Split CTA", "bestFor": "Conversion focused, app signup, final push"} -->
+<section class="py-24 px-6 bg-theme-bg overflow-hidden relative">
+  <div class="max-w-7xl mx-auto">
+    <div class="premium-glass inner-glow rounded-[3rem] p-12 md:p-20 flex flex-col lg:flex-row items-center gap-16 relative overflow-hidden" data-animate="fade-up">
+      <!-- Decorative glow -->
+      <div class="absolute -top-20 -right-20 w-[300px] h-[300px] bg-theme-accent/10 rounded-full blur-[100px] pointer-events-none"></div>
+      
+      <div class="flex-1 text-center lg:text-left relative z-10">
+        <h2 class="text-4xl md:text-6xl font-heading font-black mb-6 tracking-tighter text-theme-text leading-[0.95]">
+          {{heading}}
+        </h2>
+        <p class="text-xl text-theme-dim font-body leading-relaxed opacity-60 max-w-xl">
+          {{subtext}}
+        </p>
+      </div>
+      
+      <div class="flex flex-col sm:flex-row gap-5 shrink-0 relative z-10">
+        <a href="#signup" class="btn-premium px-10 py-5 rounded-2xl bg-theme-accent text-theme-bg font-black text-lg shadow-[0_0_40px_-8px_theme(colors.theme.accent)] font-body inline-flex items-center gap-2 justify-center">
+          {{ctaText}}
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a href="#learn" class="px-10 py-5 rounded-2xl border border-theme-border text-theme-text font-bold text-lg hover:bg-white/5 hover:border-theme-accent/30 transition-all font-body text-center">
+          {{secondaryCtaText}}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

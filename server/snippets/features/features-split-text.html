@@ -1,0 +1,30 @@
+<!-- META: {"name": "Split Text Features", "bestFor": "Detailed descriptions, alternating layout, product focus"} -->
+<section class="py-32 px-6 bg-theme-bg overflow-hidden relative">
+  <div class="max-w-7xl mx-auto space-y-32">
+    <!-- Row 1 -->
+    <div class="flex flex-col md:flex-row items-center gap-16">
+      <div class="flex-1 order-2 md:order-1" data-animate="slide-left">
+        <h2 class="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-theme-text font-heading leading-[0.95]">{{item1Title}}</h2>
+        <p class="text-xl text-theme-dim font-body leading-relaxed opacity-70">{{item1Desc}}</p>
+      </div>
+      <div class="flex-1 order-1 md:order-2 w-full" data-animate="slide-right">
+        <div class="rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
+          <img src="{{item1Image}}" alt="{{item1Title}}" class="w-full aspect-video object-cover" loading="lazy" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2 (Reversed) -->
+    <div class="flex flex-col md:flex-row-reverse items-center gap-16">
+      <div class="flex-1 order-2 md:order-1" data-animate="slide-right">
+        <h2 class="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-theme-text font-heading leading-[0.95]">{{item2Title}}</h2>
+        <p class="text-xl text-theme-dim font-body leading-relaxed opacity-70">{{item2Desc}}</p>
+      </div>
+      <div class="flex-1 order-1 md:order-2 w-full" data-animate="slide-left">
+        <div class="rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
+          <img src="{{item2Image}}" alt="{{item2Title}}" class="w-full aspect-video object-cover" loading="lazy" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,45 @@
+<!-- META: {"name": "Hero Mesh Blob", "bestFor": "Creative agencies, AI startups, bold brand identities"} -->
+<section class="pt-32 relative min-h-[95vh] flex items-center bg-theme-bg overflow-hidden px-6">
+  <!-- Mesh Gradient Background -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute top-1/4 left-1/4 w-[60vw] h-[60vw] bg-theme-accent opacity-20 blur-[150px] animate-pulse rounded-full"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] bg-theme-hover opacity-10 blur-[120px] rounded-full"></div>
+  </div>
+
+  <div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-20 items-center relative z-10 py-24">
+    <!-- Content Side -->
+    <div>
+      <div data-animate="fade-up">
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em] uppercase mb-10 bg-white/5 text-theme-accent border border-white/10 inner-glow backdrop-blur-xl">
+          <span class="w-1.5 h-1.5 rounded-full bg-theme-accent shadow-[0_0_10px_theme(colors.theme.accent)]"></span>
+          {{badgeText}}
+        </span>
+      </div>
+      
+      <h1 data-animate="fade-up" class="text-6xl md:text-8xl font-heading font-black leading-[0.85] tracking-tighter mb-10 text-theme-text uppercase italic">
+        {{heading}}
+      </h1>
+      
+      <p data-animate="fade-up" class="text-xl md:text-2xl text-theme-dim mb-12 font-body font-light max-w-xl leading-relaxed opacity-60">
+        {{subtext}}
+      </p>
+      
+      <div data-animate="stagger-children" class="flex flex-wrap gap-6">
+        <a href="{{ctaLink}}" class="px-10 py-5 rounded-2xl bg-theme-accent text-theme-bg font-black text-lg hover:scale-105 transition-transform font-body shadow-2xl shadow-theme-accent/20">
+          {{ctaText}}
+        </a>
+        <a href="{{secondaryCtaLink}}" class="premium-glass px-10 py-5 rounded-2xl text-theme-text font-black text-lg hover:bg-white/5 transition-colors font-body border-white/5">
+          {{secondaryCtaText}}
+        </a>
+      </div>
+    </div>
+
+    <!-- Visual Side -->
+    <div data-animate="scale-in" class="relative flex justify-center lg:justify-end">
+      <div class="w-full max-w-md aspect-square rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl relative group">
+        <img src="{{heroImage}}" alt="{{heading}}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="eager" />
+        <div class="absolute inset-0 bg-gradient-to-tr from-theme-accent/20 via-transparent to-transparent pointer-events-none"></div>
+      </div>
+    </div>
+  </div>
+</section>

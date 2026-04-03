@@ -1,0 +1,23 @@
+<!-- META: {"name": "Floating Glass Nav", "bestFor": "Modern SaaS, high-end portfolios, mobile-first design"} -->
+<nav class="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-3rem)] max-w-5xl" data-animate="fade-down">
+  <div class="premium-glass bg-theme-bg/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] px-8 py-4 flex items-center justify-between inner-glow shadow-2xl">
+    <!-- Logo -->
+    <a href="#" class="text-2xl font-heading font-black tracking-tighter text-theme-text uppercase italic hover:scale-105 transition-transform">
+      {{brand}}
+    </a>
+
+    <!-- Links (Desktop) -->
+    <div class="hidden md:flex items-center gap-10">
+      <a href="#features" class="text-sm font-bold tracking-widest uppercase text-theme-dim hover:text-theme-text transition-colors">Features</a>
+      <a href="#pricing" class="text-sm font-bold tracking-widest uppercase text-theme-dim hover:text-theme-text transition-colors">Pricing</a>
+      <a href="#testimonials" class="text-sm font-bold tracking-widest uppercase text-theme-dim hover:text-theme-text transition-colors">Testimonials</a>
+    </div>
+
+    <!-- CTA -->
+    <div class="flex items-center gap-4">
+      <a href="{{ctaLink}}" class="btn-premium px-8 py-3 rounded-2xl bg-theme-accent text-theme-bg font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-[0_0_20px_rgba(var(--theme-accent-rgb),0.3)]">
+        {{ctaText}}
+      </a>
+    </div>
+  </div>
+</nav>

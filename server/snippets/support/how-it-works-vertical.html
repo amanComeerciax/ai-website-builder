@@ -1,0 +1,54 @@
+<!-- META: {"name": "Vertical Process", "bestFor": "Timeline, onboarding sequence, step-by-step info"} -->
+<section class="py-24 px-6 bg-theme-bg overflow-hidden relative">
+  <div class="max-w-4xl mx-auto">
+    <div class="mb-20 text-center">
+      <h2 class="text-4xl md:text-5xl font-black mb-6 tracking-tight text-theme-text font-heading">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto leading-relaxed font-body">
+        {{subtext}}
+      </p>
+    </div>
+    
+    <div class="relative space-y-20 pb-12">
+      <!-- Vertical line -->
+      <div class="absolute top-0 left-8 md:left-1/2 -ml-px w-px h-full bg-theme-border opacity-30 pointer-events-none"></div>
+
+      <!-- Step 1 -->
+      <div class="flex flex-col md:flex-row items-center md:items-start gap-12 group">
+        <div class="md:w-1/2 text-center md:text-right hidden md:block">
+           <h3 class="text-2xl font-bold text-theme-text font-heading">{{step1Title}}</h3>
+           <p class="text-theme-dim font-body opacity-60">{{step1Desc}}</p>
+        </div>
+        <div class="w-16 h-16 rounded-full bg-theme-surface border-4 border-theme-bg shadow-2xl flex items-center justify-center text-2xl font-black text-theme-accent shrink-0 relative z-10 group-hover:scale-110 transition-transform">
+          1
+        </div>
+        <div class="md:w-1/2 text-center md:text-left">
+           <h3 class="text-2xl font-bold text-theme-text font-heading md:hidden">{{step1Title}}</h3>
+           <p class="text-theme-dim font-body opacity-60 md:hidden">{{step1Desc}}</p>
+           <div class="w-full h-32 rounded-3xl bg-theme-surface/50 border border-theme-border hidden md:flex items-center justify-center text-theme-dim opacity-20">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="m5 15 7 7 7-7"/></svg>
+           </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="flex flex-col md:flex-row-reverse items-center md:items-start gap-12 group">
+        <div class="md:w-1/2 text-center md:text-left hidden md:block">
+           <h3 class="text-2xl font-bold text-theme-text font-heading">{{step2Title}}</h3>
+           <p class="text-theme-dim font-body opacity-60">{{step2Desc}}</p>
+        </div>
+        <div class="w-16 h-16 rounded-full bg-theme-surface border-4 border-theme-bg shadow-2xl flex items-center justify-center text-2xl font-black text-theme-accent shrink-0 relative z-10 group-hover:scale-110 transition-transform">
+          2
+        </div>
+        <div class="md:w-1/2 text-center md:text-right">
+           <h3 class="text-2xl font-bold text-theme-text font-heading md:hidden">{{step2Title}}</h3>
+           <p class="text-theme-dim font-body opacity-60 md:hidden">{{step2Desc}}</p>
+           <div class="w-full h-32 rounded-3xl bg-theme-surface/50 border border-theme-border hidden md:flex items-center justify-center text-theme-dim opacity-20">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="m5 15 7 7 7-7"/></svg>
+           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

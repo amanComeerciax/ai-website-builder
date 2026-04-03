@@ -19,16 +19,18 @@ const { callOpenRouter } = require('./openRouterService.js');
  * Routing table — maps task names to model + config
  */
 const ROUTING_TABLE = {
-  // Reasoning tasks → Qwen (local, fast, free)
-  parse_prompt:   { model: 'qwen', ollamaModel: 'qwen3:8b', temperature: 0.3, jsonMode: true, fallbackToGroq: true },
-  plan_structure:  { model: 'qwen', ollamaModel: 'qwen2.5-coder:7b', temperature: 0.3, jsonMode: true, fallbackToGroq: true },
-  plan_layout:     { model: 'qwen', ollamaModel: 'qwen2.5-coder:7b', temperature: 0.6, jsonMode: true, fallbackToGroq: true },   // Component Kit layout planner
-  summarize:       { model: 'qwen', ollamaModel: 'qwen3.5:0.8b', temperature: 0.5, jsonMode: true, fallbackToGroq: true },
+  // Reasoning tasks → Mistral (cloud, high accuracy)
+  parse_prompt:   { model: 'mistral', temperature: 0.3, jsonMode: true, fallbackToGroq: true },
+  plan_structure:  { model: 'mistral', temperature: 0.3, jsonMode: true, fallbackToGroq: true },
+  plan_layout:     { model: 'mistral', temperature: 0.8, jsonMode: true, fallbackToGroq: true },   // Legacy
+  plan_theme:      { model: 'mistral', temperature: 0.9, jsonMode: true, fallbackToGroq: true },   // Stage 1 — High temp for diverse themes
+  plan_snippets:   { model: 'mistral', temperature: 0.7, jsonMode: true, fallbackToGroq: true },   // Stage 2 — Higher temp for varied snippet picks
+  summarize:       { model: 'mistral', temperature: 0.5, jsonMode: true, fallbackToGroq: true },
   template_selector: { model: 'mistral', temperature: 0.2, jsonMode: false },
   html_to_jsx:     { model: 'mistral', temperature: 0.2, jsonMode: false },
 
-  // Chat → Local Dolphin Llama (conversational)
-  chat_response:   { model: 'qwen', ollamaModel: 'dolphin-llama3:8b', temperature: 0.7, jsonMode: false, fallbackToGroq: true },
+  // Chat → Groq (instant responses)
+  chat_response:   { model: 'groq', temperature: 0.5, jsonMode: false },
 
   // Track A: Single HTML file generation → Mistral (rules are ~85KB, exceeds Qwen's 14K limit)
   generate_html:   { model: 'mistral', temperature: 0.1, jsonMode: false, fallbackToGroq: true },

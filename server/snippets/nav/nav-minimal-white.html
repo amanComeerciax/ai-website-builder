@@ -1,0 +1,27 @@
+<!-- META: {"name": "White Minimal Nav", "bestFor": "Light themes, clean corporate, Apple-style"} -->
+<nav class="fixed top-0 inset-x-0 z-[100] py-6 px-6 transition-all duration-500" id="main-nav">
+  <div class="max-w-7xl mx-auto w-full bg-white/70 backdrop-blur-xl border border-black/5 rounded-[2rem] px-8 py-4 flex items-center justify-between shadow-sm">
+    <!-- Logo -->
+    <a href="#" class="text-xl font-black tracking-tighter text-gray-900 font-heading">
+      {{brand}}
+    </a>
+
+    <!-- Menu -->
+    <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-500 font-body">
+      <a href="#features" class="hover:text-gray-900 transition-colors duration-300">Features</a>
+      <a href="#pricing" class="hover:text-gray-900 transition-colors duration-300">Pricing</a>
+      <a href="#contact" class="hover:text-gray-900 transition-colors duration-300">Contact</a>
+    </div>
+
+    <!-- CTA -->
+    <div class="flex items-center gap-4">
+      <a href="#start" class="btn-premium px-6 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-sm hover:shadow-lg transition-all font-body">
+        <span class="relative z-10">{{ctaText}}</span>
+      </a>
+      
+      <button class="md:hidden p-2 text-gray-900">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,27 @@
+<!-- META: {"name": "Newsletter CTA", "bestFor": "Email capture, blog signup, content marketing"} -->
+<section class="py-24 px-6 bg-theme-bg overflow-hidden relative">
+  <div class="max-w-4xl mx-auto" data-animate="fade-up">
+    <div class="premium-glass inner-glow rounded-[3rem] p-12 md:p-16 text-center relative overflow-hidden">
+      <!-- Decorative glow -->
+      <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-[300px] h-[200px] bg-theme-accent/10 rounded-full blur-[80px] pointer-events-none"></div>
+      
+      <div class="relative z-10">
+        <h2 class="text-3xl md:text-5xl font-heading font-black mb-4 tracking-tighter text-theme-text">
+          {{heading}}
+        </h2>
+        <p class="text-lg text-theme-dim font-body mb-10 opacity-60 max-w-lg mx-auto">
+          {{subtext}}
+        </p>
+        
+        <form class="flex flex-col sm:flex-row items-center gap-4 max-w-lg mx-auto">
+          <input type="email" placeholder="{{emailPlaceholder}}" class="flex-1 w-full bg-theme-bg/50 border border-theme-border px-6 py-4 rounded-2xl text-theme-text font-body outline-none focus:border-theme-accent focus:ring-2 focus:ring-theme-accent/20 transition-all placeholder:text-theme-dim/40" />
+          <button type="submit" class="btn-premium px-8 py-4 rounded-2xl bg-theme-accent text-theme-bg font-black hover:shadow-[0_0_30px_-5px_theme(colors.theme.accent)] transition-all font-body whitespace-nowrap">
+            <span class="relative z-10">{{buttonText}}</span>
+          </button>
+        </form>
+        
+        <p class="mt-6 text-xs text-theme-dim font-body opacity-30">No spam. Unsubscribe anytime.</p>
+      </div>
+    </div>
+  </div>
+</section>

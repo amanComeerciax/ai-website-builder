@@ -1,0 +1,46 @@
+<!-- META: {"name": "About Split", "bestFor": "Company story, brand introduction, mission statement"} -->
+<section class="py-32 px-6 bg-theme-bg overflow-hidden relative">
+  <div class="max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+      <!-- Left: Content -->
+      <div data-animate="slide-left">
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-8 premium-glass text-theme-accent">
+          {{badgeText}}
+        </span>
+        <h2 class="text-4xl md:text-6xl font-heading font-black mb-8 tracking-tighter text-theme-text leading-[0.95]">
+          {{heading}}
+        </h2>
+        <p class="text-xl text-theme-dim font-body leading-relaxed opacity-70 mb-10">
+          {{description}}
+        </p>
+        
+        <!-- Stats row -->
+        <div class="grid grid-cols-3 gap-6">
+          <div class="text-center">
+            <div class="text-3xl font-black text-theme-text font-heading" data-counter>{{stat1Value}}</div>
+            <div class="text-xs font-bold uppercase tracking-widest text-theme-dim font-body opacity-50 mt-1">{{stat1Label}}</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-black text-theme-text font-heading" data-counter>{{stat2Value}}</div>
+            <div class="text-xs font-bold uppercase tracking-widest text-theme-dim font-body opacity-50 mt-1">{{stat2Label}}</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-black text-theme-text font-heading" data-counter>{{stat3Value}}</div>
+            <div class="text-xs font-bold uppercase tracking-widest text-theme-dim font-body opacity-50 mt-1">{{stat3Label}}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Visual -->
+      <div data-animate="slide-right" class="relative">
+        <div class="rounded-[3rem] overflow-hidden border border-theme-border aspect-[4/3] relative">
+          <img src="{{aboutImage}}" alt="{{heading}}" class="w-full h-full object-cover" loading="lazy" />
+        </div>
+        <!-- Floating accent decoration -->
+        <div class="absolute -bottom-4 -right-4 w-24 h-24 rounded-2xl premium-glass inner-glow flex items-center justify-center animate-[float_4s_ease-in-out_infinite]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-theme-accent"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

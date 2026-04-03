@@ -1,0 +1,52 @@
+<!-- META: {"name": "Icon List Features", "bestFor": "Simple benefit listing, value props"} -->
+<!-- META: {"name": "Features List Icon", "bestFor": "Service lists, product benefits, detailed features"} -->
+<section class="py-24 px-6 bg-theme-bg relative overflow-hidden">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-20">
+    <!-- Visual Side -->
+    <div data-animate="fade-up" class="w-full md:w-1/2 relative group">
+      <div class="absolute -inset-4 bg-gradient-to-tr from-theme-accent/20 to-transparent blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+      <div class="rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl relative z-10">
+        <img src="{{featureImage}}" alt="{{heading}}" class="w-full aspect-video object-cover" loading="lazy" />
+      </div>
+    </div>
+
+    <!-- Content Side -->
+    <div class="w-full md:w-1/2">
+      <h2 data-animate="fade-up" class="text-4xl md:text-6xl font-heading font-black mb-8 tracking-tighter text-theme-text uppercase">
+        {{heading}}
+      </h2>
+      
+      <div data-animate="stagger-children" class="space-y-8">
+        <div class="flex items-start gap-6 group">
+          <div class="w-12 h-12 shrink-0 rounded-2xl bg-theme-accent/10 border border-theme-accent/20 flex items-center justify-center text-theme-accent group-hover:bg-theme-accent group-hover:text-theme-bg transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17 4 12"/></svg>
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-theme-text font-heading uppercase">{{feature1Title}}</h3>
+            <p class="text-theme-dim font-body opacity-70">{{feature1Desc}}</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-6 group">
+          <div class="w-12 h-12 shrink-0 rounded-2xl bg-theme-accent/10 border border-theme-accent/20 flex items-center justify-center text-theme-accent group-hover:bg-theme-accent group-hover:text-theme-bg transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17 4 12"/></svg>
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-theme-text font-heading uppercase">{{feature2Title}}</h3>
+            <p class="text-theme-dim font-body opacity-70">{{feature2Desc}}</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-6 group">
+          <div class="w-12 h-12 shrink-0 rounded-2xl bg-theme-accent/10 border border-theme-accent/20 flex items-center justify-center text-theme-accent group-hover:bg-theme-accent group-hover:text-theme-bg transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17 4 12"/></svg>
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-theme-text font-heading uppercase">{{feature3Title}}</h3>
+            <p class="text-theme-dim font-body opacity-70">{{feature3Desc}}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,23 @@
+<!-- META: {"name": "Video Feature", "bestFor": "Product demos, cinematic showcase, high-impact visuals"} -->
+<section class="py-32 px-6 bg-theme-bg overflow-hidden relative">
+  <div class="max-w-7xl mx-auto flex flex-col items-center">
+    <div class="mb-16 text-center max-w-3xl" data-animate="fade-up">
+      <h2 class="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-theme-text font-heading">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim font-body leading-relaxed opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+    
+    <div data-animate="scale-in" class="relative w-full aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 hover:scale-[1.02] transition-transform duration-700 group cursor-pointer">
+       <img src="{{featureImage}}" alt="{{heading}}" class="w-full h-full object-cover" loading="lazy" />
+       <div class="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors flex flex-col items-center justify-center">
+          <div class="w-20 h-20 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
+             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <div class="mt-6 text-sm font-bold uppercase tracking-widest text-white/60 font-body">Watch Product Demo</div>
+       </div>
+    </div>
+  </div>
+</section>

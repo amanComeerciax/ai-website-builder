@@ -1,0 +1,30 @@
+<!-- META: {"name": "Simple Left Hero", "bestFor": "Blog, informational, simple startup"} -->
+<section class="pt-32 relative min-h-[80vh] flex items-center bg-theme-bg overflow-hidden px-6 pt-32">
+  <!-- Subtle background decoration -->
+  <div class="absolute top-0 right-0 w-[40vw] h-[60vh] bg-[radial-gradient(circle,theme(colors.theme.accent/8%),transparent_60%)] pointer-events-none blur-3xl" ></div>
+  <div class="absolute bottom-0 left-0 w-[30vw] h-[30vh] bg-[radial-gradient(circle,theme(colors.theme.hover/5%),transparent_60%)] pointer-events-none blur-3xl"></div>
+  
+  <div class="max-w-7xl mx-auto w-full relative z-10">
+    <div class="max-w-3xl">
+      <div data-animate="fade-up">
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-8 premium-glass text-theme-accent border border-white/10">
+          <span class="w-2 h-2 rounded-full bg-theme-accent animate-pulse"></span>
+          {{badgeText}}
+        </span>
+      </div>
+      
+      <h1 data-animate="fade-up" class="text-5xl md:text-7xl lg:text-8xl font-black mb-8 tracking-tighter text-theme-text font-heading leading-[0.95]">
+        {{heading}}
+      </h1>
+      <p data-animate="fade-up" class="text-xl md:text-2xl text-theme-dim mb-12 font-body font-light leading-relaxed max-w-2xl">
+        {{subtext}}
+      </p>
+      <div data-animate="fade-up" class="flex flex-col sm:flex-row gap-5">
+        <a href="#cta" class="btn-premium px-10 py-4 rounded-2xl bg-theme-accent text-theme-bg font-black text-lg shadow-[0_0_30px_-5px_theme(colors.theme.accent)] hover:shadow-[0_0_50px_-5px_theme(colors.theme.accent)] font-body inline-flex items-center gap-2 justify-center">
+          {{ctaText}}
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="group-hover:translate-x-1 transition-transform"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

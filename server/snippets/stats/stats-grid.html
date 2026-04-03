@@ -1,0 +1,39 @@
+<!-- META: {"name": "Stats Grid", "bestFor": "Dashboard metrics, impact numbers, minimal stats"} -->
+<section class="py-24 px-6 bg-theme-bg relative overflow-hidden">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-16 text-center" data-animate="fade-up">
+      <h2 class="text-4xl md:text-6xl font-heading font-black mb-6 tracking-tighter text-theme-text">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto font-body leading-relaxed opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6" data-animate="stagger-children">
+      <!-- Stat 1 -->
+      <div class="p-10 rounded-[2.5rem] bg-theme-surface border border-theme-border flex flex-col items-center justify-center text-center transition-all duration-500 hover:border-theme-accent/30 hover:-translate-y-2 group">
+        <div class="text-4xl md:text-5xl font-black mb-2 text-theme-text font-heading group-hover:scale-110 group-hover:text-theme-accent transition-all" data-counter>{{stat1Value}}</div>
+        <div class="text-xs font-black uppercase tracking-[0.2em] text-theme-dim font-body opacity-50">{{stat1Label}}</div>
+      </div>
+
+      <!-- Stat 2 -->
+      <div class="p-10 rounded-[2.5rem] bg-theme-surface border border-theme-border flex flex-col items-center justify-center text-center transition-all duration-500 hover:border-theme-accent/30 hover:-translate-y-2 group">
+        <div class="text-4xl md:text-5xl font-black mb-2 text-theme-text font-heading group-hover:scale-110 group-hover:text-theme-accent transition-all" data-counter>{{stat2Value}}</div>
+        <div class="text-xs font-black uppercase tracking-[0.2em] text-theme-dim font-body opacity-50">{{stat2Label}}</div>
+      </div>
+
+      <!-- Stat 3 -->
+      <div class="p-10 rounded-[2.5rem] bg-theme-surface border border-theme-border flex flex-col items-center justify-center text-center transition-all duration-500 hover:border-theme-accent/30 hover:-translate-y-2 group">
+        <div class="text-4xl md:text-5xl font-black mb-2 text-theme-text font-heading group-hover:scale-110 group-hover:text-theme-accent transition-all" data-counter>{{stat3Value}}</div>
+        <div class="text-xs font-black uppercase tracking-[0.2em] text-theme-dim font-body opacity-50">{{stat3Label}}</div>
+      </div>
+
+      <!-- Stat 4 -->
+      <div class="p-10 rounded-[2.5rem] bg-theme-surface border border-theme-border flex flex-col items-center justify-center text-center transition-all duration-500 hover:border-theme-accent/30 hover:-translate-y-2 group">
+        <div class="text-4xl md:text-5xl font-black mb-2 text-theme-text font-heading group-hover:scale-110 group-hover:text-theme-accent transition-all" data-counter>{{stat4Value}}</div>
+        <div class="text-xs font-black uppercase tracking-[0.2em] text-theme-dim font-body opacity-50">{{stat4Label}}</div>
+      </div>
+    </div>
+  </div>
+</section>

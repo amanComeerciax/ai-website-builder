@@ -1,0 +1,65 @@
+<!-- META: {"name": "Testimonials Marquee", "bestFor": "High-volume social proof, continuous scrolling reviews"} -->
+<section class="py-32 px-6 bg-theme-bg overflow-hidden relative">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-20 text-center" data-animate="fade-up">
+      <h2 class="text-4xl md:text-6xl font-heading font-black mb-6 tracking-tighter text-theme-text">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto font-body leading-relaxed opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+
+    <!-- Marquee row -->
+    <div class="relative">
+      <div class="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-theme-bg to-transparent z-10"></div>
+      <div class="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-theme-bg to-transparent z-10"></div>
+      
+      <div class="flex gap-6 animate-[marquee_40s_linear_infinite]">
+        <div class="flex gap-6 shrink-0">
+          <!-- Testimonial 1 -->
+          <div class="w-[400px] premium-glass inner-glow rounded-[2rem] p-8 shrink-0 hover:border-theme-accent/30 transition-all duration-500">
+            <p class="text-lg text-theme-text font-body leading-relaxed mb-6 opacity-80 italic">"{{quote1}}"</p>
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-theme-accent/20 flex items-center justify-center font-black text-theme-accent text-sm">{{author1Initial}}</div>
+              <div>
+                <div class="font-bold text-theme-text font-heading text-sm">{{author1Name}}</div>
+                <div class="text-xs text-theme-dim font-body opacity-50">{{author1Role}}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Testimonial 2 -->
+          <div class="w-[400px] premium-glass inner-glow rounded-[2rem] p-8 shrink-0 hover:border-theme-accent/30 transition-all duration-500">
+            <p class="text-lg text-theme-text font-body leading-relaxed mb-6 opacity-80 italic">"{{quote2}}"</p>
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-theme-accent/20 flex items-center justify-center font-black text-theme-accent text-sm">{{author2Initial}}</div>
+              <div>
+                <div class="font-bold text-theme-text font-heading text-sm">{{author2Name}}</div>
+                <div class="text-xs text-theme-dim font-body opacity-50">{{author2Role}}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Testimonial 3 -->
+          <div class="w-[400px] premium-glass inner-glow rounded-[2rem] p-8 shrink-0 hover:border-theme-accent/30 transition-all duration-500">
+            <p class="text-lg text-theme-text font-body leading-relaxed mb-6 opacity-80 italic">"{{quote3}}"</p>
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-theme-accent/20 flex items-center justify-center font-black text-theme-accent text-sm">{{author3Initial}}</div>
+              <div>
+                <div class="font-bold text-theme-text font-heading text-sm">{{author3Name}}</div>
+                <div class="text-xs text-theme-dim font-body opacity-50">{{author3Role}}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Duplicate for seamless loop -->
+        <div class="flex gap-6 shrink-0">
+          <div class="w-[400px] premium-glass inner-glow rounded-[2rem] p-8 shrink-0"><p class="text-lg text-theme-text font-body leading-relaxed mb-6 opacity-80 italic">"{{quote1}}"</p><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-theme-accent/20 flex items-center justify-center font-black text-theme-accent text-sm">{{author1Initial}}</div><div><div class="font-bold text-theme-text font-heading text-sm">{{author1Name}}</div><div class="text-xs text-theme-dim font-body opacity-50">{{author1Role}}</div></div></div></div>
+          <div class="w-[400px] premium-glass inner-glow rounded-[2rem] p-8 shrink-0"><p class="text-lg text-theme-text font-body leading-relaxed mb-6 opacity-80 italic">"{{quote2}}"</p><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-theme-accent/20 flex items-center justify-center font-black text-theme-accent text-sm">{{author2Initial}}</div><div><div class="font-bold text-theme-text font-heading text-sm">{{author2Name}}</div><div class="text-xs text-theme-dim font-body opacity-50">{{author2Role}}</div></div></div></div>
+          <div class="w-[400px] premium-glass inner-glow rounded-[2rem] p-8 shrink-0"><p class="text-lg text-theme-text font-body leading-relaxed mb-6 opacity-80 italic">"{{quote3}}"</p><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-theme-accent/20 flex items-center justify-center font-black text-theme-accent text-sm">{{author3Initial}}</div><div><div class="font-bold text-theme-text font-heading text-sm">{{author3Name}}</div><div class="text-xs text-theme-dim font-body opacity-50">{{author3Role}}</div></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

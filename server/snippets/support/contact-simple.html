@@ -1,0 +1,35 @@
+<!-- META: {"name": "Simple Contact", "bestFor": "Lead gen, support, contact page"} -->
+<section id="contact" class="py-24 px-6 bg-theme-bg">
+  <div class="max-w-4xl mx-auto">
+    <div class="mb-16 text-center">
+      <h2 class="text-4xl md:text-5xl font-black mb-6 tracking-tight text-theme-text font-heading">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto leading-relaxed font-body">
+        {{subtext}}
+      </p>
+    </div>
+    
+    <div class="p-12 rounded-[3rem] bg-theme-surface border border-theme-border shadow-2xl">
+      <form class="space-y-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="space-y-3">
+             <label class="text-sm font-bold text-theme-text font-body opacity-60 uppercase tracking-widest pl-2">Name</label>
+             <input type="text" placeholder="{{namePlaceholder}}" class="w-full bg-theme-bg border border-theme-border px-6 py-4 rounded-2xl text-theme-text font-body outline-none focus:border-theme-accent transition-colors" />
+          </div>
+          <div class="space-y-3">
+             <label class="text-sm font-bold text-theme-text font-body opacity-60 uppercase tracking-widest pl-2">Email</label>
+             <input type="email" placeholder="{{emailPlaceholder}}" class="w-full bg-theme-bg border border-theme-border px-6 py-4 rounded-2xl text-theme-text font-body outline-none focus:border-theme-accent transition-colors" />
+          </div>
+        </div>
+        <div class="space-y-3">
+           <label class="text-sm font-bold text-theme-text font-body opacity-60 uppercase tracking-widest pl-2">Message</label>
+           <textarea placeholder="{{messagePlaceholder}}" rows="5" class="w-full bg-theme-bg border border-theme-border px-6 py-4 rounded-3xl text-theme-text font-body outline-none focus:border-theme-accent transition-colors resize-none"></textarea>
+        </div>
+        <button type="submit" class="w-full py-5 rounded-3xl bg-theme-accent text-theme-bg font-black text-xl hover:scale-[1.02] transition-transform shadow-[0_20px_50px_-15px_theme(colors.theme.accent/30)] font-body">
+           {{buttonText}}
+        </button>
+      </form>
+    </div>
+  </div>
+</section>

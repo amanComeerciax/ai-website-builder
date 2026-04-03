@@ -15,7 +15,7 @@ const { Mistral } = require('@mistralai/mistralai');
 
 const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b';
-const QWEN_TIMEOUT_MS = parseInt(process.env.QWEN_TIMEOUT_MS) || 90000; // 90s per token
+const QWEN_TIMEOUT_MS = parseInt(process.env.QWEN_TIMEOUT_MS) || 120000; // 120s per token
 const QWEN_MAX_RETRIES = parseInt(process.env.QWEN_MAX_RETRIES) || 3;
 const MAX_INPUT_CHARS = 14000;
 
@@ -150,7 +150,7 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
       const isTimeout = error.name === 'AbortError';
       const isConnectionDead = error.message.includes('ECONNREFUSED') || error.message.includes('fetch failed');
       
-      console.warn(`[Qwen Service] ❌ Attempt ${attempt}/${retries} failed: ${isTimeout ? 'TOKEN_TIMEOUT (30s no response)' : error.message}`);
+      console.warn(`[Qwen Service] ❌ Attempt ${attempt}/${retries} failed: ${isTimeout ? `TOKEN_TIMEOUT (${QWEN_TIMEOUT_MS/1000}s no response)` : error.message}`);
 
       if (attempt === retries) {
         console.warn(`[Qwen Service] Local generation failed after ${retries} attempts. Escalating to fallback...`);

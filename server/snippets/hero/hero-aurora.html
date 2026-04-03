@@ -1,0 +1,42 @@
+<!-- META: {"name": "Hero Aurora", "bestFor": "tech, SaaS, AI, modern startups"} -->
+<section class="pt-32 relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-theme-bg">
+  <!-- Aurora gradient blobs -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute -top-[20%] left-1/2 -translate-x-1/2 w-[70vw] h-[70vw] rounded-full opacity-20 blur-[120px] animate-pulse bg-[radial-gradient(circle,theme(colors.theme.accent)_0%,transparent_70%)]"></div>
+    <div class="absolute -bottom-[20%] -right-[10%] w-[50vw] h-[50vw] rounded-full opacity-10 blur-[100px] bg-[radial-gradient(circle,theme(colors.theme.hover)_0%,transparent_70%)]"></div>
+    <!-- Subtle grid overlay -->
+    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdHRoIGQ9Ik0gNDAgMCBMIDAgMCAwIDQwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wMykiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-40"></div>
+  </div>
+  
+  <!-- Content -->
+  <div class="relative z-10 text-center max-w-5xl mx-auto px-6 py-24">
+    <div data-animate="fade-up">
+      <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-8 backdrop-blur-xl bg-white/5 text-theme-accent border border-white/10 inner-glow">
+        <span class="w-2 h-2 rounded-full bg-theme-accent animate-ping"></span>
+        {{badgeText}}
+      </span>
+    </div>
+    
+    <h1 data-animate="fade-up" class="text-6xl md:text-8xl lg:text-9xl font-heading font-black leading-[0.9] tracking-tighter mb-8 text-theme-text bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">
+      {{heading}}
+    </h1>
+    
+    <p data-animate="fade-up" class="text-xl md:text-2xl max-w-2xl mx-auto mb-12 leading-relaxed text-theme-dim font-body font-light">
+      {{subtext}}
+    </p>
+    
+    <div data-animate="stagger-children" class="flex flex-col sm:flex-row gap-6 justify-center items-center">
+      <a href="{{ctaLink}}" class="group relative inline-flex items-center justify-center px-10 py-4 overflow-hidden rounded-2xl text-lg font-bold transition-all duration-300 bg-theme-accent text-theme-bg shadow-[0_0_40px_rgba(59,130,246,0.3)] hover:shadow-[0_0_60px_rgba(59,130,246,0.5)]">
+        <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+        <span class="relative z-10 flex items-center">
+          {{ctaText}}
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="ml-2 group-hover:translate-x-1 transition-transform"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+      
+      <a href="{{secondaryCtaLink}}" class="premium-glass inline-flex items-center justify-center px-10 py-4 rounded-2xl text-lg font-bold transition-all duration-300 hover:bg-white/10 text-theme-text font-body">
+        {{secondaryCtaText}}
+      </a>
+    </div>
+  </div>
+</section>

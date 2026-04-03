@@ -1,0 +1,59 @@
+<!-- META: {"name": "Pricing Toggle", "bestFor": "Monthly/yearly pricing, subscription plans, tiered pricing"} -->
+<section id="pricing" class="py-32 px-6 bg-theme-bg relative overflow-hidden">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-20 text-center" data-animate="fade-up">
+      <h2 class="text-4xl md:text-6xl font-heading font-black mb-6 tracking-tighter text-theme-text">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto font-body leading-relaxed opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto" data-animate="stagger-children">
+      <!-- Plan 1 -->
+      <div class="premium-glass inner-glow rounded-[2.5rem] p-10 hover:border-theme-accent/30 transition-all duration-500">
+        <h3 class="text-2xl font-black font-heading mb-2 text-theme-text">{{plan1Name}}</h3>
+        <p class="text-theme-dim font-body text-sm mb-6 opacity-60">{{plan1Desc}}</p>
+        <div class="text-5xl font-black text-theme-text font-heading mb-8">{{plan1Price}}<span class="text-lg text-theme-dim font-normal">/mo</span></div>
+        <ul class="space-y-4 text-theme-dim font-body mb-10">
+          <li class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-theme-accent shrink-0"><path d="M20 6 9 17l-5-5"/></svg> {{plan1Feature1}}</li>
+          <li class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-theme-accent shrink-0"><path d="M20 6 9 17l-5-5"/></svg> {{plan1Feature2}}</li>
+          <li class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-theme-accent shrink-0"><path d="M20 6 9 17l-5-5"/></svg> {{plan1Feature3}}</li>
+        </ul>
+        <a href="#" class="btn-premium w-full py-4 rounded-xl bg-theme-surface border border-theme-border text-theme-text font-bold text-center block"><span class="relative z-10">{{plan1Cta}}</span></a>
+      </div>
+
+      <!-- Plan 2 (Featured) -->
+      <div class="relative p-[1px] rounded-[2.5rem] overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-b from-theme-accent via-theme-accent/50 to-theme-accent/20 animate-[gradient-shift_3s_ease_infinite] bg-[length:200%_200%]"></div>
+        <div class="relative bg-theme-surface rounded-[2.4rem] p-10 h-full inner-glow">
+          <span class="inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-theme-accent text-theme-bg mb-4">Most Popular</span>
+          <h3 class="text-2xl font-black font-heading mb-2 text-theme-text">{{plan2Name}}</h3>
+          <p class="text-theme-dim font-body text-sm mb-6 opacity-60">{{plan2Desc}}</p>
+          <div class="text-5xl font-black text-theme-text font-heading mb-8">{{plan2Price}}<span class="text-lg text-theme-dim font-normal">/mo</span></div>
+          <ul class="space-y-4 text-theme-dim font-body mb-10">
+            <li class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-theme-accent shrink-0"><path d="M20 6 9 17l-5-5"/></svg> {{plan2Feature1}}</li>
+            <li class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-theme-accent shrink-0"><path d="M20 6 9 17l-5-5"/></svg> {{plan2Feature2}}</li>
+            <li class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-theme-accent shrink-0"><path d="M20 6 9 17l-5-5"/></svg> {{plan2Feature3}}</li>
+            <li class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-theme-accent shrink-0"><path d="M20 6 9 17l-5-5"/></svg> {{plan2Feature4}}</li>
+          </ul>
+          <a href="#" class="btn-premium w-full py-4 rounded-xl bg-theme-accent text-theme-bg font-black text-center block shadow-[0_0_30px_-5px_theme(colors.theme.accent)]"><span class="relative z-10">{{plan2Cta}}</span></a>
+        </div>
+      </div>
+
+      <!-- Plan 3 -->
+      <div class="premium-glass inner-glow rounded-[2.5rem] p-10 hover:border-theme-accent/30 transition-all duration-500">
+        <h3 class="text-2xl font-black font-heading mb-2 text-theme-text">{{plan3Name}}</h3>
+        <p class="text-theme-dim font-body text-sm mb-6 opacity-60">{{plan3Desc}}</p>
+        <div class="text-5xl font-black text-theme-text font-heading mb-8">{{plan3Price}}</div>
+        <ul class="space-y-4 text-theme-dim font-body mb-10">
+          <li class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-theme-accent shrink-0"><path d="M20 6 9 17l-5-5"/></svg> {{plan3Feature1}}</li>
+          <li class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-theme-accent shrink-0"><path d="M20 6 9 17l-5-5"/></svg> {{plan3Feature2}}</li>
+          <li class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-theme-accent shrink-0"><path d="M20 6 9 17l-5-5"/></svg> {{plan3Feature3}}</li>
+        </ul>
+        <a href="#" class="btn-premium w-full py-4 rounded-xl bg-theme-surface border border-theme-border text-theme-text font-bold text-center block"><span class="relative z-10">{{plan3Cta}}</span></a>
+      </div>
+    </div>
+  </div>
+</section>

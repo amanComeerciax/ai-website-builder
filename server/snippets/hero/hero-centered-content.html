@@ -1,0 +1,38 @@
+<!-- META: {"name": "Centered Hero", "bestFor": "Clean SaaS, corporate, informational"} -->
+<section class="pt-32 relative min-h-[85vh] flex items-center justify-center bg-theme-bg overflow-hidden px-6 pt-24">
+  <!-- Subtle gradient decoration -->
+  <div class="absolute top-[10%] left-1/2 -translate-x-1/2 w-[50vw] h-[50vw] rounded-full opacity-10 blur-[120px] bg-[radial-gradient(circle,theme(colors.theme.accent)_0%,transparent_70%)]" ></div>
+  
+  <!-- Dot grid pattern -->
+  <div class="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:24px_24px] opacity-40"></div>
+  
+  <div class="relative z-10 text-center max-w-5xl mx-auto">
+    <div data-animate="fade-up">
+      <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-8 premium-glass text-theme-accent inner-glow">
+        <span class="w-2 h-2 rounded-full bg-theme-accent animate-ping"></span>
+        {{badgeText}}
+      </span>
+    </div>
+    
+    <h1 data-animate="fade-up" class="text-5xl md:text-7xl lg:text-8xl font-heading font-black leading-[0.92] tracking-tighter mb-8 gradient-text">
+      {{heading}}
+    </h1>
+    
+    <p data-animate="fade-up" class="text-xl md:text-2xl max-w-2xl mx-auto mb-12 leading-relaxed text-theme-dim font-body font-light">
+      {{subtext}}
+    </p>
+    
+    <div data-animate="fade-up" class="flex flex-col sm:flex-row gap-6 justify-center items-center">
+      <a href="{{ctaLink}}" class="btn-premium group inline-flex items-center justify-center px-10 py-4 rounded-2xl text-lg font-bold bg-theme-accent text-theme-bg shadow-[0_0_40px_-8px_theme(colors.theme.accent)] font-body">
+        <span class="relative z-10 flex items-center gap-2">
+          {{ctaText}}
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="group-hover:translate-x-1 transition-transform"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+      
+      <a href="{{secondaryCtaLink}}" class="premium-glass inner-glow inline-flex items-center justify-center px-10 py-4 rounded-2xl text-lg font-bold transition-all duration-300 hover:bg-white/10 text-theme-text font-body">
+        {{secondaryCtaText}}
+      </a>
+    </div>
+  </div>
+</section>

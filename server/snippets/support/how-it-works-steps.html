@@ -1,0 +1,45 @@
+<!-- META: {"name": "How It Works Steps", "bestFor": "Explanatory flow, how-it-works, onboarding"} -->
+<section class="py-32 px-6 bg-theme-bg overflow-hidden relative">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-20 text-center" data-animate="fade-up">
+      <h2 class="text-4xl md:text-6xl font-heading font-black mb-6 tracking-tighter text-theme-text">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto leading-relaxed font-body opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative" data-animate="stagger-children">
+      <!-- Connecting line (desktop) -->
+      <div class="hidden md:block absolute top-[48px] left-[20%] right-[20%] h-[2px] bg-gradient-to-r from-theme-accent/20 via-theme-accent/40 to-theme-accent/20 pointer-events-none"></div>
+
+      <!-- Step 1 -->
+      <div class="flex flex-col items-center text-center group relative z-10">
+        <div class="w-20 h-20 rounded-2xl premium-glass inner-glow border-2 border-theme-accent/20 flex items-center justify-center text-3xl font-black text-theme-accent mb-8 group-hover:scale-110 group-hover:border-theme-accent/50 transition-all duration-300 shadow-[0_0_20px_-5px_theme(colors.theme.accent/20%)]">
+          1
+        </div>
+        <h3 class="text-2xl font-bold mb-4 text-theme-text font-heading tracking-tight group-hover:text-theme-accent transition-colors">{{step1Title}}</h3>
+        <p class="text-lg text-theme-dim font-body opacity-70 leading-relaxed max-w-xs">{{step1Desc}}</p>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="flex flex-col items-center text-center group relative z-10">
+        <div class="w-20 h-20 rounded-2xl premium-glass inner-glow border-2 border-theme-accent/20 flex items-center justify-center text-3xl font-black text-theme-accent mb-8 group-hover:scale-110 group-hover:border-theme-accent/50 transition-all duration-300 shadow-[0_0_20px_-5px_theme(colors.theme.accent/20%)]">
+          2
+        </div>
+        <h3 class="text-2xl font-bold mb-4 text-theme-text font-heading tracking-tight group-hover:text-theme-accent transition-colors">{{step2Title}}</h3>
+        <p class="text-lg text-theme-dim font-body opacity-70 leading-relaxed max-w-xs">{{step2Desc}}</p>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="flex flex-col items-center text-center group relative z-10">
+        <div class="w-20 h-20 rounded-2xl premium-glass inner-glow border-2 border-theme-accent/20 flex items-center justify-center text-3xl font-black text-theme-accent mb-8 group-hover:scale-110 group-hover:border-theme-accent/50 transition-all duration-300 shadow-[0_0_20px_-5px_theme(colors.theme.accent/20%)]">
+          3
+        </div>
+        <h3 class="text-2xl font-bold mb-4 text-theme-text font-heading tracking-tight group-hover:text-theme-accent transition-colors">{{step3Title}}</h3>
+        <p class="text-lg text-theme-dim font-body opacity-70 leading-relaxed max-w-xs">{{step3Desc}}</p>
+      </div>
+    </div>
+  </div>
+</section>

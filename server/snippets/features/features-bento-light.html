@@ -1,0 +1,58 @@
+<!-- META: {"name": "Light Bento Features", "bestFor": "Apple-style minimal, clean SaaS, whitespace focus"} -->
+<section class="py-24 px-6 bg-white overflow-hidden relative text-black">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-20 text-center" data-animate="fade-up">
+      <h2 class="text-4xl md:text-5xl font-black mb-6 tracking-tight font-heading leading-tight uppercase">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-black/40 max-w-2xl mx-auto leading-relaxed font-body italic opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-6 pt-8" data-animate="stagger-children">
+      <!-- Feature 1: Large (Fixed Gap) -->
+      <div class="md:col-span-2 md:row-span-2 p-12 rounded-[3.5rem] bg-neutral-50 border border-neutral-100 flex flex-col justify-between group hover:bg-neutral-100/50 transition-all duration-700 relative overflow-hidden shadow-sm">
+          <!-- Visual Element: Premium Abstract Pattern -->
+          <div class="mb-12 relative h-56 w-full rounded-[2.5rem] bg-white border border-neutral-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden flex items-center justify-center group-hover:scale-[1.02] transition-transform duration-700">
+             <div class="absolute inset-0 grid grid-cols-6 grid-rows-3 gap-2 p-4 opacity-10">
+                <div class="bg-black rounded-lg col-span-2 row-span-2"></div>
+                <div class="bg-black rounded-lg"></div>
+                <div class="bg-black rounded-full w-8 h-8 self-center justify-self-center"></div>
+                <div class="bg-black rounded-lg col-span-3"></div>
+                <div class="border-2 border-black rounded-lg"></div>
+                <div class="bg-black rounded-lg col-span-2"></div>
+             </div>
+             <div class="relative z-10 w-20 h-20 bg-neutral-50 rounded-3xl flex items-center justify-center shadow-lg border border-neutral-100 group-hover:rotate-6 transition-transform duration-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-black"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+             </div>
+             <div class="absolute inset-0 bg-gradient-to-br from-black/[0.01] to-transparent pointer-events-none"></div>
+          </div>
+         
+         <div class="relative z-10">
+            <div class="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center mb-8 font-black text-xs">01</div>
+            <h3 class="text-4xl font-black mb-4 font-heading tracking-tighter">{{feature1Title}}</h3>
+            <p class="text-lg text-black/50 font-body leading-relaxed max-w-sm">{{feature1Desc}}</p>
+         </div>
+      </div>
+
+      <!-- Feature 2: Wide Top -->
+      <div class="md:col-span-2 p-12 rounded-[3rem] bg-neutral-50 border border-neutral-100 flex flex-col justify-center group hover:bg-neutral-100/50 transition-all duration-700 shadow-sm">
+         <h3 class="text-2xl font-black mb-4 font-heading tracking-tighter group-hover:text-black transition-colors">{{feature2Title}}</h3>
+         <p class="text-black/50 font-body leading-relaxed">{{feature2Desc}}</p>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="p-10 rounded-[3rem] bg-neutral-50 border border-neutral-100 flex flex-col justify-center group hover:bg-neutral-100/50 transition-all duration-700 shadow-sm">
+         <h3 class="text-xl font-black mb-4 font-heading tracking-tighter group-hover:text-black transition-colors">{{feature3Title}}</h3>
+         <p class="text-sm text-black/50 font-body leading-relaxed">{{feature3Desc}}</p>
+      </div>
+
+      <!-- Feature 4 -->
+      <div class="p-10 rounded-[3rem] bg-neutral-50 border border-neutral-100 flex flex-col justify-center group hover:bg-neutral-100/50 transition-all duration-700 shadow-sm">
+         <h3 class="text-xl font-black mb-4 font-heading tracking-tighter group-hover:text-black transition-colors">{{feature4Title}}</h3>
+         <p class="text-sm text-black/50 font-body leading-relaxed">{{feature4Desc}}</p>
+      </div>
+    </div>
+  </div>
+</section>

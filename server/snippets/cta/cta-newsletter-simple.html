@@ -1,0 +1,16 @@
+<!-- META: {"name": "Simple Newsletter", "bestFor": "Footer adjacent, minimalist, subscription"} -->
+<section class="py-16 px-6 bg-theme-surface/50 border-y border-white/5" data-animate="fade-up">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+    <div class="max-w-md text-center md:text-left">
+      <h3 class="text-2xl font-bold text-theme-text font-heading mb-2">{{heading}}</h3>
+      <p class="text-theme-dim font-body opacity-60">{{subtext}}</p>
+    </div>
+    
+    <form class="flex-1 max-w-lg w-full flex items-center gap-3">
+      <input type="email" placeholder="{{emailPlaceholder}}" class="flex-1 bg-theme-bg border border-theme-border px-6 py-3.5 rounded-xl text-theme-text font-body outline-none focus:border-theme-accent focus:ring-2 focus:ring-theme-accent/20 transition-all placeholder:text-theme-dim/40" />
+      <button type="submit" class="btn-premium px-8 py-3.5 rounded-xl bg-theme-accent text-theme-bg font-black hover:shadow-[0_0_30px_-5px_theme(colors.theme.accent)] transition-all font-body whitespace-nowrap">
+        <span class="relative z-10">{{buttonText}}</span>
+      </button>
+    </form>
+  </div>
+</section>

@@ -1,0 +1,51 @@
+<!-- META: {"name": "FAQ Grid", "bestFor": "Help centers, complex products, detailed support"} -->
+<section id="faq-grid" class="py-24 px-6 bg-theme-bg relative overflow-hidden">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-20 text-center" data-animate="fade-up">
+      <h2 class="text-4xl md:text-6xl font-heading font-black mb-6 tracking-tighter text-theme-text">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto font-body leading-relaxed opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" data-animate="stagger-children">
+      <!-- FAQ 1 -->
+      <div class="premium-glass inner-glow rounded-[2rem] p-8 hover:border-theme-accent/30 transition-all duration-500">
+        <h3 class="text-xl font-bold text-theme-text font-heading mb-3 flex items-start gap-3">
+          <span class="w-8 h-8 rounded-lg bg-theme-accent/10 flex items-center justify-center text-theme-accent shrink-0 text-sm font-black">?</span>
+          {{faq1Question}}
+        </h3>
+        <p class="text-lg text-theme-dim font-body leading-relaxed opacity-70 pl-11">{{faq1Answer}}</p>
+      </div>
+
+      <!-- FAQ 2 -->
+      <div class="premium-glass inner-glow rounded-[2rem] p-8 hover:border-theme-accent/30 transition-all duration-500">
+        <h3 class="text-xl font-bold text-theme-text font-heading mb-3 flex items-start gap-3">
+          <span class="w-8 h-8 rounded-lg bg-theme-accent/10 flex items-center justify-center text-theme-accent shrink-0 text-sm font-black">?</span>
+          {{faq2Question}}
+        </h3>
+        <p class="text-lg text-theme-dim font-body leading-relaxed opacity-70 pl-11">{{faq2Answer}}</p>
+      </div>
+
+      <!-- FAQ 3 -->
+      <div class="premium-glass inner-glow rounded-[2rem] p-8 hover:border-theme-accent/30 transition-all duration-500">
+        <h3 class="text-xl font-bold text-theme-text font-heading mb-3 flex items-start gap-3">
+          <span class="w-8 h-8 rounded-lg bg-theme-accent/10 flex items-center justify-center text-theme-accent shrink-0 text-sm font-black">?</span>
+          {{faq3Question}}
+        </h3>
+        <p class="text-lg text-theme-dim font-body leading-relaxed opacity-70 pl-11">{{faq3Answer}}</p>
+      </div>
+
+      <!-- FAQ 4 -->
+      <div class="premium-glass inner-glow rounded-[2rem] p-8 hover:border-theme-accent/30 transition-all duration-500">
+        <h3 class="text-xl font-bold text-theme-text font-heading mb-3 flex items-start gap-3">
+          <span class="w-8 h-8 rounded-lg bg-theme-accent/10 flex items-center justify-center text-theme-accent shrink-0 text-sm font-black">?</span>
+          {{faq4Question}}
+        </h3>
+        <p class="text-lg text-theme-dim font-body leading-relaxed opacity-70 pl-11">{{faq4Answer}}</p>
+      </div>
+    </div>
+  </div>
+</section>

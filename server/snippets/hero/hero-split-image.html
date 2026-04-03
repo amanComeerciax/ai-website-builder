@@ -1,0 +1,35 @@
+<!-- META: {"name": "Hero Split Image", "bestFor": "E-commerce, high-end products, physical goods"} -->
+<section class="pt-32 relative min-h-[90vh] flex items-center bg-theme-bg overflow-hidden px-6 py-24">
+  <div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-20 items-center relative z-10">
+    <!-- Content Side -->
+    <div class="space-y-10">
+      <div data-animate="fade-up">
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase bg-white/5 text-theme-accent border border-white/10 inner-glow backdrop-blur-xl">
+          {{badgeText}}
+        </span>
+      </div>
+      
+      <h1 data-animate="fade-up" class="text-5xl md:text-7xl font-heading font-black leading-[0.9] tracking-tighter text-theme-text">
+        {{heading}}
+      </h1>
+      
+      <p data-animate="fade-up" class="text-xl text-theme-dim font-body font-light max-w-xl leading-relaxed opacity-60">
+        {{subtext}}
+      </p>
+      
+      <div data-animate="fade-up" class="flex flex-wrap gap-4 pt-2">
+        <a href="{{ctaLink}}" class="btn-premium px-10 py-4 rounded-2xl bg-theme-accent text-theme-bg font-black text-lg shadow-[0_0_30px_-5px_theme(colors.theme.accent/30%)]">
+          <span class="relative z-10">{{ctaText}}</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Visual Side — REAL IMAGE -->
+    <div data-animate="fade-up" class="relative group">
+      <div class="absolute -inset-8 bg-gradient-to-tr from-theme-accent/15 to-transparent blur-3xl opacity-30 group-hover:opacity-50 transition-opacity"></div>
+      <div class="rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl relative z-10">
+        <img src="{{heroImage}}" alt="{{heading}}" class="w-full h-auto aspect-[4/5] object-cover" loading="eager" />
+      </div>
+    </div>
+  </div>
+</section>

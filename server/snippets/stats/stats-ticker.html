@@ -1,0 +1,58 @@
+<!-- META: {"name": "Stats Ticker", "bestFor": "Social proof, impact metrics, trust building"} -->
+<section class="py-24 px-6 bg-theme-bg relative overflow-hidden">
+  <!-- Subtle accent glow -->
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[60vw] h-[1px] bg-gradient-to-r from-transparent via-theme-accent/20 to-transparent"></div>
+  
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-16 text-center" data-animate="fade-up">
+      <h2 class="text-4xl md:text-6xl font-heading font-black mb-6 tracking-tighter text-theme-text">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto font-body leading-relaxed opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8" data-animate="stagger-children">
+      <!-- Stat 1 -->
+      <div class="premium-glass inner-glow rounded-[2rem] p-8 text-center hover:border-theme-accent/30 transition-all duration-500 group">
+        <div class="text-5xl md:text-6xl font-black mb-3 text-theme-text font-heading leading-none group-hover:text-theme-accent transition-colors" data-counter>
+          {{stat1Value}}
+        </div>
+        <div class="text-xs font-black tracking-[0.2em] uppercase text-theme-dim font-body opacity-50">
+          {{stat1Label}}
+        </div>
+      </div>
+
+      <!-- Stat 2 -->
+      <div class="premium-glass inner-glow rounded-[2rem] p-8 text-center hover:border-theme-accent/30 transition-all duration-500 group">
+        <div class="text-5xl md:text-6xl font-black mb-3 text-theme-text font-heading leading-none group-hover:text-theme-accent transition-colors" data-counter>
+          {{stat2Value}}
+        </div>
+        <div class="text-xs font-black tracking-[0.2em] uppercase text-theme-dim font-body opacity-50">
+          {{stat2Label}}
+        </div>
+      </div>
+
+      <!-- Stat 3 -->
+      <div class="premium-glass inner-glow rounded-[2rem] p-8 text-center hover:border-theme-accent/30 transition-all duration-500 group">
+        <div class="text-5xl md:text-6xl font-black mb-3 text-theme-text font-heading leading-none group-hover:text-theme-accent transition-colors" data-counter>
+          {{stat3Value}}
+        </div>
+        <div class="text-xs font-black tracking-[0.2em] uppercase text-theme-dim font-body opacity-50">
+          {{stat3Label}}
+        </div>
+      </div>
+
+      <!-- Stat 4 -->
+      <div class="premium-glass inner-glow rounded-[2rem] p-8 text-center hover:border-theme-accent/30 transition-all duration-500 group">
+        <div class="text-5xl md:text-6xl font-black mb-3 text-theme-text font-heading leading-none group-hover:text-theme-accent transition-colors" data-counter>
+          {{stat4Value}}
+        </div>
+        <div class="text-xs font-black tracking-[0.2em] uppercase text-theme-dim font-body opacity-50">
+          {{stat4Label}}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

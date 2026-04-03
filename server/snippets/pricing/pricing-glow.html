@@ -1,0 +1,110 @@
+<!-- META: {"name": "Pricing Glow", "bestFor": "SaaS, high-end products, conversion focus"} -->
+<section id="pricing" class="py-32 px-6 bg-theme-bg relative overflow-hidden">
+  <!-- Background decoration -->
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[50vh] bg-[radial-gradient(circle,theme(colors.theme.accent/8%),transparent_60%)] pointer-events-none blur-3xl"></div>
+  
+  <div class="max-w-7xl mx-auto text-center relative z-10">
+    <div class="mb-20" data-animate="fade-up">
+      <h2 class="text-4xl md:text-7xl font-heading font-black mb-6 tracking-tighter text-theme-text">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto font-body leading-relaxed opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch" data-animate="stagger-children">
+      <!-- Starter Plan -->
+      <div class="relative p-10 rounded-3xl flex flex-col bg-theme-surface border border-theme-border transition-all duration-500 hover:-translate-y-2 hover:border-theme-accent/20">
+        <h3 class="text-2xl font-bold text-theme-text font-heading mb-2">{{plan1Name}}</h3>
+        <p class="text-theme-dim font-body mb-8">{{plan1Desc}}</p>
+        <div class="flex items-baseline gap-2 mb-8">
+          <span class="text-5xl font-black text-theme-text">{{plan1Price}}</span>
+          <span class="text-theme-dim font-medium">/mo</span>
+        </div>
+        <ul class="flex-1 space-y-4 mb-10 text-theme-dim font-body">
+          <li class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-theme-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span>{{plan1Feature1}}</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-theme-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span>{{plan1Feature2}}</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-theme-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span>{{plan1Feature3}}</span>
+          </li>
+        </ul>
+        <a href="#signup" class="w-full py-4 rounded-xl text-center font-bold transition-all border border-theme-border text-theme-text hover:bg-theme-surface hover:border-theme-accent/30 font-body block">
+          {{plan1Cta}}
+        </a>
+      </div>
+
+      <!-- Pro Plan (Featured) -->
+      <div class="relative p-1 rounded-[1.75rem] overflow-hidden group">
+        <!-- Animated glow border -->
+        <div class="absolute inset-0 bg-gradient-to-br from-theme-accent via-theme-hover to-theme-accent opacity-60 animate-[shimmer_3s_linear_infinite]"></div>
+        <div class="relative h-full bg-theme-surface rounded-3xl p-10 flex flex-col">
+          <!-- Popular badge -->
+          <div class="absolute -top-0 left-1/2 -translate-x-1/2 px-6 py-1 bg-theme-accent text-theme-bg text-xs font-black uppercase tracking-widest rounded-b-xl">Most Popular</div>
+          <h3 class="text-2xl font-bold text-theme-text font-heading mb-2 mt-4">{{plan2Name}}</h3>
+          <p class="text-theme-dim font-body mb-8">{{plan2Desc}}</p>
+          <div class="flex items-baseline gap-2 mb-8">
+            <span class="text-6xl font-black text-theme-text">{{plan2Price}}</span>
+            <span class="text-theme-dim font-medium">/mo</span>
+          </div>
+          <ul class="flex-1 space-y-4 mb-10 text-theme-text font-body">
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-theme-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+              <span class="font-medium">{{plan2Feature1}}</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-theme-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+              <span class="font-medium">{{plan2Feature2}}</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-theme-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+              <span class="font-medium">{{plan2Feature3}}</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-theme-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+              <span class="font-medium">{{plan2Feature4}}</span>
+            </li>
+          </ul>
+          <a href="#signup" class="relative w-full py-4 rounded-xl text-center font-bold text-theme-bg bg-theme-accent hover:brightness-110 transition-all font-body overflow-hidden group block">
+            <span class="relative z-10">{{plan2Cta}}</span>
+            <!-- Shine effect -->
+            <div class="absolute inset-0 -translate-x-full bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)] group-hover:animate-[shimmer_1.5s_infinite]"></div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Enterprise Plan -->
+      <div class="relative p-10 rounded-3xl flex flex-col bg-theme-surface border border-theme-border transition-all duration-500 hover:-translate-y-2 hover:border-theme-accent/20">
+        <h3 class="text-2xl font-bold text-theme-text font-heading mb-2">{{plan3Name}}</h3>
+        <p class="text-theme-dim font-body mb-8">{{plan3Desc}}</p>
+        <div class="flex items-baseline gap-2 mb-8">
+          <span class="text-5xl font-black text-theme-text">{{plan3Price}}</span>
+        </div>
+        <ul class="flex-1 space-y-4 mb-10 text-theme-dim font-body">
+          <li class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-theme-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span>{{plan3Feature1}}</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-theme-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span>{{plan3Feature2}}</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-theme-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span>{{plan3Feature3}}</span>
+          </li>
+        </ul>
+        <a href="#contact" class="w-full py-4 rounded-xl text-center font-bold transition-all border border-theme-border text-theme-text hover:bg-theme-surface hover:border-theme-accent/30 font-body block">
+          {{plan3Cta}}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

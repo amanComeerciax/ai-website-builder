@@ -1,0 +1,42 @@
+<!-- META: {"name": "Icon Grid Features", "bestFor": "General purpose, clean layout, service showcase"} -->
+<section class="py-32 px-6 bg-theme-bg overflow-hidden relative">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-20 text-center" data-animate="fade-up">
+      <h2 class="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-theme-text font-heading">
+        {{heading}}
+      </h2>
+      <p class="text-xl text-theme-dim max-w-2xl mx-auto leading-relaxed font-body opacity-60">
+        {{subtext}}
+      </p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8" data-animate="stagger-children">
+      <!-- Feature 1 -->
+      <div class="group p-10 rounded-[2rem] bg-theme-surface border border-theme-border hover:border-theme-accent/30 transition-all duration-500 hover:-translate-y-2">
+        <div class="w-14 h-14 rounded-2xl bg-theme-accent/10 flex items-center justify-center mb-8 text-theme-accent group-hover:scale-110 transition-transform">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+        </div>
+        <h3 class="text-2xl font-bold mb-4 text-theme-text font-heading group-hover:text-theme-accent transition-colors">{{feature1Title}}</h3>
+        <p class="text-theme-dim font-body leading-relaxed opacity-70">{{feature1Desc}}</p>
+      </div>
+
+      <!-- Feature 2 -->
+      <div class="group p-10 rounded-[2rem] bg-theme-surface border border-theme-border hover:border-theme-accent/30 transition-all duration-500 hover:-translate-y-2">
+        <div class="w-14 h-14 rounded-2xl bg-theme-accent/10 flex items-center justify-center mb-8 text-theme-accent group-hover:scale-110 transition-transform">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+        </div>
+        <h3 class="text-2xl font-bold mb-4 text-theme-text font-heading group-hover:text-theme-accent transition-colors">{{feature2Title}}</h3>
+        <p class="text-theme-dim font-body leading-relaxed opacity-70">{{feature2Desc}}</p>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="group p-10 rounded-[2rem] bg-theme-surface border border-theme-border hover:border-theme-accent/30 transition-all duration-500 hover:-translate-y-2">
+        <div class="w-14 h-14 rounded-2xl bg-theme-accent/10 flex items-center justify-center mb-8 text-theme-accent group-hover:scale-110 transition-transform">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+        <h3 class="text-2xl font-bold mb-4 text-theme-text font-heading group-hover:text-theme-accent transition-colors">{{feature3Title}}</h3>
+        <p class="text-theme-dim font-body leading-relaxed opacity-70">{{feature3Desc}}</p>
+      </div>
+    </div>
+  </div>
+</section>
