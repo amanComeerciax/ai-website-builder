@@ -37,6 +37,9 @@ async function getRawTemplate(enrichedSpec, requestModel) {
     const templateDescriptions = {
       'aura.html': 'Tech, SaaS, smart home, software, futuristic, startups',
       'terroir.html': 'Coffee, premium food, organic, luxury, natural, elegant',
+      'solar-terms.html': 'Cultural, traditional, nature, Chinese aesthetics, elegant, poetry, seasons',
+      'build-log.html': 'Developer blog, indie hacker, shipping in public, tech portfolio, chronological',
+      'lifebydesign.html': 'Personal blog, lifestyle, self-improvement, wellness, coaching, intentional living, habits, journaling, productivity, frameworks'
     };
 
     const templateList = htmlFiles.map((f, i) => {
@@ -83,6 +86,8 @@ async function editExistingHtml(existingHtml, userPrompt, enrichedSpec, onProgre
   onProgress({ event: 'thinking', message: 'Analyzing your edit request...' });
   onProgress({ event: 'log', type: 'Reading', file: 'current website', message: 'Reviewing your existing website code' });
 
+  console.log(`[Generator] ✏️ editExistingHtml called — prompt: "${userPrompt.substring(0, 100)}..."`);
+
   const systemPrompt = `You are an expert web developer acting as a LIVE CODE EDITOR.
 The user has an EXISTING website (provided below) and wants you to make SPECIFIC changes.
 
@@ -97,7 +102,9 @@ CRITICAL RULES:
    - For background images: https://source.unsplash.com/1920x1080/?keywords
    Pick keywords relevant to the business (e.g., "coffee,cafe,latte" for a coffee shop).
 6. If there are broken/empty image placeholders or src="" in the existing code, auto-fill them with relevant Unsplash URLs.
-7. Return ONLY the complete modified HTML. No markdown wrapping. No explanations.`;
+7. Return ONLY the complete modified HTML. No markdown wrapping. No explanations.
+8. The output must start with <!DOCTYPE html> and end with </html>.
+9. Do NOT pick a different design template. Keep all existing colors, fonts, layout, and structure intact.`;
 
   const userMessage = `=== USER'S EDIT REQUEST ===
 ${userPrompt}
@@ -106,7 +113,7 @@ ${userPrompt}
 Business Name: ${enrichedSpec.businessName || 'N/A'}
 Description: ${enrichedSpec.description || 'N/A'}
 
-=== EXISTING WEBSITE HTML (modify this) ===
+=== EXISTING WEBSITE HTML (modify this — keep everything else EXACTLY the same) ===
 ${existingHtml}`;
 
   onProgress({ event: 'thinking', message: 'Applying your changes...' });
@@ -123,6 +130,103 @@ ${existingHtml}`;
   }
 
   onProgress({ event: 'log', type: 'Editing', file: 'index.html', message: 'Applied your changes successfully' });
+
+  return finalHtml;
+}
+
+// ─────────────────────────────────────────────────────────
+// MODE 3: VISUAL EDIT — Targeted element modifications
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Parse the visual edit prefix to extract element descriptors and the actual prompt.
+ * Input format: "[Visual Edit on: <span>, <p> ("some text")]\nchange font to bold"
+ * Returns: { elements: [{tag: 'span'}, {tag: 'p', text: 'some text'}], prompt: 'change font to bold' }
+ */
+function parseVisualEditPrefix(prompt) {
+  const match = prompt.match(/^\[Visual Edit on:\s*(.+?)\]\n?([\s\S]*)$/);
+  if (!match) return null;
+
+  const elementsStr = match[1];
+  const actualPrompt = match[2].trim();
+  
+  // Parse element descriptors like: <span>, <p#myId> ("text content"), <div>
+  const elements = [];
+  const elementRegex = /<(\w+)(#[\w-]+)?>(?:\s*\("([^"]+)"\))?/g;
+  let m;
+  while ((m = elementRegex.exec(elementsStr)) !== null) {
+    elements.push({
+      tag: m[1],
+      id: m[2] ? m[2].substring(1) : null,
+      text: m[3] || null
+    });
+  }
+
+  return { elements, prompt: actualPrompt };
+}
+
+/**
+ * Targeted element editing — gives the AI surgical instructions 
+ * to modify only the specific elements the user selected in the visual editor.
+ */
+async function editTargetedElements(existingHtml, parsedEdit, enrichedSpec, onProgress, requestModel) {
+  const { elements, prompt: editPrompt } = parsedEdit;
+  
+  const elementDescriptions = elements.map(el => {
+    let desc = `<${el.tag}>`;
+    if (el.id) desc += ` with id="${el.id}"`;
+    if (el.text) desc += ` containing text "${el.text}"`;
+    return desc;
+  }).join(', ');
+
+  console.log(`[Generator] 🎯 VISUAL EDIT — targeting ${elements.length} element(s): ${elementDescriptions}`);
+  console.log(`[Generator] 🎯 User request: "${editPrompt}"`);
+
+  onProgress({ event: 'thinking', message: `Targeting ${elements.length} element(s) for your edit...` });
+  onProgress({ event: 'log', type: 'Reading', file: 'selected elements', message: `Found ${elements.length} element(s) to modify` });
+
+  const systemPrompt = `You are an expert web developer performing SURGICAL element-level edits.
+The user has selected SPECIFIC elements on their website and wants ONLY those elements modified.
+
+TARGET ELEMENTS:
+${elements.map((el, i) => {
+  let desc = `  ${i + 1}. <${el.tag}> element`;
+  if (el.id) desc += ` with id="${el.id}"`;
+  if (el.text) desc += ` — currently showing: "${el.text}"`;
+  return desc;
+}).join('\n')}
+
+CRITICAL RULES:
+1. Find the target elements in the HTML by matching their tag name${elements.some(e => e.id) ? ', id' : ''}${elements.some(e => e.text) ? ', and text content' : ''}.
+2. Apply the user's requested changes ONLY to those specific elements.
+3. Do NOT touch ANY other part of the HTML — no section reordering, no template changes, no style changes outside the targets.
+4. Preserve the ENTIRE rest of the document exactly as-is: structure, CSS, scripts, classes, animations, etc.
+5. Return the COMPLETE modified HTML document. Start with <!DOCTYPE html>, end with </html>.
+6. No markdown wrapping. No explanations. Raw HTML only.`;
+
+  const userMessage = `=== EDIT REQUEST FOR SELECTED ELEMENTS ===
+${editPrompt}
+
+=== BUSINESS CONTEXT ===
+Business Name: ${enrichedSpec.businessName || 'N/A'}
+
+=== FULL EXISTING WEBSITE HTML (modify ONLY the targeted elements) ===
+${existingHtml}`;
+
+  onProgress({ event: 'thinking', message: 'Applying targeted changes...' });
+
+  const response = await callModel('generate_html', userMessage, systemPrompt, { forceModel: requestModel });
+  
+  let finalHtml = response.content.trim();
+  
+  // Clean markdown wrapping
+  if (finalHtml.startsWith('```html')) {
+    finalHtml = finalHtml.replace(/^```html/, '').replace(/```$/, '').trim();
+  } else if (finalHtml.startsWith('```')) {
+    finalHtml = finalHtml.replace(/^```/, '').replace(/```$/, '').trim();
+  }
+
+  onProgress({ event: 'log', type: 'Editing', file: 'index.html', message: `Modified ${elements.length} element(s) successfully` });
 
   return finalHtml;
 }
@@ -232,14 +336,26 @@ CRITICAL RULES:
 // ─────────────────────────────────────────────────────────
 // PUBLIC API — Called by aiWorker.js
 // ─────────────────────────────────────────────────────────
-async function generateRawHtml(enrichedSpec, onProgress, existingHtml = null, requestModel = null) {
+async function generateRawHtml(enrichedSpec, onProgress, existingHtml = null, requestModel = null, originalPrompt = null) {
   let finalHtml;
   let internalTemplateName = 'custom';
 
+  // Use the original user prompt for edits (not the enhanced version which may transform intent)
+  const editPrompt = originalPrompt || enrichedSpec.rawPrompt;
+
   if (existingHtml) {
-    // ── MODE 2: CONTEXTUAL EDIT ──
-    console.log(`[Generator] ✏️ EDIT MODE — modifying existing website (${existingHtml.length} chars)`);
-    finalHtml = await editExistingHtml(existingHtml, enrichedSpec.rawPrompt, enrichedSpec, onProgress, requestModel);
+    // Check if this is a visual-edit-targeted request
+    const parsedVisualEdit = parseVisualEditPrefix(editPrompt);
+    
+    if (parsedVisualEdit && parsedVisualEdit.elements.length > 0) {
+      // ── MODE 3: VISUAL EDIT (element-targeted) ──
+      console.log(`[Generator] 🎯 VISUAL EDIT MODE — ${parsedVisualEdit.elements.length} element(s) targeted`);
+      finalHtml = await editTargetedElements(existingHtml, parsedVisualEdit, enrichedSpec, onProgress, requestModel);
+    } else {
+      // ── MODE 2: CONTEXTUAL EDIT (general) ──
+      console.log(`[Generator] ✏️ EDIT MODE — modifying existing website (${existingHtml.length} chars)`);
+      finalHtml = await editExistingHtml(existingHtml, editPrompt, enrichedSpec, onProgress, requestModel);
+    }
   } else {
     // ── MODE 1: FRESH GENERATION ──
     console.log(`[Generator] 🆕 FRESH MODE — generating from design blueprint`);

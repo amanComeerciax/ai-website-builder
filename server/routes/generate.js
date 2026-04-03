@@ -61,7 +61,7 @@ router.post("/", async (req, res, next) => {
             projectId,
             existingFiles,
             messageId: assistantMessageId,
-            model: model || 'qwen',
+            model: model || 'mistral',
             userId: "local_test_user",
             // Pass enhanced pipeline options to the worker
             enhanceOptions: {

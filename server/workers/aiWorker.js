@@ -131,15 +131,20 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   try {
     if (isModification && existingHtmlForEdit) {
       console.log(`[Worker] ✏️ Routing to CONTEXTUAL EDIT mode`);
+      console.log(`[Worker] 📝 Original prompt: "${prompt.substring(0, 120)}..."`);
+      console.log(`[Worker] 📄 Existing HTML size: ${existingHtmlForEdit.length} chars`);
     } else {
       console.log(`[Worker] 🆕 Routing to FRESH GENERATION mode`);
+      if (isModification && !existingHtmlForEdit) {
+        console.warn(`[Worker] ⚠️ Project is configured but currentFileTree['index.html'] is missing — falling back to FRESH`);
+      }
     }
     result = await generateRawHtml(enhanced.enrichedSpec, (progress) => {
       job.updateProgress({
         event: progress.event,
         payload: { type: progress.type, file: progress.file, message: progress.message }
       });
-    }, isModification ? existingHtmlForEdit : null, currentModel);
+    }, isModification ? existingHtmlForEdit : null, currentModel, prompt);
   } catch (e) {
     console.error(`[Worker] Generation failed:`, e.message);
     throw new Error(`Website generation failed: ${e.message}`);
