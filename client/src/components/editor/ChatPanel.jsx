@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/clerk-react'
 import { 
     Send, Bot, User, Lightbulb, RefreshCw, Package, 
     FileEdit, FilePlus, Bookmark,
-    Plus, MessageSquare, 
+    Plus, 
     Mic, ArrowUp, ArrowRight, ChevronRight, ChevronDown,
     Palette, ExternalLink, Sparkles, Camera, Paperclip, X,
     Eye, Upload, Monitor, ImagePlus, Zap
@@ -22,7 +22,8 @@ export default function ChatPanel() {
         isConfigured, addMessage, startGeneration, setDetailsExpanded, 
         setIdeVisible, setSelectedModel, completeProjectConfig, setActiveView,
         isVisualEditMode, toggleVisualEditMode,
-        selectedElements, removeSelectedElement
+        selectedElements, removeSelectedElement,
+        thinkingMessage, isEditMode
     } = useChatStore()
     const { getToken } = useAuth()
     
@@ -39,14 +40,43 @@ export default function ChatPanel() {
     const [attachments, setAttachments] = useState([])
     const [showAttachMenu, setShowAttachMenu] = useState(false)
     const [isDragOver, setIsDragOver] = useState(false)
+    const [cycleIndex, setCycleIndex] = useState(0)
+    const [isCompact, setIsCompact] = useState(false)
     
     const messagesEndRef = useRef(null)
     const fileInputRef = useRef(null)
     const attachMenuRef = useRef(null)
+    const panelRef = useRef(null)
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages, generationPhase, generationLogs])
+
+    // Auto-cycle thinking phrases when no backend message is available
+    const thinkingPhrases = [
+        'Thinking...', 'Planning the layout...', 'Diving deep...', 
+        'Cooking up something great...', 'Almost there...'
+    ]
+    useEffect(() => {
+        if (!isGenerating) { setCycleIndex(0); return }
+        const interval = setInterval(() => {
+            setCycleIndex(prev => (prev + 1) % thinkingPhrases.length)
+        }, 2500)
+        return () => clearInterval(interval)
+    }, [isGenerating])
+
+    // ResizeObserver: detect panel width for compact/full mode
+    useEffect(() => {
+        const el = panelRef.current
+        if (!el) return
+        const ro = new ResizeObserver(entries => {
+            for (const entry of entries) {
+                setIsCompact(entry.contentRect.width < 320)
+            }
+        })
+        ro.observe(el)
+        return () => ro.disconnect()
+    }, [])
 
     // Close attach menu on outside click
     useEffect(() => {
@@ -184,18 +214,36 @@ export default function ChatPanel() {
             return
         }
 
-        // If visual edit elements are selected, prepend context
+        // If visual edit elements are selected, build context for backend but DON'T pollute the user message
+        let backendPrompt = messageContent
+        let visualEditElements = null
         if (selectedElements && selectedElements.length > 0) {
-            const elementDescs = selectedElements.map(el => {
-                const tag = el.tag || 'element'
+            visualEditElements = selectedElements.map(el => ({
+                tag: el.tag || 'element',
+                id: el.id || null,
+                text: el.text ? el.text.substring(0, 40) : null
+            }))
+            const elementDescs = visualEditElements.map(el => {
                 const id = el.id ? `#${el.id}` : ''
-                const text = el.text ? ` ("${el.text.substring(0, 40)}")` : ''
-                return `<${tag}${id}>${text}`
+                const text = el.text ? ` ("${el.text}")` : ''
+                return `<${el.tag}${id}>${text}`
             }).join(', ')
-            messageContent = `[Visual Edit on: ${elementDescs}]\n${messageContent}`
+            backendPrompt = `[Visual Edit on: ${elementDescs}]\n${messageContent}`
         }
 
-        startGeneration(messageContent, projectId, null, styleOptions)
+        // Collect actual attachment data for the AI
+        const imageData = attachments.filter(a => a.type === 'image').map(a => a.preview)
+        const fileData = attachments.filter(a => a.type === 'file').map(a => ({ name: a.name, content: a.content }))
+
+        // Show clean message to user (store visual edit elements separately for rendering tag chips)
+        addMessage({ 
+            role: 'user', 
+            content: messageContent,
+            visualEditElements: visualEditElements,
+            images: imageData.length > 0 ? imageData : undefined
+        })
+
+        startGeneration(backendPrompt, projectId, null, styleOptions, imageData, fileData)
     }
 
     const actionChips = [
@@ -248,6 +296,7 @@ export default function ChatPanel() {
 
     return (
         <div 
+            ref={panelRef}
             className={'chat-panel' + (isDragOver ? ' cp-drag-over' : '')}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -278,6 +327,17 @@ export default function ChatPanel() {
                             {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                         </div>
                         <div className="cp-msg-content">
+                            {/* Visual edit tag chips (above message) */}
+                            {msg.visualEditElements && msg.visualEditElements.length > 0 && (
+                                <div className="cp-msg-tags">
+                                    {msg.visualEditElements.map((el, i) => (
+                                        <span key={i} className={`cp-el-tag cp-el-tag-${el.tag}`}>
+                                            <span className="cp-el-tag-icon">{getTagIcon(el.tag)}</span>
+                                            {el.tag}{el.id ? `#${el.id}` : ''}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                             {msg.images && msg.images.length > 0 && (
                                 <div className="cp-msg-images">
                                     {msg.images.map((src, i) => (
@@ -294,17 +354,18 @@ export default function ChatPanel() {
                 {(isGenerating || generationPhase !== 'idle') && (
                     <div className="cp-ai-stream-container">
                         
-                        {(generationPhase === 'thinking' || generationPhase === 'streaming_logs' || generationLogs.length > 0) && (
+                        {/* Dynamic Thinking Indicator */}
+                        {(generationPhase === 'thinking' || generationPhase === 'streaming_logs' || generationLogs.length > 0) && isGenerating && (
                             <div className="cp-thought-row" onClick={() => setIsThoughtExpanded(!isThoughtExpanded)}>
                                 <Lightbulb size={16} className="cp-amber cp-pulse" />
-                                <span>Thinking...</span>
+                                <span>{thinkingMessage || thinkingPhrases[cycleIndex]}</span>
                                 {isThoughtExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                             </div>
                         )}
 
                         {isThoughtExpanded && generationLogs.length > 0 && (
                             <div className="cp-thought-box">
-                                <em>Analyzing your request and determining the best approach...</em>
+                                <em>{thinkingMessage || 'Analyzing your request and determining the best approach...'}</em>
                             </div>
                         )}
 
@@ -320,61 +381,92 @@ export default function ChatPanel() {
                             </div>
                         )}
 
-                        {generationPhase === 'complete' && generationSummary && (
-                            <div className="cp-finished-text">
-                                <p className="cp-summary-paragraph">{generationSummary}</p>
-                            </div>
+                        {/* EDIT MODE: Lovable-style compact card */}
+                        {generationPhase === 'complete' && isEditMode && (
+                            <>
+                                <div className="cp-edit-card">
+                                    <div className="cp-edit-card-header">
+                                        <span className="cp-edit-card-title">{generationTaskName}</span>
+                                        <button className="cp-icon-btn"><Bookmark size={16} /></button>
+                                    </div>
+                                    <div className="cp-cc-buttons">
+                                        <button className="cp-cc-btn" onClick={() => { setDetailsExpanded(!isDetailsExpanded) }}>
+                                            Details
+                                        </button>
+                                        <button 
+                                            className="cp-cc-btn"
+                                            onClick={() => {
+                                                if (!isIdeVisible) setIdeVisible(true)
+                                                setActiveView('preview')
+                                            }}
+                                        >
+                                            <Monitor size={14} /> Preview
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="cp-edit-summary">
+                                    <p>{generationSummary}</p>
+                                </div>
+                            </>
                         )}
 
-                        {generationPhase === 'complete' && (
-                            <div className="cp-completion-card">
-                                <div className="cp-cc-header">
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                        <span className="cp-cc-title">{generationTaskName}</span>
-                                        {generationSiteType && (
-                                            <span style={{ fontSize: '10px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <Palette size={10} style={{ color: '#3a3aff' }} /> {generationSiteType} &bull; AI Generated
-                                            </span>
-                                        )}
-                                    </div>
-                                    <button className="cp-icon-btn"><Bookmark size={18} /></button>
-                                </div>
-
-                                <div className="cp-cc-buttons">
-                                    <button 
-                                        className="cp-cc-btn"
-                                        onClick={() => {
-                                            if (!isIdeVisible) setIdeVisible(true)
-                                            setActiveView('preview')
-                                        }}
-                                    >
-                                        <Monitor size={14} /> Preview
-                                    </button>
-                                    <button 
-                                        className="cp-cc-btn"
-                                        onClick={() => {
-                                            if (!isIdeVisible) setIdeVisible(true)
-                                            setActiveView('code')
-                                        }}
-                                    >
-                                        <ExternalLink size={14} /> View Code
-                                    </button>
-                                </div>
-
-                                {isDetailsExpanded && (
-                                    <div className="cp-cc-bottom-summary">
-                                        <p>{generationSummary}</p>
+                        {/* FRESH MODE: Full completion card */}
+                        {generationPhase === 'complete' && !isEditMode && (
+                            <>
+                                {generationSummary && (
+                                    <div className="cp-finished-text">
+                                        <p className="cp-summary-paragraph">{generationSummary}</p>
                                     </div>
                                 )}
+                                <div className="cp-completion-card">
+                                    <div className="cp-cc-header">
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            <span className="cp-cc-title">{generationTaskName}</span>
+                                            {generationSiteType && (
+                                                <span style={{ fontSize: '10px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Palette size={10} style={{ color: '#3a3aff' }} /> {generationSiteType} &bull; AI Generated
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button className="cp-icon-btn"><Bookmark size={18} /></button>
+                                    </div>
 
-                                <div className="cp-chips-container">
-                                    {actionChips.map(chip => (
-                                        <button key={chip} className="cp-chip" onClick={() => handleChipClick(chip)}>
-                                            {chip}
+                                    <div className="cp-cc-buttons">
+                                        <button 
+                                            className="cp-cc-btn"
+                                            onClick={() => {
+                                                if (!isIdeVisible) setIdeVisible(true)
+                                                setActiveView('preview')
+                                            }}
+                                        >
+                                            <Monitor size={14} /> Preview
                                         </button>
-                                    ))}
+                                        <button 
+                                            className="cp-cc-btn"
+                                            onClick={() => {
+                                                if (!isIdeVisible) setIdeVisible(true)
+                                                setActiveView('code')
+                                            }}
+                                        >
+                                            <ExternalLink size={14} /> View Code
+                                        </button>
+                                    </div>
+
+                                    {isDetailsExpanded && (
+                                        <div className="cp-cc-bottom-summary">
+                                            <p>{generationSummary}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="cp-chips-container">
+                                        {actionChips.map(chip => (
+                                            <button key={chip} className="cp-chip" onClick={() => handleChipClick(chip)}>
+                                                {chip}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            </>
                         )}
                     </div>
                 )}
@@ -537,31 +629,40 @@ export default function ChatPanel() {
                             <select 
                                 value={selectedModel} 
                                 onChange={(e) => setSelectedModel(e.target.value)}
-                                className="cp-model-dropdown"
+                                className={`cp-model-dropdown ${isCompact ? 'compact' : ''}`}
                                 disabled={isGenerating}
                             >
-                                <option value="qwen">⚡ Qwen (Local)</option>
-                                <option value="mistral">☁️ Mistral (Cloud)</option>
-                                <option value="glm">🌏 GLM-4 (Cloud)</option>
+                                {isCompact ? (
+                                    <>
+                                        <option value="qwen">⚡ Qwen</option>
+                                        <option value="mistral">☁️ Mistral</option>
+                                        <option value="glm">🌏 GLM-4</option>
+                                    </>
+                                ) : (
+                                    <>
+                                        <option value="qwen">⚡ Qwen (Local)</option>
+                                        <option value="mistral">☁️ Mistral (Cloud)</option>
+                                        <option value="glm">🌏 GLM-4 (Cloud)</option>
+                                    </>
+                                )}
                             </select>
                         </div>
                     </div>
                     <div className="cp-toolbar-right">
                         <button 
-                            className={`ep-pill-btn ${isVisualEditMode ? 'active' : ''}`}
+                            className={`cp-visual-edit-btn ${isVisualEditMode ? 'active' : ''}`}
                             onClick={toggleVisualEditMode}
-                            style={{ padding: '4px 10px', fontSize: '12px', background: isVisualEditMode ? '#4466ff' : 'transparent', color: isVisualEditMode ? '#fff' : '#ccc', border: '1px solid #333' }}
+                            title="Visual edits"
                         >
-                            <span style={{ fontSize: '12px' }}>✏️</span> Visual edits
+                            <span>✏️</span>{!isCompact && <span className="cp-ve-label">Visual edits</span>}
                         </button>
-                        <button className="cp-tiny-btn"><MessageSquare size={18} /></button>
-                        <button className="cp-tiny-btn"><Mic size={18} /></button>
+                        <button className="cp-tiny-btn" title="Mic"><Mic size={16} /></button>
                         <button 
                             className={'cp-send-btn' + (canSend ? ' active' : '')}
                             onClick={handleSend}
                             disabled={!canSend}
                         >
-                            <ArrowUp size={18} />
+                            <ArrowUp size={16} />
                         </button>
                     </div>
                 </div>

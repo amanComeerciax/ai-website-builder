@@ -95,4 +95,78 @@ async function callGroq(systemPrompt, userMessage, options = {}) {
   }
 }
 
-module.exports = { callGroq };
+/**
+ * Extract UI/Design context from an image using Groq Vision
+ * 
+ * @param {Array<{id: string, name: string, preview: string}>} images - Array of base64 images
+ * @returns {Promise<string>} Detailed extracted design specification
+ */
+async function extractVisionContext(images) {
+  if (!GROQ_API_KEY) {
+    console.warn('[Groq Vision] API Key missing, skipping vision extraction.');
+    return '';
+  }
+
+  if (!images || images.length === 0) return '';
+
+  const visionPrompt = `You are an expert UI/UX designer. Analyze the attached screenshot(s) precisely.
+Extract and describe the following in extreme detail so a web developer can perfectly recreate it:
+1. Overall Layout (columns, cards, spacing)
+2. Exact Colors (estimate hex codes for background, exact text colors, buttons)
+3. Typography (is it Sans-serif like Inter, serif like Merriweather? Font weights and sizes)
+4. Key UI Components (buttons, toggles, navbars, shadows, border radii)
+
+Format as a highly structured, dense text block.`;
+
+  // Format messages for OpenAI-compatible multimodal endpoint
+  const contentArray = [
+    { type: 'text', text: visionPrompt }
+  ];
+
+  // The client sends `preview` as "data:image/png;base64,....."
+  for (const img of images) {
+    if (img.preview) {
+      contentArray.push({
+        type: 'image_url',
+        image_url: { url: img.preview }
+      });
+    }
+  }
+
+  const VISION_MODEL = 'llama-3.2-11b-vision-preview';
+  console.log(`[Groq Vision] Extracting context from ${images.length} image(s) using ${VISION_MODEL}...`);
+
+  try {
+    const response = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        messages: [{ role: 'user', content: contentArray }],
+        temperature: 0.1,
+        max_tokens: 1500
+      })
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      console.error(`[Groq Vision Error] HTTP ${response.status}: ${errBody}`);
+      return ''; // Graceful degradation
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    console.log(`[Groq Vision] ✅ Extracted context (${content.length} chars)`);
+    return content;
+
+  } catch (error) {
+    console.error(`[Groq Vision Error] Failed to extract context:`, error.message);
+    return ''; // Fail open (just use text prompt)
+  }
+}
+
+module.exports = { callGroq, extractVisionContext };

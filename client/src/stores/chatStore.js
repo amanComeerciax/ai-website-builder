@@ -25,6 +25,11 @@ export const useChatStore = create(
             generationTheme: '',
             generationSiteType: '',
             isConfigured: false,
+            
+            // Dynamic thinking message from backend SSE
+            thinkingMessage: '',
+            // Whether the current generation is an edit (vs fresh)
+            isEditMode: false,
 
             // Helper to automatically sync project-specific state to projectData
             _sync: (updater) => set((state) => {
@@ -264,16 +269,24 @@ export const useChatStore = create(
             },
             
             // ── Real AI Generation via Backend SSE ──
-            startGeneration: async (promptText, projectId, token, styleOptions = {}) => {
+            startGeneration: async (promptText, projectId, token, styleOptions = {}, images = [], fileContents = []) => {
                 const currentModel = get().selectedModel || 'mistral';
+                // Detect if this is an edit (existing files present)
+                const editorStoreFilesCheck = useEditorStore.getState().files;
+                const hasExistingFiles = Object.keys(editorStoreFilesCheck).length > 0;
+                
                 // Reset UI state for new generation
                 get()._sync({ 
                     isGenerating: true, 
                     generationPhase: 'thinking',
                     generationLogs: [],
                     generationSummary: '',
-                    generationTaskName: 'Building ' + promptText.substring(0, 25) + '...',
-                    isDetailsExpanded: true
+                    generationTaskName: hasExistingFiles 
+                        ? promptText.substring(0, 50) + (promptText.length > 50 ? '...' : '')
+                        : 'Building ' + promptText.substring(0, 25) + '...',
+                    isDetailsExpanded: true,
+                    thinkingMessage: '',
+                    isEditMode: hasExistingFiles,
                 });
                 // Show the right panel immediately
                 set({ isIdeVisible: true, activeView: 'agent' });
@@ -290,7 +303,9 @@ export const useChatStore = create(
                         currentModel,
                         existingFiles,
                         styleOptions,
-                        token
+                        token,
+                        images,
+                        fileContents
                     );
                     
                     const { jobId } = response;
@@ -311,7 +326,10 @@ export const useChatStore = create(
                     // Handle 'thinking' events from the AI worker
                     eventSource.addEventListener('thinking', (e) => {
                         const data = JSON.parse(e.data);
-                        get()._sync({ generationPhase: 'thinking' });
+                        get()._sync({ 
+                            generationPhase: 'thinking',
+                            thinkingMessage: data.message || ''
+                        });
                         console.log('[ChatStore] Thinking:', data.message);
                     });
 
@@ -368,6 +386,7 @@ export const useChatStore = create(
                             generationTheme: data.themeUsed || '',
                             generationSiteType: data.siteType || '',
                             isGenerating: false,
+                            thinkingMessage: '',
                         });
                         // Auto-switch to preview so user sees the rendered app
                         set({ activeView: 'preview', isIdeVisible: true });
@@ -440,6 +459,8 @@ export const useChatStore = create(
                     generationTaskName: '',
                     generationTheme: '',
                     generationSiteType: '',
+                    thinkingMessage: '',
+                    isEditMode: false,
                 }),
         }),
         {

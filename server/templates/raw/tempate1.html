@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STACK — Developer Platform</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <style>
+        :root {
+            --bg: #f0f0e8;
+            --black: #0a0a0a;
+            --red: #ff2d00;
+            --blue: #0033ff;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--black);
+            font-family: 'Space Mono', monospace;
+            overflow-x: hidden;
+        }
+
+        /* NAV */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 3rem;
+            background: var(--bg);
+            border-bottom: 3px solid var(--black);
+        }
+
+        .nav-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            letter-spacing: 0.1em;
+        }
+
+        .nav-logo span {
+            color: var(--red);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            font-size: 0.75rem;
+            color: var(--black);
+            text-decoration: none;
+            letter-spacing: 0.1em;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .nav-links a:hover {
+            border-bottom-color: var(--red);
+        }
+
+        .nav-cta {
+            background: var(--black);
+            color: var(--bg);
+            padding: 0.7rem 1.5rem;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            border: none;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            transition: background 0.2s;
+        }
+
+        .nav-cta:hover {
+            background: var(--red);
+        }
+
+        /* HERO */
+        #hero {
+            min-height: 100vh;
+            padding: 10rem 3rem 5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            border-bottom: 3px solid var(--black);
+        }
+
+        .hero-tag {
+            display: inline-block;
+            background: var(--red);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            margin-bottom: 2rem;
+        }
+
+        .hero-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(5rem, 10vw, 10rem);
+            line-height: 0.9;
+            letter-spacing: 0.02em;
+            margin-bottom: 2rem;
+        }
+
+        .hero-title .blue {
+            color: var(--blue);
+        }
+
+        .hero-desc {
+            font-size: 0.9rem;
+            line-height: 1.9;
+            color: #444;
+            margin-bottom: 3rem;
+            max-width: 480px;
+        }
+
+        .hero-btns {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: var(--black);
+            color: var(--bg);
+            padding: 1rem 2rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            border: 3px solid var(--black);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary:hover {
+            background: var(--red);
+            border-color: var(--red);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--black);
+            padding: 1rem 2rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            border: 3px solid var(--black);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-secondary:hover {
+            background: var(--black);
+            color: var(--bg);
+        }
+
+        .hero-code {
+            background: var(--black);
+            color: #00ff41;
+            padding: 2.5rem;
+            font-size: 0.8rem;
+            line-height: 1.8;
+            border: 3px solid var(--black);
+            position: relative;
+        }
+
+        .hero-code::before {
+            content: '● ● ●';
+            position: absolute;
+            top: 1rem;
+            left: 1.5rem;
+            color: #555;
+            font-size: 0.7rem;
+            letter-spacing: 0.5em;
+        }
+
+        .hero-code pre {
+            margin-top: 1.5rem;
+        }
+
+        .code-comment {
+            color: #555;
+        }
+
+        .code-key {
+            color: #ff6b6b;
+        }
+
+        .code-val {
+            color: #ffd93d;
+        }
+
+        .code-func {
+            color: #6bcb77;
+        }
+
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            border: 3px solid var(--black);
+            margin-top: 3rem;
+        }
+
+        .stat-box {
+            padding: 1.5rem;
+            border-right: 3px solid var(--black);
+            text-align: center;
+        }
+
+        .stat-box:last-child {
+            border-right: none;
+        }
+
+        .stat-n {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            color: var(--red);
+        }
+
+        .stat-l {
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
+            color: #666;
+            margin-top: 0.3rem;
+        }
+
+        /* FEATURES */
+        #features {
+            padding: 8rem 3rem;
+            border-bottom: 3px solid var(--black);
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            color: var(--red);
+            margin-bottom: 1rem;
+        }
+
+        .section-heading {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(3rem, 6vw, 6rem);
+            line-height: 0.9;
+            margin-bottom: 5rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            border: 3px solid var(--black);
+        }
+
+        .feature-card {
+            padding: 3rem 2.5rem;
+            border-right: 3px solid var(--black);
+            border-bottom: 3px solid var(--black);
+            transition: background 0.2s;
+        }
+
+        .feature-card:hover {
+            background: var(--black);
+            color: var(--bg);
+        }
+
+        .feature-card:nth-child(3n) {
+            border-right: none;
+        }
+
+        .feature-card:nth-last-child(-n+3) {
+            border-bottom: none;
+        }
+
+        .feat-num {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 4rem;
+            color: var(--red);
+            line-height: 1;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .feat-name {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        .feat-desc {
+            font-size: 0.8rem;
+            line-height: 1.8;
+            color: #666;
+        }
+
+        .feature-card:hover .feat-desc {
+            color: #aaa;
+        }
+
+        /* HOW IT WORKS */
+        #how {
+            padding: 8rem 3rem;
+            background: var(--black);
+            color: var(--bg);
+            border-bottom: 3px solid var(--red);
+        }
+
+        .how-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+            margin-top: 4rem;
+            border: 3px solid #333;
+        }
+
+        .how-step {
+            padding: 3rem 2rem;
+            border-right: 3px solid #333;
+            position: relative;
+        }
+
+        .how-step:last-child {
+            border-right: none;
+        }
+
+        .step-num {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 5rem;
+            color: var(--red);
+            line-height: 1;
+            opacity: 0.4;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        .step-desc {
+            font-size: 0.75rem;
+            line-height: 1.8;
+            color: #888;
+        }
+
+        /* PRICING */
+        #pricing {
+            padding: 8rem 3rem;
+            border-bottom: 3px solid var(--black);
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            border: 3px solid var(--black);
+            margin-top: 5rem;
+        }
+
+        .p-card {
+            padding: 3rem;
+            border-right: 3px solid var(--black);
+            position: relative;
+        }
+
+        .p-card.hot {
+            background: var(--black);
+            color: var(--bg);
+        }
+
+        .p-card:last-child {
+            border-right: none;
+        }
+
+        .p-badge {
+            display: inline-block;
+            background: var(--red);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.6rem;
+            letter-spacing: 0.15em;
+            margin-bottom: 1rem;
+        }
+
+        .p-tier {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            margin-bottom: 1rem;
+        }
+
+        .p-price {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 4rem;
+            line-height: 1;
+            margin-bottom: 0.3rem;
+        }
+
+        .p-price span {
+            font-size: 1.5rem;
+        }
+
+        .p-mo {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        .p-card.hot .p-mo {
+            color: #aaa;
+        }
+
+        .p-list {
+            list-style: none;
+            margin-bottom: 2.5rem;
+        }
+
+        .p-list li {
+            font-size: 0.75rem;
+            padding: 0.7rem 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 0.8rem;
+            line-height: 1.5;
+        }
+
+        .p-card.hot .p-list li {
+            border-bottom-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .p-list li::before {
+            content: '▸';
+            color: var(--red);
+            flex-shrink: 0;
+        }
+
+        .p-btn {
+            display: block;
+            text-align: center;
+            padding: 0.9rem;
+            border: 3px solid currentColor;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .p-btn:hover {
+            background: var(--red);
+            border-color: var(--red);
+            color: white;
+        }
+
+        /* TESTIMONIALS */
+        #testimonials {
+            padding: 8rem 3rem;
+            border-bottom: 3px solid var(--black);
+            background: var(--blue);
+            color: white;
+        }
+
+        .testi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            margin-top: 4rem;
+        }
+
+        .testi-card {
+            padding: 3rem;
+            border-right: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .testi-card:last-child {
+            border-right: none;
+        }
+
+        .testi-stars {
+            color: #ffd93d;
+            font-size: 0.8rem;
+            letter-spacing: 0.3em;
+            margin-bottom: 1.5rem;
+        }
+
+        .testi-text {
+            font-size: 0.85rem;
+            line-height: 1.9;
+            margin-bottom: 2rem;
+        }
+
+        .testi-name {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+        }
+
+        .testi-company {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 0.3rem;
+        }
+
+        /* TEAM */
+        #team {
+            padding: 8rem 3rem;
+            border-bottom: 3px solid var(--black);
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+            border: 3px solid var(--black);
+            margin-top: 4rem;
+        }
+
+        .t-card {
+            border-right: 3px solid var(--black);
+            overflow: hidden;
+        }
+
+        .t-card:last-child {
+            border-right: none;
+        }
+
+        .t-photo {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #e0e0d8, #c0c0b8);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .t-initial {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 5rem;
+            color: rgba(0, 0, 0, 0.1);
+        }
+
+        .t-overlay {
+            position: absolute;
+            inset: 0;
+            background: var(--red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .t-card:hover .t-overlay {
+            opacity: 0.9;
+        }
+
+        .t-overlay-text {
+            color: white;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+        }
+
+        .t-info {
+            padding: 1.5rem;
+            border-top: 3px solid var(--black);
+        }
+
+        .t-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.3rem;
+        }
+
+        .t-role {
+            font-size: 0.65rem;
+            color: var(--red);
+            letter-spacing: 0.1em;
+        }
+
+        /* FAQ */
+        #faq {
+            padding: 8rem 3rem;
+            background: var(--black);
+            color: var(--bg);
+            border-bottom: 3px solid var(--red);
+        }
+
+        .faq-wrap {
+            max-width: 800px;
+            margin: 4rem auto 0;
+        }
+
+        .faq-q {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #333;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .faq-icon {
+            color: var(--red);
+            font-size: 1.5rem;
+            transition: transform 0.3s;
+        }
+
+        .faq-a {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            font-size: 0.8rem;
+            color: #888;
+            line-height: 1.9;
+        }
+
+        .faq-item.open .faq-a {
+            max-height: 200px;
+            padding-bottom: 1.5rem;
+        }
+
+        .faq-item.open .faq-icon {
+            transform: rotate(45deg);
+            color: var(--bg);
+        }
+
+        /* CONTACT */
+        #contact {
+            padding: 8rem 3rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5rem;
+            border-bottom: 3px solid var(--black);
+        }
+
+        .contact-left .section-heading {
+            margin-bottom: 2rem;
+        }
+
+        .contact-sub {
+            font-size: 0.85rem;
+            line-height: 1.9;
+            color: #555;
+            margin-bottom: 3rem;
+        }
+
+        .contact-detail {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .contact-icon {
+            font-size: 1.2rem;
+            color: var(--red);
+        }
+
+        .contact-val {
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border: 3px solid var(--black);
+        }
+
+        .cf-group {
+            display: flex;
+            flex-direction: column;
+            border-bottom: 3px solid var(--black);
+        }
+
+        .cf-group:last-of-type {
+            border-bottom: none;
+        }
+
+        .cf-label {
+            font-size: 0.6rem;
+            letter-spacing: 0.2em;
+            color: var(--red);
+            padding: 0.8rem 1.5rem 0;
+        }
+
+        .cf-input {
+            background: transparent;
+            border: none;
+            color: var(--black);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            padding: 0.5rem 1.5rem 1rem;
+            outline: none;
+        }
+
+        .cf-submit {
+            background: var(--red);
+            color: white;
+            border: none;
+            padding: 1.2rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-top: 3px solid var(--black);
+        }
+
+        .cf-submit:hover {
+            background: var(--black);
+        }
+
+        /* FOOTER */
+        footer {
+            padding: 3rem;
+            background: var(--black);
+            color: var(--bg);
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 3rem;
+            align-items: start;
+        }
+
+        .footer-brand {}
+
+        .footer-logo-large {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3rem;
+            letter-spacing: 0.1em;
+        }
+
+        .footer-tagline {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-links a {
+            font-size: 0.75rem;
+            color: #888;
+            text-decoration: none;
+            transition: color 0.2s;
+            letter-spacing: 0.05em;
+        }
+
+        .footer-links a:hover {
+            color: var(--red);
+        }
+
+        .footer-links h4 {
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            color: var(--red);
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #222;
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            font-size: 0.65rem;
+            color: #555;
+            display: flex;
+            justify-content: space-between;
+            grid-column: span 3;
+        }
+
+        .reveal {
+            /* Initial states are set by GSAP inline — no CSS hiding needed */
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nav-logo">STACK<span>.</span></div>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#team">Team</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+        <button class="nav-cta">START FREE →</button>
+    </nav>
+
+    <!-- HERO -->
+    <section id="hero">
+        <div>
+            <div class="hero-tag">// BETA NOW OPEN</div>
+            <h1 class="hero-title">BUILD <span class="blue">FASTER.</span> SHIP BETTER.</h1>
+            <p class="hero-desc">The developer platform that eliminates friction. Deploy APIs, manage
+                infrastructure, and monitor everything — from a single terminal-inspired interface.</p>
+            <div class="hero-btns">
+                <a href="#" class="btn-primary">GET STARTED FREE</a>
+                <a href="#" class="btn-secondary">VIEW DOCS</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-box">
+                    <div class="stat-n">99.9%</div>
+                    <div class="stat-l">UPTIME SLA</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-n">50ms</div>
+                    <div class="stat-l">AVG LATENCY</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-n">12K+</div>
+                    <div class="stat-l">DEVELOPERS</div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-code">
+            <pre><span class="code-comment">// Initialize STACK client</span>
+<span class="code-key">import</span> { Stack } <span class="code-key">from</span> <span class="code-val">'@stack/sdk'</span>;
+
+<span class="code-key">const</span> client = <span class="code-key">new</span> <span class="code-func">Stack</span>({
+  apiKey: process.env.<span class="code-val">STACK_KEY</span>,
+  region: <span class="code-val">'us-east-1'</span>,
+  cache: <span class="code-key">true</span>
+});
+
+<span class="code-comment">// Deploy in one line</span>
+<span class="code-key">await</span> client.<span class="code-func">deploy</span>({
+  name: <span class="code-val">'my-api'</span>,
+  auto_scale: <span class="code-key">true</span>
+});
+
+<span class="code-comment">// ✓ Live in 3.2 seconds</span></pre>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features">
+        <p class="section-label reveal">// CAPABILITIES</p>
+        <h2 class="section-heading reveal">EVERYTHING<br>YOU NEED.</h2>
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <div class="feat-num">01</div>
+                <div class="feat-name">INSTANT DEPLOY</div>
+                <div class="feat-desc">Push to production in under 5 seconds. Zero-downtime deployments with automatic
+                    rollback if anything breaks.</div>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feat-num">02</div>
+                <div class="feat-name">AUTO SCALING</div>
+                <div class="feat-desc">Scale from zero to millions of requests automatically. Pay only for what you use,
+                    down to the millisecond.</div>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feat-num">03</div>
+                <div class="feat-name">REALTIME LOGS</div>
+                <div class="feat-desc">Stream logs, errors, and metrics in real time. Set custom alerts and never miss a
+                    critical event again.</div>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feat-num">04</div>
+                <div class="feat-name">EDGE NETWORK</div>
+                <div class="feat-desc">Deploy to 200+ edge locations worldwide. Your API runs closest to your users,
+                    always.</div>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feat-num">05</div>
+                <div class="feat-name">SECRETS VAULT</div>
+                <div class="feat-desc">Encrypted environment variables and secrets management. Rotate keys without
+                    redeployment.</div>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feat-num">06</div>
+                <div class="feat-name">TEAM ACCESS</div>
+                <div class="feat-desc">Role-based access control, audit logs, and SSO. Built for teams of all sizes.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how">
+        <p class="section-label reveal" style="color:var(--red);">// HOW IT WORKS</p>
+        <h2 class="section-heading reveal">4 STEPS TO<br>PRODUCTION.</h2>
+        <div class="how-grid">
+            <div class="how-step reveal">
+                <div class="step-num">01</div>
+                <div class="step-title">INSTALL CLI</div>
+                <div class="step-desc">npm install -g @stack/cli and you're ready. One command setup, no configuration
+                    files needed.</div>
+            </div>
+            <div class="how-step reveal">
+                <div class="step-num">02</div>
+                <div class="step-title">CONNECT REPO</div>
+                <div class="step-desc">Link your GitHub, GitLab, or Bitbucket repository. We auto-detect your stack and
+                    configure everything.</div>
+            </div>
+            <div class="how-step reveal">
+                <div class="step-num">03</div>
+                <div class="step-title">PUSH CODE</div>
+                <div class="step-desc">Commit and push. Every push triggers an automatic build, test, and deployment
+                    pipeline.</div>
+            </div>
+            <div class="how-step reveal">
+                <div class="step-num">04</div>
+                <div class="step-title">GO LIVE</div>
+                <div class="step-desc">Your app is live on a global CDN with SSL, custom domains, and analytics
+                    included.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section id="pricing">
+        <p class="section-label reveal">// PRICING</p>
+        <h2 class="section-heading reveal">NO SURPRISES.<br>EVER.</h2>
+        <div class="pricing-grid">
+            <div class="p-card reveal">
+                <div class="p-tier">STARTER</div>
+                <div class="p-price"><span>$</span>0</div>
+                <div class="p-mo">/ month forever</div>
+                <ul class="p-list">
+                    <li>3 Projects</li>
+                    <li>100K Requests/mo</li>
+                    <li>Community Support</li>
+                    <li>1GB Storage</li>
+                </ul>
+                <a href="#" class="p-btn">START FREE</a>
+            </div>
+            <div class="p-card hot reveal">
+                <div class="p-badge">MOST POPULAR</div>
+                <div class="p-tier">PRO</div>
+                <div class="p-price"><span>$</span>29</div>
+                <div class="p-mo">/ month per seat</div>
+                <ul class="p-list">
+                    <li>Unlimited Projects</li>
+                    <li>10M Requests/mo</li>
+                    <li>Priority Support</li>
+                    <li>100GB Storage</li>
+                    <li>Custom Domains</li>
+                    <li>Advanced Analytics</li>
+                </ul>
+                <a href="#" class="p-btn">GET PRO</a>
+            </div>
+            <div class="p-card reveal">
+                <div class="p-tier">ENTERPRISE</div>
+                <div class="p-price">Custom</div>
+                <div class="p-mo">volume pricing</div>
+                <ul class="p-list">
+                    <li>Unlimited Everything</li>
+                    <li>Dedicated Infrastructure</li>
+                    <li>24/7 SLA Support</li>
+                    <li>Custom Integrations</li>
+                    <li>SSO & Audit Logs</li>
+                </ul>
+                <a href="#" class="p-btn">CONTACT SALES</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section id="testimonials">
+        <p class="section-label reveal" style="color:#ffd93d;">// WHAT DEVS SAY</p>
+        <h2 class="section-heading reveal" style="color:white;">LOVED BY<br>BUILDERS.</h2>
+        <div class="testi-grid">
+            <div class="testi-card reveal">
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">"STACK cut our deployment time from 20 minutes to under 30 seconds. It's the
+                    platform we wished existed when we started."</p>
+                <div class="testi-name">JAMES PARK</div>
+                <div class="testi-company">CTO @ Helix Systems</div>
+            </div>
+            <div class="testi-card reveal">
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">"The auto-scaling alone saved us $4,000 last month. We used to overprovision out
+                    of fear. Now we just trust the platform."</p>
+                <div class="testi-name">PRIYA SHARMA</div>
+                <div class="testi-company">Lead Engineer @ Flowcode</div>
+            </div>
+            <div class="testi-card reveal">
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">"Best DX I've experienced in 10 years of building. The CLI is intuitive, the docs
+                    are excellent, and support actually responds."</p>
+                <div class="testi-name">MARCO BIANCHI</div>
+                <div class="testi-company">Founder @ Nodecraft</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TEAM -->
+    <section id="team">
+        <p class="section-label reveal">// THE TEAM</p>
+        <h2 class="section-heading reveal">BUILT BY<br>DEVELOPERS.</h2>
+        <div class="team-grid">
+            <div class="t-card reveal">
+                <div class="t-photo">
+                    <div class="t-initial">K</div>
+                    <div class="t-overlay"><span class="t-overlay-text">@kevinli</span></div>
+                </div>
+                <div class="t-info">
+                    <div class="t-name">KEVIN LI</div>
+                    <div class="t-role">CEO & CO-FOUNDER</div>
+                </div>
+            </div>
+            <div class="t-card reveal">
+                <div class="t-photo">
+                    <div class="t-initial">S</div>
+                    <div class="t-overlay"><span class="t-overlay-text">@sara_dev</span></div>
+                </div>
+                <div class="t-info">
+                    <div class="t-name">SARA MALIK</div>
+                    <div class="t-role">CTO & CO-FOUNDER</div>
+                </div>
+            </div>
+            <div class="t-card reveal">
+                <div class="t-photo">
+                    <div class="t-initial">T</div>
+                    <div class="t-overlay"><span class="t-overlay-text">@tom_ops</span></div>
+                </div>
+                <div class="t-info">
+                    <div class="t-name">TOM RIVERS</div>
+                    <div class="t-role">HEAD OF INFRA</div>
+                </div>
+            </div>
+            <div class="t-card reveal">
+                <div class="t-photo">
+                    <div class="t-initial">A</div>
+                    <div class="t-overlay"><span class="t-overlay-text">@ana_dx</span></div>
+                </div>
+                <div class="t-info">
+                    <div class="t-name">ANA COSTA</div>
+                    <div class="t-role">HEAD OF DX</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq">
+        <p class="section-label reveal" style="color:var(--red);">// FAQ</p>
+        <h2 class="section-heading reveal">COMMON<br>QUESTIONS.</h2>
+        <div class="faq-wrap">
+            <div class="faq-item reveal">
+                <div class="faq-q">Can I migrate from Vercel or Railway? <span class="faq-icon">+</span></div>
+                <div class="faq-a">Yes! We have a one-click migration tool for Vercel, Railway, Render, and Heroku. Most
+                    migrations complete in under 5 minutes.</div>
+            </div>
+            <div class="faq-item reveal">
+                <div class="faq-q">What runtimes do you support? <span class="faq-icon">+</span></div>
+                <div class="faq-a">Node.js, Python, Go, Rust, Ruby, PHP, and any Docker container. We support all major
+                    frameworks including Next.js, FastAPI, and more.</div>
+            </div>
+            <div class="faq-item reveal">
+                <div class="faq-q">How does billing work? <span class="faq-icon">+</span></div>
+                <div class="faq-a">You pay at the end of each month. No surprise charges. Every account has a
+                    configurable spend cap that we'll never exceed.</div>
+            </div>
+            <div class="faq-item reveal">
+                <div class="faq-q">Is there a free tier? <span class="faq-icon">+</span></div>
+                <div class="faq-a">Yes — our Starter tier is free forever with no credit card required. 100K
+                    requests/month is enough for most side projects.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact">
+        <div class="contact-left">
+            <p class="section-label reveal">// CONTACT</p>
+            <h2 class="section-heading reveal">LET'S<br>TALK.</h2>
+            <p class="contact-sub reveal">Have questions about enterprise plans, need a custom integration, or just want
+                to chat? We respond within 24 hours.</p>
+            <div class="contact-detail reveal"><span class="contact-icon">▸</span>
+                <div class="contact-val">hello@stackplatform.dev</div>
+            </div>
+            <div class="contact-detail reveal"><span class="contact-icon">▸</span>
+                <div class="contact-val">@stackplatform on Twitter/X</div>
+            </div>
+            <div class="contact-detail reveal"><span class="contact-icon">▸</span>
+                <div class="contact-val">Discord community: 3,200+ members</div>
+            </div>
+        </div>
+        <form class="contact-form reveal">
+            <div class="cf-group">
+                <div class="cf-label">NAME</div><input class="cf-input" type="text" placeholder="Your name">
+            </div>
+            <div class="cf-group">
+                <div class="cf-label">EMAIL</div><input class="cf-input" type="email" placeholder="you@company.com">
+            </div>
+            <div class="cf-group">
+                <div class="cf-label">MESSAGE</div><input class="cf-input" type="text" placeholder="How can we help?">
+            </div>
+            <button type="submit" class="cf-submit">SEND MESSAGE →</button>
+        </form>
+    </section>
+
+    <footer>
+        <div class="footer-brand">
+            <div class="footer-logo-large">STACK.</div>
+            <div class="footer-tagline">// Build faster. Ship better.</div>
+        </div>
+        <div>
+            <div class="footer-links">
+                <h4>PRODUCT</h4>
+                <ul class="footer-links">
+                    <li><a href="#">Features</a></li>
+                    <li><a href="#">Pricing</a></li>
+                    <li><a href="#">Changelog</a></li>
+                    <li><a href="#">Status</a></li>
+                </ul>
+            </div>
+        </div>
+        <div>
+            <div class="footer-links">
+                <h4>COMPANY</h4>
+                <ul class="footer-links">
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom"><span>© 2025 STACK PLATFORM INC.</span><span>PRIVACY · TERMS · SECURITY</span></div>
+    </footer>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Staggered nav entrance
+        gsap.from('nav', { y: -100, opacity: 0, duration: 0.8, ease: 'power3.out', clearProps: 'all' });
+
+        // Hero
+        gsap.timeline({ delay: 0.5, onComplete: () => gsap.set('.hero-tag, .hero-title, .hero-desc, .hero-btns, .hero-stats, .hero-code', { clearProps: 'all' }) })
+            .from('.hero-tag', { opacity: 0, x: -20, duration: 0.5 })
+            .from('.hero-title', { opacity: 0, y: 40, duration: 0.7 }, '-=0.2')
+            .from('.hero-desc', { opacity: 0, y: 20, duration: 0.5 }, '-=0.3')
+            .from('.hero-btns', { opacity: 0, y: 20, duration: 0.5 }, '-=0.2')
+            .from('.hero-stats', { opacity: 0, y: 20, duration: 0.5 }, '-=0.2')
+            .from('.hero-code', { opacity: 0, x: 40, duration: 0.7 }, '-=0.8');
+
+        // Scroll reveals
+        gsap.utils.toArray('.reveal').forEach(el => {
+            gsap.fromTo(el, { opacity: 0, y: 30 }, {
+                opacity: 1, y: 0, duration: 0.7, ease: 'power2.out',
+                scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' },
+                clearProps: 'all'
+            });
+        });
+
+        // FAQ
+        document.querySelectorAll('.faq-q').forEach(q => q.addEventListener('click', () => q.parentElement.classList.toggle('open')));
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kai Müller — Art Director</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300;1,600&family=Inter:wght@300;400&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <style>
+        :root {
+            --white: #ffffff;
+            --black: #111111;
+            --accent: #5b4eff;
+            --gray: #f5f5f5;
+            --mid: #888;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--white);
+            color: var(--black);
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            overflow-x: hidden;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+            padding: 2rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-name {
+            font-family: 'Fraunces', serif;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            font-size: 0.85rem;
+            color: var(--black);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent);
+        }
+
+        .nav-avail {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.8rem;
+            color: var(--mid);
+        }
+
+        .avail-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        #hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 0 5% 6rem;
+        }
+
+        .hero-top {
+            padding: 8rem 5% 0;
+            position: relative;
+        }
+
+        .hero-index {
+            font-size: 0.75rem;
+            color: var(--mid);
+            letter-spacing: 0.1em;
+            margin-bottom: 3rem;
+        }
+
+        .hero-title {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(4rem, 10vw, 10rem);
+            font-weight: 300;
+            line-height: 0.92;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-title em {
+            font-style: italic;
+            color: var(--accent);
+        }
+
+        .hero-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 4rem;
+        }
+
+        .hero-desc {
+            max-width: 380px;
+            font-size: 1rem;
+            color: var(--mid);
+            line-height: 1.9;
+        }
+
+        .hero-meta {
+            text-align: right;
+        }
+
+        .hero-meta p {
+            font-size: 0.8rem;
+            color: var(--mid);
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-meta a {
+            font-family: 'Fraunces', serif;
+            font-size: 1.3rem;
+            font-style: italic;
+            color: var(--black);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .hero-meta a:hover {
+            color: var(--accent);
+        }
+
+        .hero-scroll-line {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 1px;
+            height: 80px;
+            background: linear-gradient(to bottom, var(--black), transparent);
+            transform: translateX(-50%);
+        }
+
+        #work {
+            padding: 8rem 5%;
+        }
+
+        .work-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 4rem;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--mid);
+            margin-bottom: 0.8rem;
+        }
+
+        .section-title {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 300;
+        }
+
+        .view-all {
+            font-size: 0.85rem;
+            color: var(--accent);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .view-all:hover {
+            gap: 1rem;
+        }
+
+        .work-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background: #e8e8e8;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        .work-item {
+            display: grid;
+            grid-template-columns: 80px 1fr auto auto;
+            gap: 3rem;
+            align-items: center;
+            padding: 2.5rem 0;
+            background: white;
+            transition: all 0.4s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .work-item::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent);
+            transition: width 0.4s;
+        }
+
+        .work-item:hover::after {
+            width: 100%;
+        }
+
+        .work-item:hover {
+            background: var(--gray);
+            padding-left: 1rem;
+        }
+
+        .work-num {
+            font-size: 0.75rem;
+            color: var(--mid);
+        }
+
+        .work-name {
+            font-family: 'Fraunces', serif;
+            font-size: 2rem;
+            font-weight: 300;
+        }
+
+        .work-year {
+            font-size: 0.8rem;
+            color: var(--mid);
+        }
+
+        .work-cat {
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--mid);
+            background: var(--gray);
+            padding: 0.4rem 0.8rem;
+            border-radius: 100px;
+        }
+
+        .work-item:hover .work-cat {
+            background: var(--accent);
+            color: white;
+        }
+
+        .work-arrow {
+            color: var(--mid);
+            font-size: 1.3rem;
+            transition: all 0.3s;
+        }
+
+        .work-item:hover .work-arrow {
+            color: var(--accent);
+            transform: translateX(5px);
+        }
+
+        #about {
+            padding: 8rem 5%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8rem;
+            align-items: center;
+            background: var(--black);
+            color: var(--white);
+        }
+
+        .about-img {
+            aspect-ratio: 3/4;
+            background: linear-gradient(135deg, #222, #444);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6rem;
+        }
+
+        .about-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--mid);
+            margin-bottom: 1.5rem;
+        }
+
+        .about-title {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 300;
+            font-style: italic;
+            margin-bottom: 2rem;
+            line-height: 1.2;
+        }
+
+        .about-text {
+            font-size: 0.95rem;
+            line-height: 1.9;
+            color: rgba(255, 255, 255, 0.55);
+            margin-bottom: 1.5rem;
+        }
+
+        .skills-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .skill-tag {
+            padding: 0.4rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 100px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            transition: all 0.3s;
+        }
+
+        .skill-tag:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        #services {
+            padding: 8rem 5%;
+        }
+
+        .srv-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3rem;
+            margin-top: 4rem;
+        }
+
+        .srv-item {
+            border-top: 2px solid var(--black);
+            padding-top: 2rem;
+        }
+
+        .srv-num {
+            font-size: 0.75rem;
+            color: var(--mid);
+            margin-bottom: 1.5rem;
+        }
+
+        .srv-title {
+            font-family: 'Fraunces', serif;
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 1.2rem;
+        }
+
+        .srv-desc {
+            font-size: 0.9rem;
+            color: var(--mid);
+            line-height: 1.8;
+        }
+
+        .srv-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 1.5rem;
+        }
+
+        .srv-tag {
+            font-size: 0.7rem;
+            color: var(--accent);
+            border: 1px solid rgba(91, 78, 255, 0.3);
+            padding: 0.3rem 0.7rem;
+            border-radius: 100px;
+        }
+
+        #testimonials {
+            padding: 8rem 5%;
+            background: var(--gray);
+        }
+
+        .testi-inner {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 6rem;
+            align-items: start;
+        }
+
+        .testi-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .tc {
+            padding: 2rem;
+            background: white;
+            border-radius: 1rem;
+            border-left: 3px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .tc:hover {
+            border-left-color: var(--accent);
+        }
+
+        .tc-text {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: var(--black);
+            margin-bottom: 1rem;
+        }
+
+        .tc-name {
+            font-size: 0.8rem;
+            font-weight: 400;
+            color: var(--black);
+        }
+
+        .tc-company {
+            font-size: 0.75rem;
+            color: var(--mid);
+        }
+
+        .testi-featured {
+            background: var(--accent);
+            color: white;
+            padding: 4rem;
+            border-radius: 2rem;
+        }
+
+        .tf-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 2rem;
+        }
+
+        .tf-quote {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            line-height: 1.4;
+            margin-bottom: 3rem;
+        }
+
+        .tf-name {
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+
+        .tf-role {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 0.3rem;
+        }
+
+        #team {
+            padding: 8rem 5%;
+        }
+
+        .collab-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-top: 4rem;
+        }
+
+        .collab-card {
+            border: 1px solid #e8e8e8;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .collab-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+        }
+
+        .collab-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--gray);
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+        }
+
+        .collab-name {
+            font-family: 'Fraunces', serif;
+            font-size: 1.1rem;
+            font-weight: 300;
+            margin-bottom: 0.3rem;
+        }
+
+        .collab-role {
+            font-size: 0.75rem;
+            color: var(--mid);
+        }
+
+        #pricing {
+            padding: 8rem 5%;
+            background: var(--black);
+            color: white;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 5rem;
+        }
+
+        .price-item {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            border-radius: 1.5rem;
+            transition: all 0.4s;
+        }
+
+        .price-item:hover {
+            border-color: var(--accent);
+            background: rgba(91, 78, 255, 0.05);
+        }
+
+        .price-item.featured {
+            border-color: var(--accent);
+            background: rgba(91, 78, 255, 0.1);
+            grid-column: span 2;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .pi-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 1rem;
+        }
+
+        .pi-name {
+            font-family: 'Fraunces', serif;
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .pi-price {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: var(--accent);
+            margin-bottom: 0.3rem;
+        }
+
+        .pi-sub {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 2rem;
+        }
+
+        .pi-list {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .pi-list li {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .pi-list li::before {
+            content: '↗';
+            color: var(--accent);
+        }
+
+        .pi-btn {
+            display: block;
+            text-align: center;
+            padding: 0.9rem 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 100px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .pi-btn:hover,
+        .price-item.featured .pi-btn {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        #faq {
+            padding: 8rem 5%;
+        }
+
+        .faq-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 4rem;
+        }
+
+        .faq-card {}
+
+        .faq-q {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #e8e8e8;
+            cursor: pointer;
+            gap: 1rem;
+            font-size: 0.95rem;
+            font-weight: 400;
+        }
+
+        .faq-icon {
+            color: var(--accent);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            transition: transform 0.3s;
+        }
+
+        .faq-item.open .faq-icon {
+            transform: rotate(45deg);
+        }
+
+        .faq-a {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s;
+            font-size: 0.88rem;
+            color: var(--mid);
+            line-height: 1.8;
+        }
+
+        .faq-item.open .faq-a {
+            max-height: 200px;
+            padding: 1rem 0 1.5rem;
+        }
+
+        #contact {
+            padding: 8rem 5%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8rem;
+            align-items: center;
+        }
+
+        .contact-big {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(3rem, 7vw, 7rem);
+            font-weight: 300;
+            font-style: italic;
+            line-height: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .contact-big em {
+            color: var(--accent);
+            font-style: italic;
+        }
+
+        .contact-desc {
+            font-size: 1rem;
+            color: var(--mid);
+            line-height: 1.8;
+            margin-bottom: 2.5rem;
+        }
+
+        .contact-links {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .clink {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1rem;
+            color: var(--black);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .clink:hover {
+            color: var(--accent);
+        }
+
+        .clink-icon {
+            font-size: 1.1rem;
+        }
+
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .cf-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .cf-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--mid);
+        }
+
+        .cf-input {
+            background: var(--gray);
+            border: none;
+            color: var(--black);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 300;
+            padding: 1rem 1.2rem;
+            border-radius: 0.5rem;
+            outline: none;
+            transition: background 0.3s;
+        }
+
+        .cf-input:focus {
+            background: #ebebeb;
+        }
+
+        .cf-input::placeholder {
+            color: #bbb;
+        }
+
+        .cf-submit {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 1.1rem 2rem;
+            border-radius: 100px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.3s;
+            align-self: flex-start;
+        }
+
+        .cf-submit:hover {
+            background: var(--black);
+            transform: translateY(-2px);
+        }
+
+        footer {
+            padding: 3rem 5%;
+            border-top: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .f-name {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            font-size: 1.2rem;
+        }
+
+        .f-copy {
+            font-size: 0.8rem;
+            color: var(--mid);
+        }
+
+        .f-social {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .f-social a {
+            font-size: 0.8rem;
+            color: var(--mid);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .f-social a:hover {
+            color: var(--accent);
+        }
+
+        .reveal {
+            /* GSAP sets opacity inline — no CSS hiding needed */
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nav-name">Kai Müller</div>
+        <ul class="nav-links">
+            <li><a href="#work">Work</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#pricing">Services</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+        <div class="nav-avail">
+            <div class="avail-dot"></div> Available for projects
+        </div>
+    </nav>
+
+    <section id="hero">
+        <div class="hero-top">
+            <p class="hero-index">Art Director — Berlin, DE · 2025</p>
+            <h1 class="hero-title">
+                Design<br>that<br><em>moves</em><br>people.
+            </h1>
+        </div>
+        <div class="hero-bottom">
+            <p class="hero-desc">I craft thoughtful visual identities, digital experiences, and brand systems for
+                ambitious companies. 8 years of experience, zero shortcuts.</p>
+            <div class="hero-meta">
+                <p>Currently open for</p>
+                <a href="#contact">new projects →</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="work">
+        <div class="work-header">
+            <div>
+                <div class="section-label reveal">Selected Work</div>
+                <h2 class="section-title reveal">Case Studies</h2>
+            </div>
+            <a href="#" class="view-all reveal">All Projects →</a>
+        </div>
+        <div class="work-list">
+            <div class="work-item reveal"><span class="work-num">01</span><span class="work-name">Forma
+                    Studio</span><span class="work-year">2024</span><span class="work-cat">Brand Identity</span><span
+                    class="work-arrow">→</span></div>
+            <div class="work-item reveal"><span class="work-num">02</span><span class="work-name">Lumen
+                    Finance</span><span class="work-year">2024</span><span class="work-cat">Web Design</span><span
+                    class="work-arrow">→</span></div>
+            <div class="work-item reveal"><span class="work-num">03</span><span class="work-name">Volta
+                    Records</span><span class="work-year">2023</span><span class="work-cat">Art Direction</span><span
+                    class="work-arrow">→</span></div>
+            <div class="work-item reveal"><span class="work-num">04</span><span class="work-name">Nord
+                    Architecture</span><span class="work-year">2023</span><span class="work-cat">Brand + Web</span><span
+                    class="work-arrow">→</span></div>
+            <div class="work-item reveal"><span class="work-num">05</span><span class="work-name">Drift
+                    Sportswear</span><span class="work-year">2022</span><span class="work-cat">Campaign</span><span
+                    class="work-arrow">→</span></div>
+        </div>
+    </section>
+
+    <section id="about">
+        <div class="about-img reveal">🎨</div>
+        <div>
+            <p class="about-label reveal">About</p>
+            <h2 class="about-title reveal">"I make things beautiful, and I make beautiful things work."</h2>
+            <p class="about-text reveal">Based in Berlin, I've spent the last 8 years helping founders, startups, and
+                established brands find their visual voice. I believe great design is invisible — it just feels right.
+            </p>
+            <p class="about-text reveal">Before going independent, I led design at AKQA Berlin and Publicis. Now I work
+                directly with clients who want something meaningful, not just something made.</p>
+            <div class="skills-list reveal">
+                <span class="skill-tag">Brand Identity</span>
+                <span class="skill-tag">Art Direction</span>
+                <span class="skill-tag">Typography</span>
+                <span class="skill-tag">Figma</span>
+                <span class="skill-tag">Motion Design</span>
+                <span class="skill-tag">Web Design</span>
+                <span class="skill-tag">Photography</span>
+            </div>
+        </div>
+    </section>
+
+    <section id="services">
+        <div class="section-label reveal">What I Do</div>
+        <h2 class="section-title reveal">Services</h2>
+        <div class="srv-grid">
+            <div class="srv-item reveal">
+                <div class="srv-num">01</div>
+                <div class="srv-title">Brand Identity</div>
+                <div class="srv-desc">Logo systems, visual language, typography, color, and the brand standards that
+                    keep it all consistent.</div>
+                <div class="srv-tags"><span class="srv-tag">Logos</span><span class="srv-tag">Guidelines</span><span
+                        class="srv-tag">Strategy</span></div>
+            </div>
+            <div class="srv-item reveal">
+                <div class="srv-num">02</div>
+                <div class="srv-title">Web Design</div>
+                <div class="srv-desc">Pixel-perfect website designs built to convert, crafted for the browser, and
+                    handed off ready to build.</div>
+                <div class="srv-tags"><span class="srv-tag">UI/UX</span><span class="srv-tag">Figma</span><span
+                        class="srv-tag">Prototyping</span></div>
+            </div>
+            <div class="srv-item reveal">
+                <div class="srv-num">03</div>
+                <div class="srv-title">Art Direction</div>
+                <div class="srv-desc">Campaign direction, photo shoot curation, and the creative vision that makes a
+                    brand campaign land.</div>
+                <div class="srv-tags"><span class="srv-tag">Campaigns</span><span class="srv-tag">Editorial</span><span
+                        class="srv-tag">Motion</span></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="testimonials">
+        <div class="section-label reveal">Kind Words</div>
+        <h2 class="section-title reveal">Client Testimonials</h2>
+        <div class="testi-inner" style="margin-top:4rem;">
+            <div class="testi-list">
+                <div class="tc reveal">
+                    <p class="tc-text">"Kai brought a calm clarity to a chaotic brief. The result was effortlessly us."
+                    </p>
+                    <div class="tc-name">Anna Brandt</div>
+                    <div class="tc-company">CEO, Forma Studio</div>
+                </div>
+                <div class="tc reveal">
+                    <p class="tc-text">"Working with Kai felt like having a senior partner inside our company."</p>
+                    <div class="tc-name">Max Riedel</div>
+                    <div class="tc-company">Founder, Lumen</div>
+                </div>
+                <div class="tc reveal">
+                    <p class="tc-text">"The brand he created for us is something we're proud of every single day."</p>
+                    <div class="tc-name">Sofía Ruiz</div>
+                    <div class="tc-company">Creative Dir., Nord</div>
+                </div>
+            </div>
+            <div class="testi-featured reveal">
+                <div class="tf-label">Featured Testimonial</div>
+                <blockquote class="tf-quote">"Kai didn't just design our identity — he helped us understand who we are.
+                    Three years later, it still feels current."</blockquote>
+                <div class="tf-name">Marcus Weiss</div>
+                <div class="tf-role">Co-founder, Volta Records</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="team">
+        <div class="section-label reveal">Network</div>
+        <h2 class="section-title reveal">Trusted Collaborators</h2>
+        <p style="color:var(--mid);font-size:0.9rem;margin-top:1rem;" class="reveal">I work alone, but when projects
+            need a full team, I tap this circle.</p>
+        <div class="collab-grid">
+            <div class="collab-card reveal">
+                <div class="collab-avatar">💻</div>
+                <div class="collab-name">Lukas H.</div>
+                <div class="collab-role">Frontend Developer</div>
+            </div>
+            <div class="collab-card reveal">
+                <div class="collab-avatar">📸</div>
+                <div class="collab-name">Maya S.</div>
+                <div class="collab-role">Photographer</div>
+            </div>
+            <div class="collab-card reveal">
+                <div class="collab-avatar">🎬</div>
+                <div class="collab-name">Felix W.</div>
+                <div class="collab-role">Motion Designer</div>
+            </div>
+            <div class="collab-card reveal">
+                <div class="collab-avatar">✍️</div>
+                <div class="collab-name">Nora P.</div>
+                <div class="collab-role">Copywriter</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="pricing">
+        <div class="section-label reveal" style="color:rgba(255,255,255,0.4);">Investment</div>
+        <h2 class="section-title reveal" style="color:white;">Transparent Pricing</h2>
+        <div class="pricing-grid">
+            <div class="price-item reveal">
+                <div class="pi-label">Starter</div>
+                <div class="pi-name">Brand Sprint</div>
+                <div class="pi-price">€2,400</div>
+                <div class="pi-sub">2-week delivery</div>
+                <ul class="pi-list">
+                    <li>Logo + variations</li>
+                    <li>Color & type system</li>
+                    <li>Brand guidelines PDF</li>
+                    <li>Social media kit</li>
+                </ul><a href="#contact" class="pi-btn">Get Started</a>
+            </div>
+            <div class="price-item reveal">
+                <div class="pi-label">Web</div>
+                <div class="pi-name">Web Design</div>
+                <div class="pi-price">€3,800</div>
+                <div class="pi-sub">from, 3-week delivery</div>
+                <ul class="pi-list">
+                    <li>Up to 8 page designs</li>
+                    <li>Mobile responsive</li>
+                    <li>Figma handoff</li>
+                    <li>1 revision round</li>
+                </ul><a href="#contact" class="pi-btn">Get Started</a>
+            </div>
+            <div class="price-item featured reveal">
+                <div>
+                    <div class="pi-label">Full Service</div>
+                    <div class="pi-name">Brand + Web Bundle</div>
+                    <div class="pi-price">€6,200</div>
+                    <div class="pi-sub">best value, 5-6 weeks</div>
+                </div>
+                <div>
+                    <ul class="pi-list">
+                        <li>Complete identity system</li>
+                        <li>Website design (10 pages)</li>
+                        <li>Art direction & photography</li>
+                        <li>Launch-ready deliverables</li>
+                        <li>2 weeks post-launch support</li>
+                    </ul><a href="#contact" class="pi-btn">Start a Project</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="faq" style="padding:8rem 5%;">
+        <div class="section-label reveal">FAQ</div>
+        <h2 class="section-title reveal">Common Questions</h2>
+        <div class="faq-grid">
+            <div class="faq-item reveal">
+                <div class="faq-q">How does the process work? <span class="faq-icon">+</span></div>
+                <div class="faq-a">We start with a 1-hour discovery call, followed by a proposal and scope. Once
+                    approved, I work in two-week sprints with regular check-ins.</div>
+            </div>
+            <div class="faq-item reveal">
+                <div class="faq-q">Do you work with startups? <span class="faq-icon">+</span></div>
+                <div class="faq-a">Yes — some of my best work is with early-stage companies. Getting the identity right
+                    from the start makes everything easier later.</div>
+            </div>
+            <div class="faq-item reveal">
+                <div class="faq-q">What files will I receive? <span class="faq-icon">+</span></div>
+                <div class="faq-a">All source files (Figma, Illustrator, or Photoshop), print-ready PDFs, web-optimized
+                    PNGs/SVGs, and a brand guidelines document.</div>
+            </div>
+            <div class="faq-item reveal">
+                <div class="faq-q">Do you offer retainers? <span class="faq-icon">+</span></div>
+                <div class="faq-a">Yes. Monthly creative retainers start at €1,200/month for 10 hours of ongoing design
+                    work. Ideal for teams that need consistent support.</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact">
+        <div>
+            <h2 class="contact-big reveal">Let's<br>work<br><em>together.</em></h2>
+            <p class="contact-desc reveal">I'm currently taking on 2 new projects for Q2 2025. If you have a brief in
+                mind, I'd love to hear about it.</p>
+            <div class="contact-links reveal">
+                <a href="mailto:kai@kaimuller.de" class="clink"><span class="clink-icon">✉</span>kai@kaimuller.de</a>
+                <a href="#" class="clink"><span class="clink-icon">𝕏</span>@kai_muller</a>
+                <a href="#" class="clink"><span class="clink-icon">in</span>linkedin.com/in/kaimuller</a>
+            </div>
+        </div>
+        <form class="contact-form">
+            <div class="cf-group reveal"><label class="cf-label">Name</label><input class="cf-input" type="text"
+                    placeholder="Your name"></div>
+            <div class="cf-group reveal"><label class="cf-label">Email</label><input class="cf-input" type="email"
+                    placeholder="your@email.com"></div>
+            <div class="cf-group reveal"><label class="cf-label">Budget</label><input class="cf-input" type="text"
+                    placeholder="Approximate budget"></div>
+            <div class="cf-group reveal"><label class="cf-label">Project</label><textarea class="cf-input" rows="4"
+                    placeholder="Tell me about your project..." style="resize:none;"></textarea></div>
+            <button type="submit" class="cf-submit reveal">Send Message →</button>
+        </form>
+    </section>
+
+    <footer>
+        <div class="f-name">Kai Müller</div>
+        <div class="f-copy">© 2025 — Berlin, Germany</div>
+        <div class="f-social"><a href="#">Twitter</a><a href="#">Instagram</a><a href="#">Behance</a><a
+                href="#">LinkedIn</a></div>
+    </footer>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.from('nav', { y: -60, opacity: 0, duration: 0.8, ease: 'power3.out', clearProps: 'all' });
+        
+        gsap.timeline({ delay: 0.4, onComplete: () => gsap.set('.hero-index, .hero-title, .hero-desc, .hero-meta', { clearProps: 'all' }) })
+            .from('.hero-index', { opacity: 0, y: 15, duration: 0.6 })
+            .from('.hero-title', { opacity: 0, y: 60, duration: 1, ease: 'power3.out' }, '-=0.3')
+            .from('.hero-desc', { opacity: 0, y: 20, duration: 0.6 }, '-=0.4')
+            .from('.hero-meta', { opacity: 0, y: 20, duration: 0.6 }, '-=0.4');
+
+        gsap.utils.toArray('.reveal').forEach(el => {
+            gsap.fromTo(el, { opacity: 0, y: 30 }, {
+                opacity: 1, y: 0, duration: 0.8, ease: 'power2.out',
+                scrollTrigger: { trigger: el, start: 'top 88%' },
+                clearProps: 'all'
+            });
+        });
+
+        document.querySelectorAll('.faq-q').forEach(q => q.addEventListener('click', () => q.parentElement.classList.toggle('open')));
+    </script>
+</body>
+
+</html>

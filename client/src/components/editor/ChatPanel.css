@@ -3,7 +3,9 @@
     flex-direction: column;
     height: 100%;
     width: 100%;
+    min-width: 0;
     background: #111;
+    overflow: hidden;
 }
 
 .cp-messages {
@@ -176,6 +178,7 @@
 }
 .cp-cc-btn {
     flex: 1;
+    min-width: 0;
     background: #2a2a2a;
     color: #fff;
     border: none;
@@ -184,6 +187,13 @@
     font-size: 13px;
     cursor: pointer;
     transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .cp-cc-btn:hover { background: #333; }
 .cp-cc-bottom-summary {
@@ -206,6 +216,44 @@
     transition: color 0.15s;
 }
 .cp-icon-btn:hover { color: #fff; }
+
+/* ── Lovable-style Edit Card ── */
+.cp-edit-card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 8px 0 4px 0;
+    animation: slideUpFade 0.25s ease-out;
+}
+.cp-edit-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.cp-edit-card-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    line-height: 1.3;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cp-edit-card .cp-cc-buttons {
+    margin-top: 10px;
+}
+.cp-edit-summary {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #ccc;
+    padding: 4px 0 0 0;
+    animation: slideUpFade 0.3s ease-out;
+}
+.cp-edit-summary p {
+    margin: 0;
+}
 
 /* Chips */
 .cp-chips-container {
@@ -292,9 +340,10 @@
     background: #111111;
     border: 1px solid #2a2a2a;
     border-radius: 12px;
-    padding: 12px 16px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .cp-textarea {
@@ -315,11 +364,15 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 4px;
+    min-width: 0;
 }
 .cp-toolbar-left, .cp-toolbar-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
+    min-width: 0;
+    flex-shrink: 0;
 }
 
 .cp-tiny-btn {
@@ -360,8 +413,8 @@
     color: #ccc;
     border: 1px solid #333;
     border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 12px;
+    padding: 4px 6px;
+    font-size: 11px;
     font-family: 'Inter', -apple-system, sans-serif;
     cursor: pointer;
     outline: none;
@@ -371,8 +424,19 @@
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 8px center;
-    padding-right: 24px;
+    background-position: right 6px center;
+    padding-right: 20px;
+    max-width: 140px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cp-model-dropdown.compact {
+    max-width: 90px;
+    font-size: 11px;
+    padding: 3px 5px;
+    padding-right: 18px;
 }
 
 .cp-model-dropdown:hover {
@@ -397,8 +461,8 @@
 }
 
 .cp-send-btn {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     border: none;
     background: #333;
@@ -408,7 +472,7 @@
     justify-content: center;
     cursor: not-allowed;
     transition: all 0.2s;
-    margin-left: 4px;
+    flex-shrink: 0;
 }
 .cp-send-btn.active {
     background: #ffffff;
@@ -470,7 +534,7 @@
     padding: 6px;
     min-width: 220px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-    z-index: 50;
+    z-index: 100;
     animation: menuSlideUp 0.15s ease-out;
 }
 @keyframes menuSlideUp {
@@ -555,6 +619,73 @@
 }
 .cp-attachment-thumb:hover .cp-attachment-remove {
     opacity: 1;
+}
+
+/* ── Visual Edit Button (in toolbar) ── */
+.cp-visual-edit-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    background: transparent;
+    color: #ccc;
+    border: 1px solid #333;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+.cp-visual-edit-btn:hover {
+    background: #222;
+    border-color: #444;
+    color: #fff;
+}
+.cp-visual-edit-btn.active {
+    background: #4466ff;
+    color: #fff;
+    border-color: #4466ff;
+}
+
+/* Chips — responsive wrap */
+.cp-chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+.cp-chip {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: #ccc;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.cp-chip:hover {
+    background: #2a2a2a;
+    color: #fff;
+    border-color: #555;
+}
+
+/* ── Responsive: hide label text at very narrow widths ── */
+@media (max-width: 300px) {
+    .cp-ve-label { display: none; }
+}
+
+/* ── User Message Tag Chips ── */
+.cp-msg-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 6px;
 }
 
 /* ── Message Images ── */

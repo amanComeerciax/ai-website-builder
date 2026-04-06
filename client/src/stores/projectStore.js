@@ -9,6 +9,7 @@ export const useProjectStore = create((set, get) => ({
         try {
             const data = await apiClient.createProject({ 
                 name: prompt.substring(0, 40),
+                prompt: prompt,
                 folderId
             }, token);
             const dbProject = data.project;

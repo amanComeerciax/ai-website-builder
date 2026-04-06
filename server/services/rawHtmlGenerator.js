@@ -35,26 +35,44 @@ async function getRawTemplate(enrichedSpec, requestModel) {
 
     // Build selection prompt dynamically from available templates
     const templateDescriptions = {
-      'aura.html': 'Tech, SaaS, smart home, software, futuristic, startups',
-      'terroir.html': 'Coffee, premium food, organic, luxury, natural, elegant',
-      'solar-terms.html': 'Cultural, traditional, nature, Chinese aesthetics, elegant, poetry, seasons',
-      'build-log.html': 'Developer blog, indie hacker, shipping in public, tech portfolio, chronological',
-      'lifebydesign.html': 'Personal blog, lifestyle, self-improvement, wellness, coaching, intentional living, habits, journaling, productivity, frameworks'
+      // ── Original templates ──
+      'aura.html': 'Tech, SaaS, smart home, software, futuristic, startups, AI, automation',
+      'terroir.html': 'Coffee shop, premium food brand, organic, luxury beverage, natural, artisan, tea',
+      'solar-terms.html': 'Cultural, traditional, nature, Chinese aesthetics, elegant, poetry, seasons, heritage',
+      'build-log.html': 'Developer blog, indie hacker, shipping in public, tech portfolio, changelog, open-source',
+      'lifebydesign.html': 'Personal blog, lifestyle, self-improvement, wellness coaching, intentional living, habits, journaling, productivity',
+      // ── New templates ──
+      'tempate1.html': 'Developer platform, API tools, SaaS product, tech startup, devtools, cloud infrastructure, code tools, CLI, SDK, backend service, hosting',
+      'template2.html': 'Wellness, meditation, mindfulness, yoga studio, health coaching, mental health, breathwork, self-care, spa, retreat, holistic healing',
+      'template3.html': 'Restaurant, food business, Mexican kitchen, dining, bistro, cafe, bar, catering, chef portfolio, culinary, bakery, pizzeria, food truck',
+      'template4.html': 'Portfolio, freelancer, art director, designer, creative agency, personal brand, photography, illustrator, architect, consultant',
+      'template5.html': 'Fashion brand, clothing, e-commerce, boutique, luxury apparel, streetwear, accessories, jewelry, shoe brand, online store, retail'
     };
 
     const templateList = htmlFiles.map((f, i) => {
       const desc = templateDescriptions[f] || 'General purpose website';
-      return `${i + 1}. ${f} : ${desc}`;
+      return `${i + 1}. ${f} — ${desc}`;
     }).join('\n    ');
 
-    const selectionPrompt = `User details: "${queryStr}"
-    
-    Choose the best matching design style from the following list:
+    const selectionPrompt = `You are a design selector. Based on the user's business, pick the single best template.
+
+User's business: "${queryStr}"
+
+Available templates:
     ${templateList}
+
+INSTRUCTIONS:
+- Match by INDUSTRY and VIBE, not just exact keywords.
+- A yoga studio should match wellness/mindfulness templates.
+- A pizza shop should match restaurant/food templates.
+- A graphic designer should match portfolio/freelancer templates.
+- An online clothing store should match fashion/e-commerce templates.
+- A developer tools company should match tech/SaaS/developer templates.
+- If nothing is a strong match, pick the most visually versatile option.
+
+Reply with ONLY the exact filename (e.g. template3.html). No explanation.`;
     
-    Reply ONLY with the exact filename.`;
-    
-    let chosenFile = htmlFiles[0];
+    let chosenFile = htmlFiles[Math.floor(Math.random() * htmlFiles.length)];
     try {
         const selRes = await callModel('template_selector', queryStr, selectionPrompt, { forceModel: requestModel });
         const respFilename = selRes.content.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
@@ -96,15 +114,38 @@ CRITICAL RULES:
 2. Apply ONLY the changes the user requested. Do NOT regenerate or rearrange unmentioned sections.
 3. Preserve ALL existing structure, CSS, animations, scripts, and class names that the user did NOT ask to change.
 4. If the user asks to change a brand name / logo text, find ALL occurrences in the HTML and replace them.
-5. If the user asks for images, use high-quality Unsplash source URLs: https://source.unsplash.com/WIDTHxHEIGHT/?KEYWORDS
-   - For hero images: https://source.unsplash.com/1600x900/?keywords
-   - For feature/card images: https://source.unsplash.com/800x600/?keywords
-   - For background images: https://source.unsplash.com/1920x1080/?keywords
-   Pick keywords relevant to the business (e.g., "coffee,cafe,latte" for a coffee shop).
-6. If there are broken/empty image placeholders or src="" in the existing code, auto-fill them with relevant Unsplash URLs.
-7. Return ONLY the complete modified HTML. No markdown wrapping. No explanations.
-8. The output must start with <!DOCTYPE html> and end with </html>.
-9. Do NOT pick a different design template. Keep all existing colors, fonts, layout, and structure intact.`;
+5. For images, use ONLY high-quality images.unsplash.com URLs with REAL photo IDs. The format is:
+   https://images.unsplash.com/photo-PHOTOID?w=WIDTH&h=HEIGHT&fit=crop&q=80
+   Here are reliable photo IDs by category — pick the MOST relevant ones:
+   BUSINESS/TECH: photo-1497366216548-37526070297c, photo-1522071820081-009f0129c71c, photo-1553877522-43269d4ea984
+   FOOD/RESTAURANT: photo-1504674900247-0877df9cc836, photo-1414235077428-338989a2e8c0, photo-1517248135467-4c7edcad34c4
+   NATURE/TRAVEL: photo-1506744038136-46273834b3fb, photo-1469474968028-56623f02e42e, photo-1507525428034-b723cf961d3e
+   FASHION/LIFESTYLE: photo-1483985988355-763728e1935b, photo-1515886657613-9f3515b0c78f, photo-1469334031218-e382a71b716b
+   HEALTH/FITNESS: photo-1571019613454-1cb2f99b2d8b, photo-1517836357463-d25dfeac3438, photo-1544367567-0f2fcb009e0b
+   ABSTRACT/HERO: photo-1557682250-33bd709cbe85, photo-1579546929518-9e396f3cc809, photo-1557683316-973673baf926
+   TEAM/PEOPLE: photo-1522202176988-66273c2fd55f, photo-1556761175-5973dc0f32e7, photo-1600880292203-757bb62b4baf
+   Example: https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop&q=80
+   NEVER use source.unsplash.com — it is DEAD and returns errors.
+6. If there are broken/empty image placeholders or src="" in the existing code, auto-fill them with relevant Unsplash URLs from the list above.
+
+FONT CHANGE RULES:
+7. When the user asks to change fonts:
+   a. Add a Google Fonts <link> in the <head> section (e.g., <link href="https://fonts.googleapis.com/css2?family=TT+Commons:wght@400;500;600;700&display=swap" rel="stylesheet">)
+   b. Apply font-family CSS to the EXACT elements the user specified using inline style or a <style> block.
+   c. If the user says "change font of all a tags", add a CSS rule: a { font-family: 'TT Commons', sans-serif !important; }
+   d. Always preserve existing font-sizes, colors, and weights unless told otherwise.
+
+LOGO / ICON RULES:
+8. When the user asks to add a "logo" beside a brand name:
+   a. Use an inline SVG icon or a Unicode emoji (e.g., 🍕 for pizza) placed BEFORE the brand text inside the same container.
+   b. NEVER add a broken <img> tag with a fake URL. If you cannot find a real image, use an SVG or emoji.
+   c. Style the logo to match the brand text size using vertical-align and appropriate sizing.
+
+INTENT INTERPRETATION:
+9. Interpret user intent intelligently. "Add a pizza logo beside the div" means add a small icon/logo INSIDE the same div, before the text — NOT add text saying "Pizza Logo".
+10. Return ONLY the complete modified HTML. No markdown wrapping. No explanations.
+11. The output must start with <!DOCTYPE html> and end with </html>.
+12. Do NOT pick a different design template. Keep all existing colors, fonts, layout, and structure intact.`;
 
   const userMessage = `=== USER'S EDIT REQUEST ===
 ${userPrompt}
@@ -254,12 +295,19 @@ Your job is to rewrite ONLY the text content, image placeholders, and brand name
 CRITICAL RULES:
 1. NEVER modify the HTML structure, class names, CSS, scripts, or IDs.
 2. Maintain the EXACT length and tone of the original text blocks.
-3. For images, use high-quality Unsplash source URLs:
-   - Hero images: https://source.unsplash.com/1600x900/?KEYWORDS
-   - Feature/card images: https://source.unsplash.com/800x600/?KEYWORDS
-   - Background images: https://source.unsplash.com/1920x1080/?KEYWORDS
-   Choose keywords relevant to the business (e.g., "coffee,beans,latte" for a café).
-4. If ANY image src is empty, broken, or uses a placeholder, replace it with a relevant Unsplash URL.
+3. For images, use ONLY high-quality images.unsplash.com URLs with REAL photo IDs. The format is:
+   https://images.unsplash.com/photo-PHOTOID?w=WIDTH&h=HEIGHT&fit=crop&q=80
+   Here are reliable photo IDs by category — pick the MOST relevant ones:
+   BUSINESS/TECH: photo-1497366216548-37526070297c, photo-1522071820081-009f0129c71c, photo-1553877522-43269d4ea984
+   FOOD/RESTAURANT: photo-1504674900247-0877df9cc836, photo-1414235077428-338989a2e8c0, photo-1517248135467-4c7edcad34c4
+   NATURE/TRAVEL: photo-1506744038136-46273834b3fb, photo-1469474968028-56623f02e42e, photo-1507525428034-b723cf961d3e
+   FASHION/LIFESTYLE: photo-1483985988355-763728e1935b, photo-1515886657613-9f3515b0c78f, photo-1469334031218-e382a71b716b
+   HEALTH/FITNESS: photo-1571019613454-1cb2f99b2d8b, photo-1517836357463-d25dfeac3438, photo-1544367567-0f2fcb009e0b
+   ABSTRACT/HERO: photo-1557682250-33bd709cbe85, photo-1579546929518-9e396f3cc809, photo-1557683316-973673baf926
+   TEAM/PEOPLE: photo-1522202176988-66273c2fd55f, photo-1556761175-5973dc0f32e7, photo-1600880292203-757bb62b4baf
+   Example: https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop&q=80
+   NEVER use source.unsplash.com — it is DEAD and returns errors.
+4. If ANY image src is empty, broken, or uses source.unsplash.com, replace it with a relevant image from the curated list above.
 5. Return ONLY the final valid HTML code. No markdown wrapping. No explanations.`;
 
   const userMessage = `=== TARGET SPECIFICATION ===

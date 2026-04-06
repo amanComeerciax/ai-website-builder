@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VESPER — Contemporary Fashion</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Jost:wght@200;300;400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <style>
+        :root {
+            --off: #f9f6f1;
+            --black: #1a1a1a;
+            --tan: #c4a882;
+            --lt: #ede8e0;
+            --mid: #888;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--off);
+            color: var(--black);
+            font-family: 'Jost', sans-serif;
+            font-weight: 300;
+            overflow-x: hidden;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+            padding: 1.5rem 4%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(249, 246, 241, 0.92);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .nav-logo {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1.4rem;
+            letter-spacing: 0.15em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            font-size: 0.8rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--black);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--tan);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .nav-icon {
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .nav-icon:hover {
+            opacity: 0.5;
+        }
+
+        .nav-cart {
+            background: var(--black);
+            color: var(--off);
+            padding: 0.6rem 1.5rem;
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-family: 'Jost', sans-serif;
+        }
+
+        .nav-cart:hover {
+            background: var(--tan);
+        }
+
+        #hero {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .hero-left {
+            padding: 10rem 4% 5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .hero-tag {
+            font-size: 0.7rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--tan);
+            margin-bottom: 2rem;
+        }
+
+        .hero-title {
+            font-family: 'Libre Baskerville', serif;
+            font-size: clamp(3rem, 6vw, 6rem);
+            line-height: 1;
+            letter-spacing: -0.02em;
+            margin-bottom: 2rem;
+        }
+
+        .hero-title em {
+            font-style: italic;
+        }
+
+        .hero-desc {
+            font-size: 0.95rem;
+            color: var(--mid);
+            line-height: 1.9;
+            max-width: 380px;
+            margin-bottom: 3rem;
+        }
+
+        .hero-btns {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-black {
+            background: var(--black);
+            color: var(--off);
+            padding: 1rem 2rem;
+            font-size: 0.78rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            font-family: 'Jost', sans-serif;
+            text-decoration: none;
+            transition: background 0.3s;
+            display: inline-block;
+        }
+
+        .btn-black:hover {
+            background: var(--tan);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--black);
+            padding: 1rem 2rem;
+            font-size: 0.78rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            border: 1px solid var(--black);
+            cursor: pointer;
+            font-family: 'Jost', sans-serif;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .btn-outline:hover {
+            background: var(--black);
+            color: var(--off);
+        }
+
+        .hero-right {
+            background: linear-gradient(160deg, var(--lt) 0%, var(--tan) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10rem;
+            position: relative;
+        }
+
+        .hero-badge {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: var(--black);
+            color: var(--off);
+            padding: 1rem;
+            text-align: center;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hb-num {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1.3rem;
+            font-style: italic;
+            color: var(--tan);
+        }
+
+        .hb-text {
+            font-size: 0.5rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-top: 0.2rem;
+        }
+
+        .hero-scroll-text {
+            position: absolute;
+            bottom: 3rem;
+            left: 50%;
+            transform: translateX(-50%) rotate(90deg);
+            font-size: 0.6rem;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+        }
+
+        #featured {
+            padding: 8rem 4%;
+        }
+
+        .sec-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 4rem;
+        }
+
+        .sec-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--tan);
+            margin-bottom: 0.8rem;
+        }
+
+        .sec-title {
+            font-family: 'Libre Baskerville', serif;
+            font-size: clamp(1.8rem, 3.5vw, 3rem);
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .pcard {
+            cursor: pointer;
+        }
+
+        .pcard-img {
+            aspect-ratio: 3/4;
+            background: var(--lt);
+            margin-bottom: 1.2rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            transition: all 0.5s;
+        }
+
+        .pcard:hover .pcard-img {
+            background: var(--tan);
+        }
+
+        .pcard-quick {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            right: 1rem;
+            background: var(--black);
+            color: var(--off);
+            padding: 0.8rem;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-align: center;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s;
+        }
+
+        .pcard:hover .pcard-quick {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .pcard-tag {
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--tan);
+            margin-bottom: 0.3rem;
+        }
+
+        .pcard-name {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .pcard-price {
+            font-size: 0.9rem;
+            color: var(--mid);
+        }
+
+        .pcard-price del {
+            margin-right: 0.5rem;
+            color: #ccc;
+        }
+
+        .pcard-price ins {
+            text-decoration: none;
+            color: #c0392b;
+        }
+
+        #about {
+            padding: 8rem 4%;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 8rem;
+            align-items: center;
+            background: var(--black);
+            color: var(--off);
+        }
+
+        .about-visual {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 1rem;
+            height: 600px;
+        }
+
+        .av {
+            background: var(--lt);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .av:first-child {
+            grid-row: span 2;
+            background: linear-gradient(135deg, var(--lt), var(--tan));
+        }
+
+        .av:nth-child(2) {
+            background: linear-gradient(135deg, #2a2a2a, #3a3a3a);
+            font-size: 2rem;
+        }
+
+        .av:nth-child(3) {
+            background: linear-gradient(135deg, var(--tan), #a08060);
+        }
+
+        .about-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--tan);
+            margin-bottom: 1.5rem;
+        }
+
+        .about-title {
+            font-family: 'Libre Baskerville', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 2rem;
+            line-height: 1.2;
+        }
+
+        .about-text {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.9;
+            margin-bottom: 1.5rem;
+        }
+
+        .about-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 3rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 2.5rem;
+        }
+
+        .as-n {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 2rem;
+            font-style: italic;
+            color: var(--tan);
+        }
+
+        .as-l {
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.3);
+            margin-top: 0.3rem;
+        }
+
+        #services {
+            padding: 8rem 4%;
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3rem;
+            margin-top: 5rem;
+        }
+
+        .vcard {
+            border-top: 1px solid var(--lt);
+            padding-top: 2.5rem;
+        }
+
+        .vc-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .vc-title {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .vc-text {
+            font-size: 0.88rem;
+            color: var(--mid);
+            line-height: 1.9;
+        }
+
+        #testimonials {
+            padding: 8rem 4%;
+            background: var(--lt);
+        }
+
+        .t-wrap {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        .tc-card {
+            background: var(--off);
+            padding: 3rem;
+        }
+
+        .tc-stars {
+            font-size: 0.85rem;
+            color: var(--tan);
+            letter-spacing: 0.2em;
+            margin-bottom: 1.5rem;
+        }
+
+        .tc-quote {
+            font-family: 'Libre Baskerville', serif;
+            font-style: italic;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .tc-name {
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .tc-meta {
+            font-size: 0.75rem;
+            color: var(--mid);
+            margin-top: 0.3rem;
+        }
+
+        #team {
+            padding: 8rem 4%;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        .tc-photo {
+            aspect-ratio: 2/3;
+            background: var(--lt);
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tc-photo::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .team-card:hover .tc-photo::after {
+            opacity: 1;
+        }
+
+        .tc-info {}
+
+        .tc-pname {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1.1rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .tc-role {
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--tan);
+        }
+
+        #pricing {
+            padding: 8rem 4%;
+            background: var(--black);
+            color: var(--off);
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 5rem;
+        }
+
+        .pc {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            transition: all 0.4s;
+        }
+
+        .pc.featured {
+            border-color: var(--tan);
+        }
+
+        .pc:hover:not(.featured) {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .pc-badge {
+            display: inline-block;
+            background: var(--tan);
+            color: var(--black);
+            padding: 0.3rem 0.8rem;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }
+
+        .pc-tier {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 0.8rem;
+        }
+
+        .pc-name {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1.6rem;
+            font-style: italic;
+            margin-bottom: 0.5rem;
+        }
+
+        .pc-price {
+            font-size: 2.5rem;
+            font-weight: 200;
+            color: var(--tan);
+            margin-bottom: 0.5rem;
+        }
+
+        .pc-detail {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.3);
+            margin-bottom: 2.5rem;
+        }
+
+        .pc-list {
+            list-style: none;
+            margin-bottom: 2.5rem;
+        }
+
+        .pc-list li {
+            padding: 0.7rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.55);
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .pc-list li::before {
+            content: '–';
+            color: var(--tan);
+        }
+
+        .pc-btn {
+            display: block;
+            text-align: center;
+            padding: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.78rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            text-decoration: none;
+            color: var(--off);
+            transition: all 0.3s;
+        }
+
+        .pc-btn:hover,
+        .pc.featured .pc-btn {
+            background: var(--tan);
+            border-color: var(--tan);
+            color: var(--black);
+        }
+
+        #faq {
+            padding: 8rem 4%;
+        }
+
+        .faq-wrap {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 5rem;
+            margin-top: 4rem;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--lt);
+        }
+
+        .faq-q {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 400;
+            gap: 1rem;
+        }
+
+        .faq-icon {
+            color: var(--tan);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            transition: transform 0.3s;
+        }
+
+        .faq-item.open .faq-icon {
+            transform: rotate(45deg);
+        }
+
+        .faq-a {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s;
+            font-size: 0.85rem;
+            color: var(--mid);
+            line-height: 1.8;
+        }
+
+        .faq-item.open .faq-a {
+            max-height: 200px;
+            padding-bottom: 1.5rem;
+        }
+
+        #contact {
+            padding: 8rem 4%;
+            background: var(--lt);
+        }
+
+        .contact-inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6rem;
+        }
+
+        .c-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--tan);
+            margin-bottom: 1.5rem;
+        }
+
+        .c-title {
+            font-family: 'Libre Baskerville', serif;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            margin-bottom: 2rem;
+            line-height: 1.1;
+        }
+
+        .c-text {
+            font-size: 0.9rem;
+            color: var(--mid);
+            line-height: 1.8;
+            margin-bottom: 2.5rem;
+        }
+
+        .c-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            font-size: 0.88rem;
+            color: var(--mid);
+        }
+
+        .c-form {
+            background: var(--off);
+            padding: 3rem;
+        }
+
+        .cf-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .cf-g {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .cf-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--mid);
+        }
+
+        .cf-input {
+            background: var(--lt);
+            border: none;
+            color: var(--black);
+            font-family: 'Jost', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 300;
+            padding: 0.9rem 1rem;
+            outline: none;
+            transition: background 0.3s;
+        }
+
+        .cf-input:focus {
+            background: #e5e0d8;
+        }
+
+        .cf-input::placeholder {
+            color: #bbb;
+        }
+
+        .cf-submit {
+            background: var(--black);
+            color: var(--off);
+            border: none;
+            padding: 1.1rem 2rem;
+            font-family: 'Jost', sans-serif;
+            font-size: 0.78rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .cf-submit:hover {
+            background: var(--tan);
+        }
+
+        footer {
+            background: var(--black);
+            color: var(--off);
+            padding: 5rem 4% 3rem;
+        }
+
+        .footer-top {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 4rem;
+            margin-bottom: 4rem;
+            padding-bottom: 4rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .fl-logo {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 2rem;
+            letter-spacing: 0.1em;
+            color: var(--off);
+            margin-bottom: 1rem;
+        }
+
+        .fl-desc {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.35);
+            line-height: 1.8;
+            max-width: 240px;
+        }
+
+        .fc h4 {
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.3);
+            margin-bottom: 1.5rem;
+        }
+
+        .fc ul {
+            list-style: none;
+        }
+
+        .fc ul li {
+            margin-bottom: 0.8rem;
+        }
+
+        .fc ul a {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .fc ul a:hover {
+            color: var(--tan);
+        }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .reveal {
+            /* GSAP sets opacity inline — no CSS hiding needed */
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nav-logo">VESPER</div>
+        <ul class="nav-links">
+            <li><a href="#featured">Shop</a></li>
+            <li><a href="#about">Story</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+        <div class="nav-actions">
+            <span class="nav-icon">♡</span>
+            <span class="nav-icon">⊕</span>
+            <button class="nav-cart">Bag (0)</button>
+        </div>
+    </nav>
+
+    <section id="hero">
+        <div class="hero-left">
+            <div class="hero-tag">New Arrivals — Autumn/Winter 2025</div>
+            <h1 class="hero-title">Dressed for the<br><em>in-between.</em></h1>
+            <p class="hero-desc">Quiet luxury for the modern wardrobe. Designed with intention. Made to last.
+                Pieces that feel as good as they look.</p>
+            <div class="hero-btns">
+                <a href="#featured" class="btn-black">Shop Collection</a>
+                <a href="#about" class="btn-outline">Our Story</a>
+            </div>
+        </div>
+        <div class="hero-right">
+            <div style="font-size:10rem;">👗</div>
+            <div class="hero-badge">
+                <div class="hb-num">AW</div>
+                <div class="hb-text">2025</div>
+            </div>
+            <div class="hero-scroll-text">Scroll to explore</div>
+        </div>
+    </section>
+
+    <section id="featured">
+        <div class="sec-header">
+            <div>
+                <p class="sec-label reveal">New Arrivals</p>
+                <h2 class="sec-title reveal">This Season</h2>
+            </div>
+            <a href="#" class="btn-outline reveal">View All</a>
+        </div>
+        <div class="products-grid">
+            <div class="pcard reveal">
+                <div class="pcard-img">🧥<div class="pcard-quick">Quick Add</div>
+                </div>
+                <div class="pcard-tag">Outerwear</div>
+                <div class="pcard-name">Linen Trench, Ecru</div>
+                <div class="pcard-price">$320</div>
+            </div>
+            <div class="pcard reveal">
+                <div class="pcard-img">👚<div class="pcard-quick">Quick Add</div>
+                </div>
+                <div class="pcard-tag">Tops</div>
+                <div class="pcard-name">Silk Cowl Top, Ivory</div>
+                <div class="pcard-price"><del>$195</del><ins>$140</ins></div>
+            </div>
+            <div class="pcard reveal">
+                <div class="pcard-img">👖<div class="pcard-quick">Quick Add</div>
+                </div>
+                <div class="pcard-tag">Bottoms</div>
+                <div class="pcard-name">Wide Leg Trousers, Sand</div>
+                <div class="pcard-price">$185</div>
+            </div>
+            <div class="pcard reveal">
+                <div class="pcard-img">👗<div class="pcard-quick">Quick Add</div>
+                </div>
+                <div class="pcard-tag">Dresses</div>
+                <div class="pcard-name">Midi Slip Dress, Taupe</div>
+                <div class="pcard-price">$260</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about">
+        <div class="about-visual reveal">
+            <div class="av">🌾</div>
+            <div class="av">✂️</div>
+            <div class="av">🧵</div>
+        </div>
+        <div>
+            <p class="about-label reveal">Our Philosophy</p>
+            <h2 class="about-title reveal">Fewer things. Better things.</h2>
+            <p class="about-text reveal">VESPER was founded on the belief that a thoughtful wardrobe requires fewer,
+                better pieces — not more. We work with mills in Portugal and Japan to source fabrics that age
+                beautifully and wear honestly.</p>
+            <p class="about-text reveal">Every garment is designed in London and made in small batches. No excess stock.
+                No landfill. No compromises.</p>
+            <div class="about-stats reveal">
+                <div>
+                    <div class="as-n">100%</div>
+                    <div class="as-l">Natural Fibers</div>
+                </div>
+                <div>
+                    <div class="as-n">12</div>
+                    <div class="as-l">Partner Mills</div>
+                </div>
+                <div>
+                    <div class="as-n">B-Corp</div>
+                    <div class="as-l">Certified 2022</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="services">
+        <p class="sec-label reveal">Why VESPER</p>
+        <h2 class="sec-title reveal">Our Values</h2>
+        <div class="values-grid">
+            <div class="vcard reveal"><span class="vc-icon">🌿</span>
+                <div class="vc-title">Sustainably Sourced</div>
+                <div class="vc-text">All fabrics are certified by GOTS or OEKO-TEX. We work only with mills that meet
+                    our strict environmental standards.</div>
+            </div>
+            <div class="vcard reveal"><span class="vc-icon">✂️</span>
+                <div class="vc-title">Ethically Made</div>
+                <div class="vc-text">Every piece is produced in audited Portuguese factories where workers earn
+                    above-industry wages and work reasonable hours.</div>
+            </div>
+            <div class="vcard reveal"><span class="vc-icon">♻️</span>
+                <div class="vc-title">Built to Last</div>
+                <div class="vc-text">We offer free alterations and lifetime repair on every garment. Because the most
+                    sustainable thing is buying less, more carefully.</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="testimonials">
+        <p class="sec-label reveal">Reviews</p>
+        <h2 class="sec-title reveal">What People Say</h2>
+        <div class="t-wrap">
+            <div class="tc-card reveal">
+                <div class="tc-stars">★★★★★</div>
+                <blockquote class="tc-quote">"The linen trench is the most-commented piece in my wardrobe. Worth every
+                    penny and so well made."</blockquote>
+                <div class="tc-name">Amélie D.</div>
+                <div class="tc-meta">Verified Buyer · Paris</div>
+            </div>
+            <div class="tc-card reveal">
+                <div class="tc-stars">★★★★★</div>
+                <blockquote class="tc-quote">"Finally a brand that sells me less, not more. I bought three pieces and
+                    feel like my wardrobe is complete."</blockquote>
+                <div class="tc-name">Olivia M.</div>
+                <div class="tc-meta">Verified Buyer · London</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="team">
+        <p class="sec-label reveal">The People</p>
+        <h2 class="sec-title reveal">Meet the Team</h2>
+        <div class="team-grid">
+            <div class="team-card reveal">
+                <div class="tc-photo">👩‍🎨</div>
+                <div class="tc-info">
+                    <div class="tc-pname">Emma Hartley</div>
+                    <div class="tc-role">Creative Director</div>
+                </div>
+            </div>
+            <div class="team-card reveal">
+                <div class="tc-photo">🧑‍💻</div>
+                <div class="tc-info">
+                    <div class="tc-pname">Jonas Becker</div>
+                    <div class="tc-role">Head of Design</div>
+                </div>
+            </div>
+            <div class="team-card reveal">
+                <div class="tc-photo">👩‍🔬</div>
+                <div class="tc-info">
+                    <div class="tc-pname">Mia Torres</div>
+                    <div class="tc-role">Sustainability Lead</div>
+                </div>
+            </div>
+            <div class="team-card reveal">
+                <div class="tc-photo">👨‍💼</div>
+                <div class="tc-info">
+                    <div class="tc-pname">Luca Ferrari</div>
+                    <div class="tc-role">Production Director</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="pricing">
+        <p class="sec-label reveal" style="color:rgba(255,255,255,0.4);">Membership</p>
+        <h2 class="sec-title reveal" style="color:var(--off);">Insider Program</h2>
+        <div class="pricing-grid">
+            <div class="pc reveal">
+                <div class="pc-tier">Free</div>
+                <div class="pc-name">Member</div>
+                <div class="pc-price">$0</div>
+                <div class="pc-detail">Always free to join</div>
+                <ul class="pc-list">
+                    <li>Early access to new drops</li>
+                    <li>Birthday discount</li>
+                    <li>Free standard shipping</li>
+                </ul><a href="#" class="pc-btn">Join Free</a>
+            </div>
+            <div class="pc featured reveal">
+                <div class="pc-badge">Best Value</div>
+                <div class="pc-tier">Paid</div>
+                <div class="pc-name">Insider</div>
+                <div class="pc-price">$48/yr</div>
+                <div class="pc-detail">Billed annually</div>
+                <ul class="pc-list">
+                    <li>10% off every order</li>
+                    <li>Free express shipping</li>
+                    <li>First access to sales</li>
+                    <li>Free alterations & repairs</li>
+                    <li>Exclusive archive pieces</li>
+                </ul><a href="#" class="pc-btn">Become an Insider</a>
+            </div>
+            <div class="pc reveal">
+                <div class="pc-tier">Gift</div>
+                <div class="pc-name">Gift Card</div>
+                <div class="pc-price">From $50</div>
+                <div class="pc-detail">Any amount, never expires</div>
+                <ul class="pc-list">
+                    <li>Send instantly by email</li>
+                    <li>Use across all products</li>
+                    <li>Combinable with discounts</li>
+                </ul><a href="#" class="pc-btn">Buy a Gift Card</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="faq" style="padding:8rem 4%;">
+        <p class="sec-label reveal">FAQ</p>
+        <h2 class="sec-title reveal">Common Questions</h2>
+        <div class="faq-wrap">
+            <div class="faq-item reveal">
+                <div class="faq-q">What is your return policy? <span class="faq-icon">+</span></div>
+                <div class="faq-a">Free returns within 30 days of delivery. Items must be unworn with tags attached. We
+                    process refunds within 5 business days.</div>
+            </div>
+            <div class="faq-item reveal">
+                <div class="faq-q">How do I know my size? <span class="faq-icon">+</span></div>
+                <div class="faq-a">Every product page includes a detailed size guide and fit notes. When in doubt, email
+                    us and our stylists will help you choose.</div>
+            </div>
+            <div class="faq-item reveal">
+                <div class="faq-q">Where are your clothes made? <span class="faq-icon">+</span></div>
+                <div class="faq-a">All our garments are made in Portugal in audited, transparent factories. We visit our
+                    manufacturing partners twice a year.</div>
+            </div>
+            <div class="faq-item reveal">
+                <div class="faq-q">Do you offer alterations? <span class="faq-icon">+</span></div>
+                <div class="faq-a">Yes! Insider members receive free lifetime alterations and repairs. Non-members can
+                    access alterations at cost plus postage.</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact">
+        <div class="contact-inner">
+            <div>
+                <p class="c-label reveal">Get in Touch</p>
+                <h2 class="c-title reveal">We love hearing from you.</h2>
+                <p class="c-text reveal">Questions about your order, sizing advice, press enquiries, or just a note to
+                    say hello — our team responds within 24 hours, Monday to Friday.</p>
+                <div class="c-info reveal">
+                    <span>✉ hello@vesper.co</span>
+                    <span>📍 Studio: 14 Chiltern Street, London W1U 7QL</span>
+                    <span>🕰 Mon–Fri, 9am–6pm GMT</span>
+                </div>
+            </div>
+            <div class="c-form reveal">
+                <div class="cf-row">
+                    <div class="cf-g"><label class="cf-label">First Name</label><input class="cf-input" type="text"
+                            placeholder="Emma"></div>
+                    <div class="cf-g"><label class="cf-label">Last Name</label><input class="cf-input" type="text"
+                            placeholder="Hartley"></div>
+                </div>
+                <div class="cf-g"><label class="cf-label">Email</label><input class="cf-input" type="email"
+                        placeholder="you@email.com"></div>
+                <div class="cf-g"><label class="cf-label">Subject</label><input class="cf-input" type="text"
+                        placeholder="Order, sizing, press..."></div>
+                <div class="cf-g"><label class="cf-label">Message</label><textarea class="cf-input" rows="4"
+                        placeholder="Your message..." style="resize:none;"></textarea></div>
+                <button type="submit" class="cf-submit">Send Message</button>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-top">
+            <div>
+                <div class="fl-logo">VESPER</div>
+                <div class="fl-desc">Contemporary fashion built around intention, quality, and the belief that less is
+                    always more.</div>
+            </div>
+            <div class="fc">
+                <h4>Shop</h4>
+                <ul>
+                    <li><a href="#">New Arrivals</a></li>
+                    <li><a href="#">Outerwear</a></li>
+                    <li><a href="#">Tops</a></li>
+                    <li><a href="#">Dresses</a></li>
+                    <li><a href="#">Sale</a></li>
+                </ul>
+            </div>
+            <div class="fc">
+                <h4>About</h4>
+                <ul>
+                    <li><a href="#">Our Story</a></li>
+                    <li><a href="#">Sustainability</a></li>
+                    <li><a href="#">Insider Program</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            <div class="fc">
+                <h4>Help</h4>
+                <ul>
+                    <li><a href="#">Shipping & Returns</a></li>
+                    <li><a href="#">Size Guide</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">Repairs</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom"><span>© 2025 VESPER London Ltd. All rights reserved.</span><span>Privacy · Terms ·
+                Accessibility</span></div>
+    </footer>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.from('nav', { y: -60, opacity: 0, duration: 0.8, ease: 'power3.out', clearProps: 'all' });
+        
+        gsap.timeline({ delay: 0.4, onComplete: () => gsap.set('.hero-tag, .hero-title, .hero-desc, .hero-btns, .hero-right, .hero-badge', { clearProps: 'all' }) })
+            .from('.hero-tag', { opacity: 0, y: 15, duration: 0.5 })
+            .from('.hero-title', { opacity: 0, y: 50, duration: 0.9, ease: 'power3.out' }, '-=0.2')
+            .from('.hero-desc', { opacity: 0, y: 20, duration: 0.6 }, '-=0.4')
+            .from('.hero-btns', { opacity: 0, y: 20, duration: 0.5 }, '-=0.3')
+            .from('.hero-right', { opacity: 0, x: 50, duration: 1 }, 0)
+            .from('.hero-badge', { opacity: 0, scale: 0, duration: 0.5, ease: 'back.out' }, '-=0.5');
+
+        gsap.utils.toArray('.reveal').forEach(el => {
+            gsap.fromTo(el, { opacity: 0, y: 30 }, {
+                opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+                scrollTrigger: { trigger: el, start: 'top 88%' },
+                clearProps: 'all'
+            });
+        });
+        document.querySelectorAll('.faq-q').forEach(q => q.addEventListener('click', () => q.parentElement.classList.toggle('open')));
+    </script>
+</body>
+
+</html>

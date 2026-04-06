@@ -22,7 +22,9 @@ router.post("/", async (req, res, next) => {
         const { 
             projectId, prompt, model, existingFiles,
             // New fields for enhanced pipeline
-            theme, websiteName, description, logoUrl, brandColors
+            theme, websiteName, description, logoUrl, brandColors,
+            // Attachment data
+            images, fileContents
         } = req.body
 
         if (!projectId || !prompt) {
@@ -63,6 +65,9 @@ router.post("/", async (req, res, next) => {
             messageId: assistantMessageId,
             model: model || 'mistral',
             userId: "local_test_user",
+            // Attachment data
+            images: images || [],
+            fileContents: fileContents || [],
             // Pass enhanced pipeline options to the worker
             enhanceOptions: {
                 theme: theme || 'modern-dark',

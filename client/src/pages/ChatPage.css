@@ -94,6 +94,10 @@
     background: rgba(255,255,255,0.08);
     color: #fff;
 }
+.ep-icon-btn.active {
+    background: rgba(68, 102, 255, 0.15);
+    color: #7b9bff;
+}
 
 /* CENTER CONTROLS */
 .ep-toolbar-center {

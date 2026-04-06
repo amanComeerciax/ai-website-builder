@@ -4,6 +4,7 @@ const { callModel } = require('../services/modelRouter.js');
 const { enhance } = require('../services/promptEnhancer.js');
 const { assemble } = require('../services/templateAssembler.js');
 const { generateRawHtml } = require('../services/rawHtmlGenerator.js');
+const { extractVisionContext } = require('../services/groqService.js');
 const { buildSummaryPrompt } = require('../utils/promptBuilder.js');
 
 const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0.1:6379', {
@@ -26,7 +27,7 @@ const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0
  */
 const aiWorker = new Worker('AI_Generation_Queue', async job => {
   console.log(`[Worker] Job ${job.id} started for project: ${job.data.projectId}`);
-  const { projectId, prompt, existingFiles, enhanceOptions, model } = job.data;
+  const { projectId, prompt, existingFiles, enhanceOptions, model, images, fileContents } = job.data;
   let existingHtmlForEdit = null;
   if (!prompt) throw new Error("Missing 'prompt' in job data");
 
@@ -35,7 +36,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   // ─── STEP 1: ENHANCE PROMPT ────────────────────────────────────
   await job.updateProgress({
     event: 'thinking',
-    payload: { message: 'Understanding your request...' }
+    payload: { message: 'Analyzing your request...' }
   });
 
   let isModification = false;
@@ -113,6 +114,11 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   }
 
   await job.updateProgress({
+    event: 'thinking',
+    payload: { message: isModification ? 'Planning your changes...' : 'Selecting the perfect design...' }
+  });
+
+  await job.updateProgress({
     event: 'log',
     payload: {
       type: 'Reading',
@@ -139,18 +145,48 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
         console.warn(`[Worker] ⚠️ Project is configured but currentFileTree['index.html'] is missing — falling back to FRESH`);
       }
     }
+    // Build prompt with attachment context
+    let enrichedPrompt = prompt;
+    
+    // Process Images using Vision Extractor
+    if (images && images.length > 0) {
+      await job.updateProgress({
+        event: 'thinking',
+        payload: { message: `Analyzing ${images.length} attached image(s)...` }
+      });
+      
+      const visionSpec = await extractVisionContext(images);
+      
+      if (visionSpec) {
+        enrichedPrompt += `\n\n[USER ATTACHED SCREENSHOT(S) FOR REFERENCE]\n`;
+        enrichedPrompt += `The user attached screenshot(s) for visual layout/style reference. A vision model analyzed the screenshot and extracted the following architectural and design constraints. YOU MUST ADHERE STRICTLY TO THESE EXTRACTED DETAILS:\n\n`;
+        enrichedPrompt += `### VISION EXTRACTION SPEC ###\n${visionSpec}\n##############################\n`;
+      } else {
+        enrichedPrompt += `\n\n[User attached ${images.length} image(s) for reference]`;
+      }
+    }
+    if (fileContents && fileContents.length > 0) {
+      const fileDescs = fileContents.map(f => `--- ${f.name} ---\n${f.content?.substring(0, 2000)}`).join('\n');
+      enrichedPrompt += `\n\n[User attached files for reference:]\n${fileDescs}`;
+    }
+
     result = await generateRawHtml(enhanced.enrichedSpec, (progress) => {
       job.updateProgress({
         event: progress.event,
         payload: { type: progress.type, file: progress.file, message: progress.message }
       });
-    }, isModification ? existingHtmlForEdit : null, currentModel, prompt);
+    }, isModification ? existingHtmlForEdit : null, currentModel, enrichedPrompt);
   } catch (e) {
     console.error(`[Worker] Generation failed:`, e.message);
     throw new Error(`Website generation failed: ${e.message}`);
   }
 
   // ─── STEP 4: SUMMARIZE ─────────────────────────────────────────
+  await job.updateProgress({
+    event: 'thinking',
+    payload: { message: 'Wrapping up...' }
+  });
+
   let summary = `Generated your ${enhanced.siteType} website successfully.`;
   let appName = enhanced.enrichedSpec.businessName || 'Website';
   let suggestedActions = ['Change the color scheme', 'Add more sections', 'Update the content', 'Download Next.js project'];
@@ -160,7 +196,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     const { systemPrompt, userMessage } = buildSummaryPrompt(fileNames, {
       projectGlossary: { AppName: appName },
       sections: result.layoutSpec.sections.map(s => s.component),
-    });
+    }, isModification);
     const r = await callModel('summarize', userMessage, systemPrompt);
     const s = JSON.parse(r.content);
     summary = s.summary || summary;

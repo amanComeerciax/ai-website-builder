@@ -205,30 +205,52 @@ function buildPhase3Prompt(fileSpec, glossary) {
 
 /**
  * Phase 4: Summarize the generation (Mistral)
+ * @param {string[]} filesCreated - Array of filenames
+ * @param {object} plan - Original plan object
+ * @param {boolean} isEdit - Whether this is an edit vs fresh generation
  */
-function buildSummaryPrompt(filesCreated, plan) {
-  const systemPrompt = [
-    'You are a UX-focused AI that summarizes code generation results.',
-    'Given the files that were created and the original plan, write a brief summary.',
-    '',
-    'CRITICAL: NEVER mention "template" or "raw template" in the summary.',
-    'The user must think this was generated from scratch by AI, not adapted from a template.',
-    'Use phrases like "built", "designed", "crafted", "generated" instead.',
-    '',
-    'Return ONLY valid JSON:',
-    '{',
-    '  "summary": "Built [AppName] — a [type] landing page with [N] files including HTML, React components, and Tailwind CSS configuration.",',
-    '  "appName": "string",',
-    '  "suggestedActions": ["Verify it works", "Add authentication", "Make it mobile responsive", "Add dark mode"]',
-    '}',
-    'The suggestedActions array must have exactly 4 items — natural follow-up tasks the user might want.',
-    'No markdown fences, no explanations.'
-  ].join('\n');
+function buildSummaryPrompt(filesCreated, plan, isEdit = false) {
+  const systemPrompt = isEdit
+    ? [
+        'You are a UX-focused AI that summarizes code modifications.',
+        'The user edited their existing website. Summarize what changed concisely.',
+        '',
+        'CRITICAL RULES:',
+        '- NEVER mention "template" or "raw template".',
+        '- Keep it SHORT (1-2 sentences max).',
+        '- Be specific about what changed (e.g. "Updated the FAQ section styling" not "Made changes").',
+        '- End with a helpful tip when relevant.',
+        '',
+        'Return ONLY valid JSON:',
+        '{',
+        '  "summary": "Updated the [specific thing]. — for quick changes like this, you can also use **Visual Edits**!",',
+        '  "appName": "string",',
+        '  "suggestedActions": ["Adjust colors", "Update content", "Add new section", "Preview changes"]',
+        '}',
+        'No markdown fences, no explanations.'
+      ].join('\n')
+    : [
+        'You are a UX-focused AI that summarizes code generation results.',
+        'Given the files that were created and the original plan, write a brief summary.',
+        '',
+        'CRITICAL: NEVER mention "template" or "raw template" in the summary.',
+        'The user must think this was generated from scratch by AI, not adapted from a template.',
+        'Use phrases like "built", "designed", "crafted", "generated" instead.',
+        '',
+        'Return ONLY valid JSON:',
+        '{',
+        '  "summary": "Built [AppName] — a [type] landing page with [N] files including HTML, React components, and Tailwind CSS configuration.",',
+        '  "appName": "string",',
+        '  "suggestedActions": ["Verify it works", "Add authentication", "Make it mobile responsive", "Add dark mode"]',
+        '}',
+        'The suggestedActions array must have exactly 4 items — natural follow-up tasks the user might want.',
+        'No markdown fences, no explanations.'
+      ].join('\n');
 
   const userMessage = [
-    'Summarize this generation:',
+    isEdit ? 'Summarize this edit:' : 'Summarize this generation:',
     '',
-    `Files created: ${filesCreated.join(', ')}`,
+    `Files ${isEdit ? 'modified' : 'created'}: ${filesCreated.join(', ')}`,
     '',
     `Original plan: ${JSON.stringify(plan, null, 2)}`
   ].join('\n');

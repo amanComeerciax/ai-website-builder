@@ -10,6 +10,7 @@ import CodeEditor from '../components/editor/CodeEditor'
 import PreviewPanel from '../components/editor/PreviewPanel'
 import DetailsPanel from '../components/editor/DetailsPanel'
 import HistoryPanel from '../components/editor/HistoryPanel'
+import HistorySidebar from '../components/editor/HistorySidebar'
 import ProjectPopover from '../components/editor/ProjectPopover'
 import VisualEditPanel from '../components/editor/VisualEditPanel'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
@@ -26,6 +27,8 @@ export default function ChatPage() {
     const navigate = useNavigate()
     const { getProjectById } = useProjectStore()
     const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+    const [isChatVisible, setIsChatVisible] = useState(true)
     const [chatWidth, setChatWidth] = useState(() => Math.round(window.innerWidth * 0.2))
     const [isDragging, setIsDragging] = useState(false)
     const { 
@@ -164,10 +167,18 @@ export default function ChatPage() {
 
                     <div className="ep-toolbar-divider"></div>
 
-                    <button className="ep-icon-btn" title="Version History">
+                    <button 
+                        className={`ep-icon-btn ${isHistoryOpen ? 'active' : ''}`} 
+                        title="Version History"
+                        onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                    >
                         <Clock size={18} />
                     </button>
-                    <button className="ep-icon-btn" title="Toggle Sidebar">
+                    <button 
+                        className={`ep-icon-btn ${!isChatVisible ? 'active' : ''}`} 
+                        title="Toggle Sidebar"
+                        onClick={() => setIsChatVisible(!isChatVisible)}
+                    >
                         <PanelLeftClose size={18} />
                     </button>
                 </div>
@@ -240,9 +251,17 @@ export default function ChatPage() {
             {/* Workspace: centered chat-only OR 2-panel split */}
             <div className={`ep-workspace ${isDragging ? 'resizing' : ''} ${!showRightPanel ? 'ep-centered' : ''}`}>
                 {/* Left: Chat/Agent Panel (20%, draggable) */}
-                <div className="ep-panel ep-chat" style={showRightPanel ? { width: chatWidth } : {}}>
-                    <div className="ep-chat-container">
+                <div className="ep-panel ep-chat" style={showRightPanel ? { width: isChatVisible ? chatWidth : 0, minWidth: isChatVisible ? 200 : 0, overflow: isChatVisible ? undefined : 'hidden', transition: 'width 0.25s ease, min-width 0.25s ease' } : {}}>
+                    {isChatVisible && (
+                    <div className="ep-chat-container" style={{ position: 'relative' }}>
                         <ChatPanel />
+                        
+                        {isHistoryOpen && (
+                            <HistorySidebar 
+                                projectId={projectId} 
+                                onClose={() => setIsHistoryOpen(false)} 
+                            />
+                        )}
                         
                         <div className={`ep-visual-edit-overlay ${isVisualEditMode ? 'active' : ''}`}>
                             {isVisualEditMode && (
@@ -263,6 +282,7 @@ export default function ChatPage() {
                             )}
                         </div>
                     </div>
+                    )}
                 </div>
 
                 {showRightPanel && (

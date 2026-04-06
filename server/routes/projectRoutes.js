@@ -3,6 +3,7 @@ const router = express.Router()
 const Project = require("../models/Project")
 const Message = require("../models/Message")
 const Version = require("../models/Version")
+const { generateProjectName } = require('../utils/nameGenerator.js');
 
 const { requireAuth } = require('../middleware/requireAuth');
 
@@ -21,9 +22,14 @@ router.get("/", requireAuth, async (req, res, next) => {
 router.post("/", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
+        const userPrompt = req.body.prompt || req.body.name || '';
+        
+        // AI-generated creative name (falls back to cleaned prompt if Groq fails)
+        const projectName = await generateProjectName(userPrompt);
+        
         const project = await Project.create({
             userId,
-            name: req.body.name || 'Untitled Project',
+            name: projectName,
             status: 'idle',
             folderId: req.body.folderId || null
         });

@@ -122,7 +122,7 @@ class ApiClient {
     }
 
     // ── Generation ──
-    startGeneration(projectId, prompt, model, existingFiles = null, styleOptions = {}, token) {
+    startGeneration(projectId, prompt, model, existingFiles = null, styleOptions = {}, token, images = [], fileContents = []) {
         return this.request('/generate', {
             method: 'POST',
             body: JSON.stringify({ 
@@ -130,6 +130,8 @@ class ApiClient {
                 prompt, 
                 model: model || 'qwen', 
                 existingFiles,
+                images,
+                fileContents,
                 ...styleOptions
             }),
         }, token)
