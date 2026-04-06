@@ -14,6 +14,7 @@ const { generateWithQwen } = require('./qwenService.js');
 const { callMistral } = require('./mistralService.js');
 const { callGroq } = require('./groqService.js');
 const { callGLM } = require('./glmService.js');
+const mcpManager = require('./mcpManager.js');
 
 /**
  * Routing table — maps task names to model + config
@@ -22,7 +23,7 @@ const ROUTING_TABLE = {
   // Reasoning tasks → Mistral (fast, good at structured output)
   parse_prompt:   { model: 'mistral', temperature: 0.3, jsonMode: true },
   plan_structure:  { model: 'mistral', temperature: 0.3, jsonMode: true },
-  plan_layout:     { model: 'mistral', temperature: 0.4, jsonMode: true },   // Component Kit layout planner
+  plan_layout:     { model: 'mistral', temperature: 0.7, jsonMode: true },   // Component Kit layout planner
   summarize:       { model: 'mistral', temperature: 0.5, jsonMode: true },
   template_selector: { model: 'mistral', temperature: 0.2, jsonMode: false },
   html_to_jsx:     { model: 'mistral', temperature: 0.2, jsonMode: false },
@@ -42,12 +43,7 @@ const ROUTING_TABLE = {
 
 /**
  * Call the appropriate AI model for a given task.
- * 
- * @param {string} task - Task name from ROUTING_TABLE
- * @param {string} userMessage - The user prompt / input
- * @param {string} systemPrompt - System instructions
- * @param {object} options - Override defaults { temperature, jsonMode, forceModel }
- * @returns {{ content: string, model: string, durationMs: number, fallbackUsed: boolean }}
+ * Supports tool calling if the model and task allow it.
  */
 async function callModel(task, userMessage, systemPrompt, options = {}) {
   const route = ROUTING_TABLE[task];
@@ -58,74 +54,119 @@ async function callModel(task, userMessage, systemPrompt, options = {}) {
   const config = {
     temperature: options.temperature ?? route.temperature,
     jsonMode: options.jsonMode ?? route.jsonMode,
+    useTools: options.useTools ?? route.useTools,
   };
 
   const targetModel = options.forceModel || route.model;
   
-  console.log(`[Model Router] Task "${task}" → ${targetModel} (temp: ${config.temperature}, json: ${config.jsonMode})`);
+  // Initialize message history for the tool loop
+  let messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userMessage }
+  ];
+
+  console.log(`[Model Router] Task "${task}" → ${targetModel} (temp: ${config.temperature}, useTools: ${config.useTools})`);
 
   try {
-    // 1. PRIMARY ATTEMPT
-    const result = await executeModelCall(targetModel, systemPrompt, userMessage, config);
-    return { ...result, fallbackUsed: false };
-
-  } catch (primaryError) {
-    // 2. MULTI-STAGE FALLBACK
+    return await runToolLoop(targetModel, messages, config, route);
+  } catch (error) {
     if (route.useFallbackChain) {
-      console.warn(`[Model Router] Primary model ${targetModel} failed for "${task}": ${primaryError.message}`);
+      return await handleFallback(task, messages, config, route, error);
+    }
+    throw error;
+  }
+}
 
-      // MISTRAL -> QWEN FALLBACK
-      if (targetModel === 'mistral') {
-          try {
-              console.log(`[Model Router] Fallback (1/2): Attempting local Qwen...`);
-              const content = await executeModelCall('qwen', systemPrompt, userMessage, config);
-              return { content, model: 'qwen', durationMs: 0, fallbackUsed: true };
-          } catch (qwenError) {
-              console.warn(`[Model Router] Qwen fallback also failed: ${qwenError.message}`);
-          }
-      }
+/**
+ * Handles the Tool Use / Function Calling loop
+ */
+async function runToolLoop(model, messages, config, route) {
+  const maxIterations = 5;
+  let iterations = 0;
 
-      // FINAL FALLBACK TO GROQ
-      try {
-          console.log(`[Model Router] Fallback (2/2): Attempting cloud Groq...`);
-          const result = await executeModelCall('groq', systemPrompt, userMessage, { ...config, temperature: 0.2 });
-          return { ...result, fallbackUsed: true };
-      } catch (groqError) {
-          console.error(`[Model Router] All fallbacks failed for "${task}".`);
-          throw new Error(`All models failed: ${primaryError.message} -> ${groqError.message}`);
+  while (iterations < maxIterations) {
+    iterations++;
+    
+    // Get tools from MCP if enabled
+    const tools = config.useTools ? mcpManager.getToolDefinitions() : undefined;
+
+    const result = await executeModelCall(model, messages, { ...config, tools });
+    
+    // Check if the model wants to call a tool
+    if (result.toolCalls && result.toolCalls.length > 0) {
+      console.log(`[Model Router] 🛠 AI requested ${result.toolCalls.length} tool calls...`);
+      
+      // Add the assistant's request to history
+      messages.push({ role: 'assistant', tool_calls: result.toolCalls });
+
+      // Execute all tool calls
+      for (const toolCall of result.toolCalls) {
+        try {
+          const toolResult = await mcpManager.executeTool(toolCall.function.name, JSON.parse(toolCall.function.arguments));
+          
+          // Add the tool result to history
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: JSON.stringify(toolResult)
+          });
+        } catch (toolError) {
+          console.error(`[Model Router] Tool execution failed: ${toolError.message}`);
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: JSON.stringify({ error: toolError.message })
+          });
+        }
       }
+      
+      // Loop back to give results to the model
+      continue;
     }
 
-    // No fallback configured — throw original error
-    throw primaryError;
+    // No tool calls — we have the final answer
+    return result;
   }
+
+  throw new Error("Maximum tool loop iterations reached");
+}
+
+async function handleFallback(task, messages, config, route, primaryError) {
+  console.warn(`[Model Router] Primary model failed for "${task}": ${primaryError.message}`);
+
+  // Simplistic fallback for now (no multi-step tool loop in fallback yet)
+  if (route.model === 'mistral') {
+    console.log(`[Model Router] Fallback: Attempting cloud Groq...`);
+    return await executeModelCall('groq', messages, { ...config, temperature: 0.2 });
+  }
+  
+  throw primaryError;
 }
 
 /**
  * Low-level execution of a single model call
  */
-async function executeModelCall(model, systemPrompt, userMessage, config) {
+async function executeModelCall(model, messages, config) {
     if (model === 'mistral') {
-        return await callMistral(systemPrompt, userMessage, config);
-    }
-    if (model === 'qwen') {
-        const content = await generateWithQwen(
-            systemPrompt, 
-            userMessage, 
-            config.jsonMode, 
-            3,      // retries
-            'qwen'  // force local
-        );
-        return { content, model: 'qwen', durationMs: 0 };
+        const system = messages.find(m => m.role === 'system')?.content || '';
+        const user = messages.find(m => m.role === 'user')?.content || '';
+        // Note: For tool loops, we need to pass the FULL messages array.
+        // We'll update the services next.
+        return await callMistral(system, user, config, messages);
     }
     if (model === 'groq') {
-        return await callGroq(systemPrompt, userMessage, config);
+        return await callGroq('', '', config, messages);
     }
-    if (model === 'glm') {
-        return await callGLM(systemPrompt, userMessage, config);
+    if (model === 'qwen') {
+        const system = messages.find(m => m.role === 'system')?.content || '';
+        const user = messages.find(m => m.role === 'user')?.content || '';
+        const content = await generateWithQwen(system, user, config.jsonMode);
+        return { content, model: 'qwen', durationMs: 0 };
     }
     throw new Error(`Unknown model target: "${model}"`);
 }
 
-
 module.exports = { callModel, ROUTING_TABLE };
+

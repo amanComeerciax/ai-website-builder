@@ -26,65 +26,63 @@ const client = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY }) : null
  * @param {number} options.temperature - 0.3 for planning/parsing, 0.5 for summaries
  * @returns {{ content: string, model: string, durationMs: number }}
  */
-async function callMistral(systemPrompt, userMessage, options = {}) {
+async function callMistral(systemPrompt, userMessage, options = {}, history = []) {
   if (!client) {
     throw new Error('MISTRAL_API_KEY is not configured.');
   }
 
-  const { jsonMode = false, temperature = 0.3 } = options;
+  const { jsonMode = false, temperature = 0.3, tools = undefined } = options;
   const startTime = Date.now();
+
+  // If tools are provided, we don't use streaming for now to simplify tool call handling
+  const useStream = !tools;
 
   for (let attempt = 1; attempt <= MISTRAL_MAX_RETRIES; attempt++) {
     try {
-      console.log(`[Mistral Service] Attempt ${attempt}/${MISTRAL_MAX_RETRIES} — model: ${MISTRAL_MODEL}, temp: ${temperature}`);
+      console.log(`[Mistral Service] Attempt ${attempt}/${MISTRAL_MAX_RETRIES} — model: ${MISTRAL_MODEL}${tools ? ' (with tools)' : ''}`);
 
-      // Use streaming to avoid Node/Undici HeadersTimeoutError on long responses
-      const streamResponse = await client.chat.stream({
-        model: MISTRAL_MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        temperature,
-        maxTokens: 16384,
-        responseFormat: jsonMode ? { type: 'json_object' } : undefined
-      });
+      const messages = history.length > 0 ? history : [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ];
 
-      let content = '';
-      for await (const chunk of streamResponse) {
-        const delta = chunk?.data?.choices?.[0]?.delta?.content;
-        if (delta) content += delta;
+      if (useStream) {
+        const streamResponse = await client.chat.stream({
+          model: MISTRAL_MODEL,
+          messages,
+          temperature,
+          maxTokens: 16384,
+          responseFormat: jsonMode ? { type: 'json_object' } : undefined
+        });
+
+        let content = '';
+        for await (const chunk of streamResponse) {
+          const delta = chunk?.data?.choices?.[0]?.delta?.content;
+          if (delta) content += delta;
+        }
+        return { content, model: MISTRAL_MODEL, durationMs: Date.now() - startTime };
+      } else {
+        // Standard chat completion for tool calling
+        const response = await client.chat.complete({
+          model: MISTRAL_MODEL,
+          messages,
+          temperature,
+          tools,
+          toolChoice: 'auto',
+          responseFormat: jsonMode ? { type: 'json_object' } : undefined
+        });
+
+        const choice = response.choices[0];
+        return {
+          content: choice.message.content || '',
+          toolCalls: choice.message.toolCalls,
+          model: MISTRAL_MODEL,
+          durationMs: Date.now() - startTime
+        };
       }
-
-      if (!content || content.trim().length === 0) {
-        throw new Error('Mistral returned empty response');
-      }
-
-      if (jsonMode) {
-        JSON.parse(content); // Validate parseable
-      }
-
-      const durationMs = Date.now() - startTime;
-      console.log(`[Mistral Service] ✅ Completed in ${(durationMs / 1000).toFixed(1)}s (${content.length} chars)`);
-
-      return { content, model: MISTRAL_MODEL, durationMs };
 
     } catch (error) {
-      const isRateLimit = error.statusCode === 429 || error.message?.includes('429');
-
-      if (isRateLimit && attempt < MISTRAL_MAX_RETRIES) {
-        console.warn(`[Mistral Service] 429 Rate limited — backing off 5s before retry ${attempt + 1}...`);
-        await new Promise(r => setTimeout(r, 5000));
-        continue;
-      }
-
-      if (attempt === MISTRAL_MAX_RETRIES) {
-        console.error(`[Mistral Service] ❌ Failed after ${MISTRAL_MAX_RETRIES} attempts:`, error.message);
-        throw new Error(`Mistral generation failed: ${error.message}`);
-      }
-
-      // Non-rate-limit error on non-final attempt — retry with 2s backoff
-      console.warn(`[Mistral Service] Attempt ${attempt} failed: ${error.message}. Retrying in 2s...`);
+      if (attempt === MISTRAL_MAX_RETRIES) throw error;
       await new Promise(r => setTimeout(r, 2000));
     }
   }

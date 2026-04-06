@@ -365,6 +365,7 @@
 const { callModel } = require('./modelRouter.js');
 const { getComponentCatalog, validateLayoutSpec, applyDefaults, getImagesForSiteType } = require('../component-kit/registry.js');
 const { getRandomTemplate } = require('./templateLoader.js');
+const { injectPexelsImages } = require('./pexelsService.js');
 
 // ─────────────────────────────────────────────
 // Per siteType: which hero variant, which sections, which style
@@ -484,19 +485,21 @@ SITE BLUEPRINT FOR "${siteType.toUpperCase()}":
 - Hero variant to use: ${blueprint.heroVariant}
 - Feature component: ${blueprint.featureComponent}
 - Recommended sections: ${blueprint.sections.join(' → ')}
-- Tone: ${blueprint.tone}
-- Relevant icons: ${blueprint.iconSet.join(', ')}
 - Theme style: ${isDark ? 'DARK — use dark, rich, moody content' : 'LIGHT — use clean, airy, minimal content'}
+
+TOOLS:
+You have access to a "search_photos" tool. 
+ALWAYS use this tool to find professional, high-resolution images for any content keys ending in "Image" or "Url" or "header" (in BentoGrid).
+Perform specific searches like "modern dental office" or "minimalist startup office" to get the best results.
 
 RULES:
 1. Use EXACTLY the hero variant specified: "${blueprint.heroVariant}"
 2. Use the feature component specified: "${blueprint.featureComponent}"
-3. Generate content that is 100% specific to "${brandName}" — no generic placeholder text
+3. Use the "search_photos" tool to get REAL Pexels URLs. DO NOT guess URLs or use placeholders.
 4. Items arrays must have 4-6 entries minimum, each unique and specific
 5. For BentoGrid: vary className — use "md:col-span-2" on 2nd and 4th items
-6. For PortfolioSection: 4-6 items with real project names related to "${siteType}"
-7. Write in tone: ${blueprint.tone}
-8. Start with NavBar, end with FooterSection — always
+6. Write in tone: ${blueprint.tone}
+7. Start with NavBar, end with FooterSection — always
 
 RETURN ONLY VALID JSON:
 {
@@ -539,19 +542,15 @@ CRITICAL MODIFICATION RULES:
     // NEW TEMPLATE SEEDING LOGIC
     const seededTemplate = getRandomTemplate(siteType);
     if (seededTemplate) {
-      console.log(`[LayoutPlanner] 📥 SEED MODE — Injecting pristine template for "${siteType}"`);
-      userMessage += `\n\n=== REFERENCE BLUEPRINT TEMPLATE ===
-I have selected a pristine, highly-optimized component layout for this business type.
-YOUR JOB is to act as a copywriter. Keep the EXACT component structure, variants, and prop keys, but rewrite the text content, items, and placeholders to perfectly match "${brandName}" and the user's prompt.
+      console.log(`[LayoutPlanner] 📥 SEED MODE — Injecting flexible blueprint for "${siteType}"`);
+      userMessage += `\n\n=== REFERENCE BLUEPRINT ===
+I have selected a high-quality component layout for this business type. 
+YOUR JOB: Use this as a creative foundation for "${brandName}". 
+You can ADD, REMOVE, or REORDER sections to best suit the brand. 
+Use the "search_photos" tool for all images.
 
-Here is the structure you MUST use:
-${JSON.stringify(seededTemplate.sections, null, 2)}
-
-CRITICAL SEEDING RULES:
-- Use EXACTLY the components and variants provided above. Do NOT invent new ones.
-- Only change textual content (headings, descriptions, labels).
-- Ensure the tone matches ${enrichedSpec.tone || blueprint.tone} and sounds premium.
-- Output the fully populated JSON structure.`;
+REFERENCE STRUCTURE:
+${JSON.stringify(seededTemplate.sections, null, 2)}`;
     }
   }
 
@@ -569,6 +568,9 @@ CRITICAL SEEDING RULES:
       parsed.sections = autoFixLayout(parsed.sections, enrichedSpec, blueprint);
       parsed.sections = applyDefaults(parsed.sections);
       parsed.sections = injectImages(parsed.sections, siteType);
+
+      // 🖼 Inject real Pexels images as a post-processing step
+      parsed = await injectPexelsImages(parsed, siteType, brandName);
 
       const { valid, errors } = validateLayoutSpec(parsed.sections);
       if (!valid) console.warn(`[LayoutPlanner] Validation warnings (attempt ${attempt}):`, errors);
@@ -855,17 +857,21 @@ function injectImages(sections, siteType) {
       return img;
     };
 
-    // Helper to check if image is missing or a placeholder/hallucination
+    // Helper to check if image is missing or is an actual placeholder
     const isMissing = (url) => {
       if (!url || typeof url !== 'string') return true;
       const clean = url.trim().toLowerCase();
+      // If it's a real external URL (Pexels, Unsplash, etc.), it's NOT missing
+      if (clean.startsWith('http') && (clean.includes('pexels.com') || clean.includes('unsplash.com') || clean.includes('images.'))) {
+        return false;
+      }
       return (
         !clean.startsWith('http') || 
         clean.includes('placeholder') || 
         clean.includes('placehold') || 
         clean.includes('undefined') ||
         clean.includes('[') || // Catch "[Image of ...]"
-        clean.length < 10      // Catch extremely short "made up" strings
+        clean.length < 15      // Pexels/Unsplash URLs are long
       );
     };
 

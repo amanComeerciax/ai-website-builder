@@ -6,6 +6,7 @@ import ChatPage from './pages/ChatPage'
 import PricingPage from './pages/PricingPage'
 import DashboardLayout from './layouts/DashboardLayout'
 import ProjectsPage from './pages/ProjectsPage'
+import TemplatesPage from './pages/TemplatesPage'
 import AuthPage from './pages/AuthPage'
 import { Toaster } from 'react-hot-toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -61,6 +62,13 @@ function App() {
             element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}
           >
             <Route index element={<DashboardPage />} />
+          </Route>
+
+          <Route
+            path="/templates"
+            element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}
+          >
+            <Route index element={<TemplatesPage />} />
           </Route>
 
           {/* Project Grid routes */}
