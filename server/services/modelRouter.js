@@ -30,16 +30,15 @@ const ROUTING_TABLE = {
   // Chat → Groq (instant responses)
   chat_response:   { model: 'groq', temperature: 0.5, jsonMode: false },
 
-  // Track A: Single HTML file generation → Mistral (rules are ~85KB, exceeds Qwen's 14K limit)
-  generate_html:   { model: 'mistral', temperature: 0.1, jsonMode: false, fallbackToGroq: true },
-
-  // Track B: React multi-file JSON generation → Mistral (rules ~85KB, exceeds Qwen's 14K limit)
-  generate_file:   { model: 'mistral', temperature: 0.1, jsonMode: true, fallbackToGroq: true },
-  fix_file:        { model: 'mistral', temperature: 0.1, jsonMode: true, fallbackToGroq: true },
+  // Code Generation → Mistral (with Qwen fallback)
+  generate_html:   { model: 'mistral', temperature: 0.1, jsonMode: false, useFallbackChain: true },
+  generate_file:   { model: 'mistral', temperature: 0.1, jsonMode: true,  useFallbackChain: true },
+  fix_file:        { model: 'mistral', temperature: 0.1, jsonMode: true,  useFallbackChain: true },
 
   // Direct fallback
   fallback_file:   { model: 'groq', temperature: 0.2, jsonMode: true },
 };
+
 
 /**
  * Call the appropriate AI model for a given task.
@@ -53,7 +52,7 @@ const ROUTING_TABLE = {
 async function callModel(task, userMessage, systemPrompt, options = {}) {
   const route = ROUTING_TABLE[task];
   if (!route) {
-    throw new Error(`[Model Router] Unknown task: "${task}". Valid tasks: ${Object.keys(ROUTING_TABLE).join(', ')}`);
+    throw new Error(`[Model Router] Unknown task: "${task}".`);
   }
 
   const config = {
@@ -62,64 +61,71 @@ async function callModel(task, userMessage, systemPrompt, options = {}) {
   };
 
   const targetModel = options.forceModel || route.model;
-  let fallbackUsed = false;
-
+  
   console.log(`[Model Router] Task "${task}" → ${targetModel} (temp: ${config.temperature}, json: ${config.jsonMode})`);
 
   try {
-    // ─── QWEN (local Ollama) ───
-    if (targetModel === 'qwen') {
-      const content = await generateWithQwen(
-        systemPrompt, 
-        userMessage, 
-        config.jsonMode, 
-        3,      // retries
-        'qwen'  // force local, don't use Mistral fallback inside qwenService
-      );
-      return { content, model: 'qwen', durationMs: 0, fallbackUsed: false };
-    }
+    // 1. PRIMARY ATTEMPT
+    const result = await executeModelCall(targetModel, systemPrompt, userMessage, config);
+    return { ...result, fallbackUsed: false };
 
-    // ─── MISTRAL (cloud reasoning) ───
-    if (targetModel === 'mistral') {
-      const result = await callMistral(systemPrompt, userMessage, config);
-      return { ...result, fallbackUsed: false };
-    }
+  } catch (primaryError) {
+    // 2. MULTI-STAGE FALLBACK
+    if (route.useFallbackChain) {
+      console.warn(`[Model Router] Primary model ${targetModel} failed for "${task}": ${primaryError.message}`);
 
-    // ─── GROQ (cloud fast fallback) ───
-    if (targetModel === 'groq') {
-      const result = await callGroq(systemPrompt, userMessage, config);
-      return { ...result, fallbackUsed: false };
-    }
+      // MISTRAL -> QWEN FALLBACK
+      if (targetModel === 'mistral') {
+          try {
+              console.log(`[Model Router] Fallback (1/2): Attempting local Qwen...`);
+              const content = await executeModelCall('qwen', systemPrompt, userMessage, config);
+              return { content, model: 'qwen', durationMs: 0, fallbackUsed: true };
+          } catch (qwenError) {
+              console.warn(`[Model Router] Qwen fallback also failed: ${qwenError.message}`);
+          }
+      }
 
-    // ─── GLM (Zhipu AI) ───
-    if (targetModel === 'glm') {
-      const result = await callGLM(systemPrompt, userMessage, config);
-      return { ...result, fallbackUsed: false };
-    }
-
-    throw new Error(`[Model Router] Unknown model target: "${targetModel}"`);
-
-  } catch (error) {
-    // ─── AUTOMATIC FALLBACK: Qwen/Mistral → Groq ───
-    if (route.fallbackToGroq && (targetModel === 'qwen' || targetModel === 'mistral')) {
-      console.warn(`[Model Router] ${targetModel} failed for "${task}": ${error.message}`);
-      console.log(`[Model Router] Auto-escalating to Groq fallback...`);
-      
+      // FINAL FALLBACK TO GROQ
       try {
-        const result = await callGroq(systemPrompt, userMessage, {
-          ...config,
-          temperature: 0.2 // Lower temp for code fallback
-        });
-        return { ...result, fallbackUsed: true };
+          console.log(`[Model Router] Fallback (2/2): Attempting cloud Groq...`);
+          const result = await executeModelCall('groq', systemPrompt, userMessage, { ...config, temperature: 0.2 });
+          return { ...result, fallbackUsed: true };
       } catch (groqError) {
-        console.error(`[Model Router] Groq fallback also failed:`, groqError.message);
-        throw new Error(`All models failed for task "${task}". ${targetModel}: ${error.message}. Groq: ${groqError.message}`);
+          console.error(`[Model Router] All fallbacks failed for "${task}".`);
+          throw new Error(`All models failed: ${primaryError.message} -> ${groqError.message}`);
       }
     }
 
     // No fallback configured — throw original error
-    throw error;
+    throw primaryError;
   }
 }
+
+/**
+ * Low-level execution of a single model call
+ */
+async function executeModelCall(model, systemPrompt, userMessage, config) {
+    if (model === 'mistral') {
+        return await callMistral(systemPrompt, userMessage, config);
+    }
+    if (model === 'qwen') {
+        const content = await generateWithQwen(
+            systemPrompt, 
+            userMessage, 
+            config.jsonMode, 
+            3,      // retries
+            'qwen'  // force local
+        );
+        return { content, model: 'qwen', durationMs: 0 };
+    }
+    if (model === 'groq') {
+        return await callGroq(systemPrompt, userMessage, config);
+    }
+    if (model === 'glm') {
+        return await callGLM(systemPrompt, userMessage, config);
+    }
+    throw new Error(`Unknown model target: "${model}"`);
+}
+
 
 module.exports = { callModel, ROUTING_TABLE };
