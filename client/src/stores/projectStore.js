@@ -5,12 +5,16 @@ export const useProjectStore = create((set, get) => ({
     projects: [],
     
     // Create a new project via API — returns a real MongoDB ObjectId
-    createProject: async (prompt, token, folderId = null) => {
+    // templateId is optional — when provided, the backend pre-populates currentFileTree with the template HTML
+    createProject: async (prompt, token, folderId = null, templateId = null) => {
         try {
-            const data = await apiClient.createProject({ 
+            const payload = { 
                 name: prompt.substring(0, 40),
                 folderId
-            }, token);
+            };
+            if (templateId) payload.templateId = templateId;
+
+            const data = await apiClient.createProject(payload, token);
             const dbProject = data.project;
             
             const newProject = {

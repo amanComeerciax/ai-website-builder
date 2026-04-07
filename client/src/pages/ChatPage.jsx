@@ -85,20 +85,33 @@ export default function ChatPage() {
         }
     }, [projectId, isAuthLoaded, getToken]);
 
-    // Auto-create project if navigated with /chat/new?prompt=...
-    // This handles the LandingPage flow where no DB project exists yet
+    // Auto-create project if navigated with /chat/new?prompt=... or /chat/new?templateId=...
+    // This handles the LandingPage flow AND the Templates flow
     useEffect(() => {
         const params = new URLSearchParams(location.search)
         const prompt = params.get('prompt')
+        const templateId = params.get('templateId')
+        const templateName = params.get('templateName')
         
-        if (projectId === 'new' && prompt && isAuthLoaded) {
+        if (projectId === 'new' && (prompt || templateId) && isAuthLoaded) {
             const createAndRedirect = async () => {
                 const token = await getToken();
                 const { createProject } = useProjectStore.getState();
-                const newId = await createProject(prompt, token);
+                
+                // Use template name or prompt for the project name
+                const projectPrompt = prompt || templateName || 'Template Project';
+                const newId = await createProject(projectPrompt, token, null, templateId || null);
+                
                 if (newId) {
-                    // Redirect to the real project URL — include all style params
-                    navigate(`/chat/${newId}${location.search}`, { replace: true });
+                    // Build redirect URL — preserve prompt if present, add templateId context
+                    const redirectParams = new URLSearchParams();
+                    if (prompt) redirectParams.set('prompt', prompt);
+                    if (templateId) {
+                        redirectParams.set('templateId', templateId);
+                        if (templateName) redirectParams.set('templateName', templateName);
+                    }
+                    const qs = redirectParams.toString();
+                    navigate(`/chat/${newId}${qs ? '?' + qs : ''}`, { replace: true });
                 }
             }
             createAndRedirect();
@@ -107,28 +120,45 @@ export default function ChatPage() {
     }, [projectId, location.search, isAuthLoaded, getToken, navigate])
 
     // Auto-execute prompt from URL on load (after project is created with real ID)
+    // Also handles template preview: shows the live preview and asks for brand details
     useEffect(() => {
         const params = new URLSearchParams(location.search)
         const prompt = params.get('prompt')
+        const templateId = params.get('templateId')
+        const templateName = params.get('templateName')
         
-        if (prompt && projectId !== 'new' && messages.length === 0 && !isGenerating && isAuthLoaded) {
+        if ((prompt || templateId) && projectId !== 'new' && messages.length === 0 && !isGenerating && isAuthLoaded) {
             const run = async () => {
                 const token = await getToken();
                 const { isConfigured } = useChatStore.getState();
-                
-                // Add the user's initial prompt as the first message
-                addMessage({ role: 'user', content: prompt })
 
-                if (isConfigured) {
-                    // If already configured (e.g. returning to project), just build
-                    startGeneration(prompt, projectId, token, {})
-                } else {
-                    // NEW FLOW: Wait for style config!
-                    // Add an assistant response as the "voice" of the builder
+                if (templateId) {
+                    // ── TEMPLATE PREVIEW FLOW ──
+                    // The backend already pre-populated currentFileTree with the template HTML.
+                    // The loadProject hydration in the first useEffect will load it into the editor store.
+                    // We just need to show the preview and ask for user details.
+                    
+                    addMessage({ role: 'user', content: `I want to use the "${templateName || templateId}" template` });
                     addMessage({ 
                         role: 'assistant', 
-                        content: `Hi! I'm excited to build your website for **"${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"**. \n\nTo get started, **please select a theme** from the options below.` 
+                        content: `Great choice! Here's a live preview of the **${templateName || templateId}** template. 👉\n\nTo make it yours, **what's your brand name?**\n\n_Step 1 of 3_` 
                     });
+
+                    // Force show the preview panel with the template HTML
+                    useChatStore.setState({ isIdeVisible: true, activeView: 'preview' });
+                    
+                } else if (prompt) {
+                    // ── STANDARD PROMPT FLOW ──
+                    addMessage({ role: 'user', content: prompt })
+
+                    if (isConfigured) {
+                        startGeneration(prompt, projectId, token, {})
+                    } else {
+                        addMessage({ 
+                            role: 'assistant', 
+                            content: `Hi! I'm excited to build your website for **"${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"**. \n\nTo get started, **please select a theme** from the options below.` 
+                        });
+                    }
                 }
 
                 // Remove all params from URL to avoid re-triggering
