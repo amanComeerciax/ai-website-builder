@@ -34,6 +34,10 @@ const projectSchema = new mongoose.Schema(
       type: String,
       default: null
     },
+    publishedUrl: {
+      type: String,
+      default: null
+    },
     netlifySiteId: {
       type: String,
       default: null

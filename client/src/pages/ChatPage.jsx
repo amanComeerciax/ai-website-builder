@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { 
     ChevronDown, Clock, PanelLeftClose, Rocket, Share2, 
-    ArrowLeft, ChevronUp, History, Diff, Monitor, Code, List 
+    ArrowLeft, ChevronUp, History, Diff, Monitor, Code, List, Loader2 
 } from 'lucide-react'
 import ChatPanel from '../components/editor/ChatPanel'
 import FileTree from '../components/editor/FileTree'
@@ -38,6 +38,35 @@ export default function ChatPage() {
     // Determine if the user has ANY generated content (not just the demo file)
     const hasGeneratedContent = Object.keys(files).some(f => f !== 'App.jsx') || 
         generationPhase === 'complete' || generationPhase === 'streaming_logs' || generationPhase === 'thinking'
+        
+    // Deployment state
+    const [isDeploying, setIsDeploying] = useState(false)
+    const [publishedUrl, setPublishedUrl] = useState(null)
+
+    const handleDeploy = async () => {
+        if (!projectId || projectId === 'new') return;
+        setIsDeploying(true);
+        try {
+            const token = await getToken();
+            const res = await fetch(`/api/projects/${projectId}/deploy`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (res.ok && data.publishedUrl) {
+                setPublishedUrl(data.publishedUrl);
+                // toast is handled in the component below, or we could add import toast
+            } else {
+                console.error("Deploy failed:", data.error);
+                alert(data.error || "Deploy failed");
+            }
+        } catch (err) {
+            console.error("Deploy error:", err);
+            alert("Deploy failed");
+        } finally {
+            setIsDeploying(false);
+        }
+    };
     
     // The right panel only shows when:
     // 1. The user explicitly opened it (isIdeVisible via "Show details" / "Preview" buttons)
@@ -260,10 +289,27 @@ export default function ChatPage() {
                         <Share2 size={14} />
                         <span>Share</span>
                     </button>
-                    <button className="ep-tool-btn ep-deploy-btn">
-                        <Rocket size={14} />
-                        <span>Deploy</span>
-                    </button>
+                    {publishedUrl ? (
+                        <a href={publishedUrl} target="_blank" rel="noreferrer" className="ep-tool-btn ep-deploy-btn published" style={{background: '#3b82f6', color: '#fff', border: 'none'}}>
+                            <Rocket size={14} />
+                            <span>Live</span>
+                        </a>
+                    ) : (
+                        <button 
+                            className="ep-tool-btn ep-deploy-btn" 
+                            onClick={handleDeploy} 
+                            disabled={isDeploying || !hasGeneratedContent}
+                            title={!hasGeneratedContent ? "Nothing to deploy yet" : "Deploy to Cloudflare R2"}
+                            style={isDeploying ? { opacity: 0.7, cursor: 'wait' } : {}}
+                        >
+                            {isDeploying ? (
+                                <Loader2 size={14} className="ep-spin" />
+                            ) : (
+                                <Rocket size={14} />
+                            )}
+                            <span>{isDeploying ? 'Deploying...' : 'Deploy'}</span>
+                        </button>
+                    )}
                 </div>
             </div>
 

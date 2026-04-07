@@ -114,7 +114,37 @@ router.get("/:id", requireAuth, async (req, res, next) => {
     } catch (error) {
         next(error)
     }
-})
+});
+
+// ── POST /api/projects/:id/deploy — Deploy project to Cloudflare R2 ──
+router.post("/:id/deploy", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const project = await Project.findOne({ _id: req.params.id, userId });
+        
+        if (!project) {
+            return res.status(404).json({ error: "Project not found" });
+        }
+
+        if (!project.currentFileTree || Object.keys(project.currentFileTree).length === 0) {
+            return res.status(400).json({ error: "Project has no files to deploy yet." });
+        }
+
+        const { deployProject } = require('../services/deployService');
+        
+        // deployProject returns the Netlify siteId and publicUrl
+        const { siteId, publicUrl } = await deployProject(project.netlifySiteId, project.currentFileTree);
+        
+        project.netlifySiteId = siteId;
+        project.publishedUrl = publicUrl;
+        await project.save();
+
+        res.json({ success: true, publishedUrl: publicUrl });
+    } catch (error) {
+        console.error("[ProjectRoute] Deploy error:", error.message);
+        res.status(500).json({ error: "Failed to deploy project: " + error.message });
+    }
+});
 
 // ── PUT /api/projects/:id — Rename or update workspace ──
 router.put("/:id", requireAuth, async (req, res, next) => {
