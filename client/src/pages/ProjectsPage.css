@@ -14,12 +14,14 @@
 }
 
 .projects-page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   background-color: var(--zinc-950);
   color: var(--zinc-50);
   font-family: 'Inter', -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 /* HEADER */
