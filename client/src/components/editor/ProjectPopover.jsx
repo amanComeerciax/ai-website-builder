@@ -1,16 +1,29 @@
 import { useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { 
     ArrowLeft, Gift, Settings, Copy, Globe, 
     Edit2, Star, Folder, Info, Palette, 
     HelpCircle, ChevronRight 
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
+import { useProjectStore } from '../../stores/projectStore'
+import { useAuth } from '@clerk/clerk-react'
 import './ProjectPopover.css'
 
-export default function ProjectPopover({ isOpen, onClose }) {
+export default function ProjectPopover({ isOpen, onClose, project, onRename, onMove }) {
     const popoverRef = useRef(null)
+    const navigate = useNavigate()
     const { userData } = useAuthStore()
+    const { toggleStar } = useProjectStore()
+    const { getToken } = useAuth()
+
+    // ── Handlers ──
+    const handleStarClick = async () => {
+        if (!project) return;
+        const token = await getToken();
+        toggleStar(project.id || project._id, token);
+        onClose();
+    }
 
     // Close on click outside
     useEffect(() => {
@@ -72,7 +85,7 @@ export default function ProjectPopover({ isOpen, onClose }) {
 
             {/* Menu Items */}
             <div className="ppv-menu-list">
-                <button className="ppv-menu-item">
+                <button className="ppv-menu-item" onClick={() => navigate('/settings#project')}>
                     <Settings size={16} className="ppv-icon" />
                     <span className="ppv-label">Settings</span>
                     <span className="ppv-shortcut">⌘.</span>
@@ -90,15 +103,20 @@ export default function ProjectPopover({ isOpen, onClose }) {
                 </button>
                 <div className="ppv-divider"></div>
 
-                <button className="ppv-menu-item">
+                <button className="ppv-menu-item" onClick={onRename}>
                     <Edit2 size={16} className="ppv-icon" />
                     <span className="ppv-label">Rename project</span>
                 </button>
-                <button className="ppv-menu-item">
-                    <Star size={16} className="ppv-icon" />
-                    <span className="ppv-label">Star project</span>
+                <button className="ppv-menu-item" onClick={handleStarClick}>
+                    <Star 
+                        size={16} 
+                        className="ppv-icon" 
+                        fill={project?.isStarred ? '#f59e0b' : 'transparent'} 
+                        color={project?.isStarred ? '#f59e0b' : 'currentColor'} 
+                    />
+                    <span className="ppv-label">{project?.isStarred ? 'Unstar project' : 'Star project'}</span>
                 </button>
-                <button className="ppv-menu-item">
+                <button className="ppv-menu-item" onClick={onMove}>
                     <Folder size={16} className="ppv-icon" />
                     <span className="ppv-label">Move to folder</span>
                 </button>

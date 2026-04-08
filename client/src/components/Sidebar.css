@@ -1,30 +1,38 @@
 .lv-sidebar {
-  width: 220px;
-  min-width: 220px;
+  width: 240px;
+  min-width: 240px;
   height: 100vh;
   background: #111111;
   border-right: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
   flex-direction: column;
   padding: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: #fff;
   z-index: 50;
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.lv-sidebar-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.lv-sidebar-scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+.lv-sidebar-scroll-area::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
 .lv-layout.collapsed .lv-sidebar {
   transform: translateX(-100%);
 }
 
-.lv-sidebar::-webkit-scrollbar {
-  width: 4px;
-}
-.lv-sidebar::-webkit-scrollbar-thumb {
-  background: #333;
-}
+
 
 .lv-sidebar-top {
   display: flex;
@@ -269,6 +277,11 @@
 .lv-upgrade-btn:hover { background: #222; }
 .lv-upgrade-btn svg { color: #60a5fa; }
 
+.lv-user-row-container {
+  position: relative;
+  width: 100%;
+}
+
 .lv-user-row {
   display: flex;
   align-items: center;
@@ -277,7 +290,143 @@
   background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
   margin-top: 4px;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
 }
+
+.lv-user-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.lv-user-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 260px;
+  margin-bottom: 8px;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  animation: userMenuIn 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes userMenuIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.lv-user-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+}
+
+.lv-user-avatar-large {
+  width: 36px;
+  height: 36px;
+  background: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+img.lv-user-avatar-large {
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.lv-user-dropdown-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.lv-user-dropdown-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lv-user-dropdown-email {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lv-appearance-item {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lv-appearance-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lv-submenu {
+  position: absolute;
+  top: -30px;
+  left: 100%;
+  margin-left: 6px;
+  width: 220px;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  display: none;
+  z-index: 101;
+  flex-direction: column;
+}
+
+.lv-appearance-item:hover .lv-submenu {
+  display: flex;
+  animation: dotMenuIn 0.12s ease-out;
+}
+
+.lv-appearance-previews {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+}
+
+.lv-preview-box {
+  flex: 1;
+  height: 40px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.lv-preview-box.active {
+  border: 2px solid #fff;
+}
+
+.lv-preview-light { background: linear-gradient(180deg, #3b82f6 0%, #ec4899 100%); }
+.lv-preview-dark { background: linear-gradient(180deg, #1e3a8a 0%, #f59e0b 100%); }
+.lv-preview-system { background: linear-gradient(180deg, #0f172a 0%, #b91c1c 100%); }
 
 .lv-user-avatar {
   width: 28px;

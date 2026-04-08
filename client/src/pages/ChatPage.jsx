@@ -13,6 +13,8 @@ import HistoryPanel from '../components/editor/HistoryPanel'
 import HistorySidebar from '../components/editor/HistorySidebar'
 import ProjectPopover from '../components/editor/ProjectPopover'
 import VisualEditPanel from '../components/editor/VisualEditPanel'
+import RenameModal from '../components/modals/RenameModal'
+import MoveToFolderModal from '../components/modals/MoveToFolderModal'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import { useChatStore } from '../stores/chatStore'
@@ -31,6 +33,9 @@ export default function ChatPage() {
     const [isChatVisible, setIsChatVisible] = useState(true)
     const [chatWidth, setChatWidth] = useState(() => Math.round(window.innerWidth * 0.2))
     const [isDragging, setIsDragging] = useState(false)
+    const [renameModal, setRenameModal] = useState({ open: false, id: null, name: '' })
+    const [moveModal, setMoveModal] = useState({ open: false, id: null, name: '', folderId: null })
+    
     const { 
         isGenerating, generationStatus, isDetailsExpanded, setDetailsExpanded,
         isIdeVisible, setIdeVisible, activeView, setActiveView, messages, addMessage, startGeneration,
@@ -162,6 +167,15 @@ export default function ChatPage() {
                         <ProjectPopover 
                             isOpen={isPopoverOpen} 
                             onClose={() => setIsPopoverOpen(false)} 
+                            project={project}
+                            onRename={() => {
+                                setIsPopoverOpen(false)
+                                setRenameModal({ open: true, id: project?.id || project?._id, name: project?.name })
+                            }}
+                            onMove={() => {
+                                setIsPopoverOpen(false)
+                                setMoveModal({ open: true, id: project?.id || project?._id, name: project?.name, folderId: project?.folderId })
+                            }}
                         />
                     </div>
 
@@ -312,6 +326,27 @@ export default function ChatPage() {
                     </>
                 )}
             </div>
+
+            {/* Modals for Project Popover interactions */}
+            <RenameModal
+                isOpen={renameModal.open}
+                onClose={() => setRenameModal({ open: false, id: null, name: '' })}
+                projectName={renameModal.name}
+                onConfirm={async (newName) => {
+                    const token = await getToken();
+                    useProjectStore.getState().renameProject(renameModal.id, newName, token);
+                }}
+            />
+            <MoveToFolderModal
+                isOpen={moveModal.open}
+                onClose={() => setMoveModal({ open: false, id: null, name: '', folderId: null })}
+                projectName={moveModal.name}
+                currentFolderId={moveModal.folderId}
+                onConfirm={async (folderId) => {
+                    const token = await getToken();
+                    useProjectStore.getState().moveToFolder(moveModal.id, folderId, token);
+                }}
+            />
         </div>
     )
 }

@@ -50,13 +50,22 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
       const project = await Project.findById(projectId);
       
       if (project && project.isConfigured) {
-        isModification = true;
-        console.log(`[Worker] 🔄 MODIFICATION MODE — project "${project.websiteName || project.name}" is already configured`);
         // Inherit previous meta config
         enhanceOptionsOverride.theme = project.theme;
         enhanceOptionsOverride.websiteName = project.websiteName;
         enhanceOptionsOverride.description = project.description;
-        enhanceOptionsOverride.isModification = true;
+
+        // CRITICAL: Grab the existing generated HTML for contextual editing
+        if (project.currentFileTree && project.currentFileTree['index.html']) {
+          existingHtmlForEdit = project.currentFileTree['index.html'];
+          isModification = true;
+          enhanceOptionsOverride.isModification = true;
+          console.log(`[Worker] 🔄 MODIFICATION MODE — project "${project.websiteName || project.name}" has existing HTML for editing`);
+        } else {
+          console.warn(`[Worker] ⚠️ Project is configured but no existing HTML found — treating as FRESH GENERATION`);
+          isModification = false;
+          enhanceOptionsOverride.isModification = false;
+        }
 
         // Try to fetch previous layoutSpec from the latest Message that has one
         const Message = require('../models/Message');
@@ -69,14 +78,6 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
         if (lastMsg && lastMsg.layoutSpec) {
           previousLayoutSpec = lastMsg.layoutSpec;
           console.log(`[Worker] ✅ Found previous layoutSpec from message ${lastMsg._id}`);
-        }
-
-        // CRITICAL: Grab the existing generated HTML for contextual editing
-        if (project.currentFileTree && project.currentFileTree['index.html']) {
-          existingHtmlForEdit = project.currentFileTree['index.html'];
-          console.log(`[Worker] ✅ Found existing HTML (${existingHtmlForEdit.length} chars) for contextual editing`);
-        } else {
-          console.warn(`[Worker] ⚠️ No existing HTML found — will regenerate from scratch`);
         }
       } else {
         console.log(`[Worker] 🆕 NEW GENERATION — project not yet configured`);
@@ -196,7 +197,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     const { systemPrompt, userMessage } = buildSummaryPrompt(fileNames, {
       projectGlossary: { AppName: appName },
       sections: result.layoutSpec.sections.map(s => s.component),
-    }, isModification);
+    }, isModification, prompt);
     const r = await callModel('summarize', userMessage, systemPrompt);
     const s = JSON.parse(r.content);
     summary = s.summary || summary;

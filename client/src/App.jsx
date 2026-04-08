@@ -8,6 +8,7 @@ import DashboardLayout from './layouts/DashboardLayout'
 import ProjectsPage from './pages/ProjectsPage'
 import TemplatesPage from './pages/TemplatesPage'
 import AuthPage from './pages/AuthPage'
+import SettingsPage from './pages/SettingsPage'
 import { Toaster } from 'react-hot-toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -85,6 +86,12 @@ function App() {
           >
             <Route index element={<ProjectsPage />} />
           </Route>
+
+          {/* Settings route */}
+          <Route
+            path="/settings"
+            element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
+          />
 
           {/* Editor route */}
           <Route

@@ -208,22 +208,23 @@ function buildPhase3Prompt(fileSpec, glossary) {
  * @param {string[]} filesCreated - Array of filenames
  * @param {object} plan - Original plan object
  * @param {boolean} isEdit - Whether this is an edit vs fresh generation
+ * @param {string} userPrompt - The actual prompt the user entered
  */
-function buildSummaryPrompt(filesCreated, plan, isEdit = false) {
+function buildSummaryPrompt(filesCreated, plan, isEdit = false, userPrompt = '') {
   const systemPrompt = isEdit
     ? [
         'You are a UX-focused AI that summarizes code modifications.',
-        'The user edited their existing website. Summarize what changed concisely.',
+        'The user edited their existing website. Summarize what changed concisely based on their request.',
         '',
         'CRITICAL RULES:',
         '- NEVER mention "template" or "raw template".',
         '- Keep it SHORT (1-2 sentences max).',
-        '- Be specific about what changed (e.g. "Updated the FAQ section styling" not "Made changes").',
-        '- End with a helpful tip when relevant.',
+        '- Be specific about what changed based on the USER REQUEST (e.g. "Changed the font to Roboto" or "Added a hero section with a blue background").',
+        '- Do not sound generic.',
         '',
         'Return ONLY valid JSON:',
         '{',
-        '  "summary": "Updated the [specific thing]. — for quick changes like this, you can also use **Visual Edits**!",',
+        '  "summary": "Updated the [specific thing based on user request].",',
         '  "appName": "string",',
         '  "suggestedActions": ["Adjust colors", "Update content", "Add new section", "Preview changes"]',
         '}',
@@ -231,7 +232,7 @@ function buildSummaryPrompt(filesCreated, plan, isEdit = false) {
       ].join('\n')
     : [
         'You are a UX-focused AI that summarizes code generation results.',
-        'Given the files that were created and the original plan, write a brief summary.',
+        'Given the user request, the files that were created, and the original plan, write a brief summary.',
         '',
         'CRITICAL: NEVER mention "template" or "raw template" in the summary.',
         'The user must think this was generated from scratch by AI, not adapted from a template.',
@@ -248,11 +249,13 @@ function buildSummaryPrompt(filesCreated, plan, isEdit = false) {
       ].join('\n');
 
   const userMessage = [
-    isEdit ? 'Summarize this edit:' : 'Summarize this generation:',
+    isEdit ? 'Summarize this edit based on the user request:' : 'Summarize this generation based on the user request:',
+    '',
+    `User Request: "${userPrompt}"`,
     '',
     `Files ${isEdit ? 'modified' : 'created'}: ${filesCreated.join(', ')}`,
     '',
-    `Original plan: ${JSON.stringify(plan, null, 2)}`
+    `Project Plan: ${JSON.stringify(plan, null, 2)}`
   ].join('\n');
 
   return { systemPrompt, userMessage };

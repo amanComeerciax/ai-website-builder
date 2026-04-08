@@ -4,6 +4,7 @@ import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 import { useEditorStore } from '../../stores/editorStore'
 import { useChatStore } from '../../stores/chatStore'
+import { useAuth } from '@clerk/clerk-react'
 import './PreviewPanel.css'
 
 // The script injected into the iframe when visual edit mode is active.
@@ -129,12 +130,14 @@ function getVisualEditScript() {
         '    var sendBtn=document.createElement("button");',
         '    sendBtn.innerHTML="<svg width=\\"14\\" height=\\"14\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#fff\\" stroke-width=\\"2\\"><path d=\\"M5 12h14m-7-7 7 7-7 7\\"/></svg>";',
         '    sendBtn.style.cssText="background:#333;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.2s;";',
-        '    var textBtn=document.createElement("button");',
-        '    textBtn.innerHTML="<svg width=\\"12\\" height=\\"12\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#aaa\\" stroke-width=\\"2\\"><path d=\\"M4 7V4h16v3M9 20h6M12 4v16\\"/></svg>";',
-        '    textBtn.style.cssText="background:transparent;border:none;cursor:pointer;padding:4px;";',
+        '    var parentBtn=document.createElement("button");',
+        '    parentBtn.innerHTML="<svg width=\\"14\\" height=\\"14\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#aaa\\" stroke-width=\\"2\\"><path d=\\"M12 19V5M5 12l7-7 7 7\\"/></svg>";',
+        '    parentBtn.style.cssText="background:transparent;border:none;cursor:pointer;padding:4px;";',
+        '    parentBtn.title="Select parent";',
         '    var codeBtn=document.createElement("button");',
         '    codeBtn.innerHTML="<svg width=\\"14\\" height=\\"14\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#aaa\\" stroke-width=\\"2\\"><polyline points=\\"16 18 22 12 16 6\\"></polyline><polyline points=\\"8 6 2 12 8 18\\"></polyline></svg>";',
         '    codeBtn.style.cssText="background:transparent;border:none;cursor:pointer;padding:4px;";',
+        '    codeBtn.title="View code";',
         '    sendBtn.onclick=function(ev){',
         '      ev.stopPropagation();',
         '      if(inp.value.trim()){',
@@ -142,19 +145,29 @@ function getVisualEditScript() {
         '        inp.value="";',
         '      }',
         '    };',
+        '    parentBtn.onclick=function(ev){',
+        '      ev.stopPropagation();',
+        '      if(t.parentElement && t.parentElement !== document.body && t.parentElement !== document.documentElement){',
+        '        var evt = new MouseEvent("click", { bubbles: true, cancelable: true, view: window });',
+        '        t.parentElement.dispatchEvent(evt);',
+        '      }',
+        '    };',
+        '    codeBtn.onclick=function(ev){',
+        '      ev.stopPropagation();',
+        '      window.parent.postMessage({type:"VE_VIEW_CODE",xpath:xpath},"*");',
+        '    };',
         '    inp.onkeydown=function(ev){',
         '      if(ev.key==="Enter"){ sendBtn.click(); }',
         '      ev.stopPropagation();',
         '    };',
         '    inp.onclick=function(ev){ ev.stopPropagation(); };',
         '    btnBox.appendChild(sendBtn);',
-        '    btnBox.appendChild(textBtn);',
+        '    btnBox.appendChild(parentBtn);',
         '    btnBox.appendChild(codeBtn);',
         '    bubble.appendChild(inp);',
         '    bubble.appendChild(btnBox);',
-        '    marker.style.pointerEvents="auto";',
         '    marker.appendChild(bubble);',
-        '    setTimeout(function(){ inp.focus(); }, 50);',
+        '    setTimeout(function(){ inp.focus(); }, 20);',
         '  }',
 
 
@@ -231,6 +244,7 @@ function getVisualEditScript() {
 }
 
 export default function PreviewPanel() {
+    const { getToken } = useAuth()
     const { files, htmlContent } = useEditorStore()
     const { isGenerating, generationPhase, isVisualEditMode, addSelectedElement, clearSelectedElements, selectedElements } = useChatStore()
     const [viewMode, setViewMode] = useState('desktop')
@@ -314,7 +328,7 @@ export default function PreviewPanel() {
 
     // Listen for messages from iframe
     useEffect(() => {
-        const handler = (e) => {
+        const handler = async (e) => {
             const d = e.data
             if (!d || !d.type) return
             if (d.type === 'VE_ELEMENT_SELECTED' && d.data) {
@@ -350,13 +364,20 @@ export default function PreviewPanel() {
                 store.clearSelectedElements()
                 
                 // Trigger backend processing
-                startGeneration(messageContent, activeProjectId, selectedModel, null)
+                const token = await getToken()
+                startGeneration(messageContent, activeProjectId, token, null)
+            }
+
+            if (d.type === 'VE_VIEW_CODE' && d.xpath) {
+                // Switch the main editor view to the code editor
+                useChatStore.getState().setActiveView('code')
+                useChatStore.getState().setIdeVisible(true)
             }
 
         }
         window.addEventListener('message', handler)
         return () => window.removeEventListener('message', handler)
-    }, [addSelectedElement])
+    }, [addSelectedElement, getToken])
 
     // Send style changes to iframe
     const applyStyleToIframe = useCallback((xpath, prop, value) => {

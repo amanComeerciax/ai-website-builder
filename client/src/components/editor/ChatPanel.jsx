@@ -22,7 +22,7 @@ export default function ChatPanel() {
         isConfigured, addMessage, startGeneration, setDetailsExpanded, 
         setIdeVisible, setSelectedModel, completeProjectConfig, setActiveView,
         isVisualEditMode, toggleVisualEditMode,
-        selectedElements, removeSelectedElement,
+        selectedElements, removeSelectedElement, clearSelectedElements,
         thinkingMessage, isEditMode
     } = useChatStore()
     const { getToken } = useAuth()
@@ -89,6 +89,18 @@ export default function ChatPanel() {
         document.addEventListener('mousedown', handler)
         return () => document.removeEventListener('mousedown', handler)
     }, [showAttachMenu])
+
+    // Remove a selected element chip — notify BOTH the store AND the iframe
+    const handleRemoveElement = useCallback((xpath) => {
+        removeSelectedElement(xpath)
+        // Tell the iframe to remove the visual highlight for this element
+        const iframe = document.querySelector('.pp-iframe-wrapper iframe')
+        if (iframe && iframe.contentWindow) {
+            try {
+                iframe.contentWindow.postMessage({ type: 'VE_DESELECT', xpath }, '*')
+            } catch (e) { /* sandbox may block */ }
+        }
+    }, [removeSelectedElement])
 
     // File processing
     const processFiles = useCallback((fileList) => {
@@ -223,12 +235,18 @@ export default function ChatPanel() {
                 id: el.id || null,
                 text: el.text ? el.text.substring(0, 40) : null
             }))
-            const elementDescs = visualEditElements.map(el => {
+            // Build RICH descriptors for the backend (includes section context so AI can tell apart two <a> tags)
+            const elementDescs = selectedElements.map((el, i) => {
+                const tag = el.tag || 'element'
                 const id = el.id ? `#${el.id}` : ''
-                const text = el.text ? ` ("${el.text}")` : ''
-                return `<${el.tag}${id}>${text}`
-            }).join(', ')
-            backendPrompt = `[Visual Edit on: ${elementDescs}]\n${messageContent}`
+                const text = el.text ? ` containing "${el.text.substring(0, 60)}"` : ''
+                // Extract parent section hint from xpath (e.g., "nav" or "footer")
+                const xpathParts = (el.xpath || '').split('/')
+                const sectionHint = xpathParts.find(p => /^(nav|header|footer|section|main|aside)\[/.test(p))
+                const sectionStr = sectionHint ? ` in <${sectionHint.replace(/\[\d+\]/, '')}>` : ''
+                return `${i + 1}. <${tag}${id}>${text}${sectionStr}`
+            }).join('\n')
+            backendPrompt = `[Visual Edit on ${selectedElements.length} element(s):\n${elementDescs}]\n${messageContent}`
         }
 
         // Collect actual attachment data for the AI
@@ -561,7 +579,7 @@ export default function ChatPanel() {
                             <span key={el.xpath || i} className={`cp-el-tag cp-el-tag-${el.tag}`}>
                                 <span className="cp-el-tag-icon">{getTagIcon(el.tag)}</span>
                                 {el.tag}{el.id ? `#${el.id}` : ''}
-                                <button className="cp-el-tag-x" onClick={() => removeSelectedElement(el.xpath)}>
+                                <button className="cp-el-tag-x" onClick={() => handleRemoveElement(el.xpath)}>
                                     <X size={10} />
                                 </button>
                             </span>

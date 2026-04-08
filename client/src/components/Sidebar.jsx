@@ -25,7 +25,12 @@ import {
     Edit2,
     Trash2,
     Settings,
-    FolderInput
+    FolderInput,
+    ChevronRight,
+    HelpCircle,
+    FileText,
+    Check,
+    Moon
 } from 'lucide-react'
 import { useFolderStore } from '../stores/folderStore'
 import RenameModal from './modals/RenameModal'
@@ -55,6 +60,23 @@ export default function Sidebar() {
     const [renameModal, setRenameModal] = useState({ open: false, id: null, name: '' })
     const [deleteModal, setDeleteModal] = useState({ open: false, id: null, name: '' })
     const [moveModal, setMoveModal] = useState({ open: false, id: null, name: '', folderId: null })
+
+    // User profile dropdown
+    const [isUserProfileOpen, setIsUserProfileOpen] = useState(false)
+    const [appearanceTheme, setAppearanceTheme] = useState('system') // 'light', 'dark', 'system'
+    const userProfileRef = useRef(null)
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (userProfileRef.current && !userProfileRef.current.contains(e.target)) {
+                setIsUserProfileOpen(false)
+            }
+        }
+        if (isUserProfileOpen) {
+            document.addEventListener('mousedown', handleClickOutside)
+            return () => document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [isUserProfileOpen])
 
     // Get up to 3 most recently edited projects
     const recentProjects = projects.slice(0, 3)
@@ -201,7 +223,8 @@ export default function Sidebar() {
                 </button>
             </div>
 
-            <div className="lv-workspace-selector" onClick={toggleWorkspaceDropdown}>
+            <div className="lv-sidebar-scroll-area">
+                <div className="lv-workspace-selector" onClick={toggleWorkspaceDropdown}>
                 <div className="lv-workspace-left">
                     {userAvatar ? (
                         <img src={userAvatar} alt="" className="lv-workspace-avatar" style={{ objectFit: 'cover' }} />
@@ -342,6 +365,7 @@ export default function Sidebar() {
                     <div className="lv-empty-recents">No recent projects</div>
                 )}
             </div>
+            </div>
 
             <div className="lv-sidebar-bottom">
                 <div className="lv-share-card">
@@ -359,18 +383,95 @@ export default function Sidebar() {
                     <span>Upgrade to Pro</span>
                 </button>
 
-                <div className="lv-user-row">
-                    {userAvatar ? (
-                        <img src={userAvatar} alt="" className="lv-user-avatar" style={{ objectFit: 'cover' }} />
-                    ) : (
-                        <div className="lv-user-avatar">{userInitial}</div>
-                    )}
-                    <div className="lv-user-info">
-                        <span className="lv-user-name" title={userEmail}>{userName}</span>
-                    </div>
-                    <button className="lv-logout-btn" onClick={() => signOut(() => navigate("/"))} title="Sign Out">
-                        <LogOut size={16} />
+                <div className="lv-user-row-container" ref={userProfileRef}>
+                    <button className="lv-user-row" onClick={() => setIsUserProfileOpen(!isUserProfileOpen)}>
+                        {userAvatar ? (
+                            <img src={userAvatar} alt="" className="lv-user-avatar" style={{ objectFit: 'cover' }} />
+                        ) : (
+                            <div className="lv-user-avatar">{userInitial}</div>
+                        )}
+                        <div className="lv-user-info">
+                            <span className="lv-user-name" title={userName}>{userName}</span>
+                        </div>
                     </button>
+                    {isUserProfileOpen && (
+                        <div className="lv-user-dropdown">
+                            <div className="lv-user-dropdown-header">
+                                {userAvatar ? (
+                                    <img src={userAvatar} alt="" className="lv-user-avatar-large" style={{ objectFit: 'cover' }} />
+                                ) : (
+                                    <div className="lv-user-avatar-large">{userInitial}</div>
+                                )}
+                                <div className="lv-user-dropdown-info">
+                                    <span className="lv-user-dropdown-name" title={userName}>{userName}</span>
+                                    <span className="lv-user-dropdown-email" title={userEmail}>{userEmail}</span>
+                                </div>
+                            </div>
+                            <div className="lv-dot-menu-divider" />
+                            <button className="lv-dot-menu-item" onClick={() => navigate('/settings#profile')}>
+                                <User size={14} /><span>Profile</span>
+                            </button>
+                            <button className="lv-dot-menu-item" onClick={() => navigate('/settings#account')}>
+                                <Settings size={14} /><span>Settings</span>
+                            </button>
+                            
+                            <div className="lv-dot-menu-item lv-appearance-item">
+                                <div className="lv-appearance-item-left">
+                                    <Moon size={14} /><span>Appearance</span>
+                                </div>
+                                <ChevronRight size={14} />
+                                <div className="lv-submenu">
+                                    <div className="lv-appearance-previews">
+                                        <div className={`lv-preview-box lv-preview-light ${appearanceTheme === 'light' ? 'active' : ''}`} onClick={() => setAppearanceTheme('light')} />
+                                        <div className={`lv-preview-box lv-preview-dark ${appearanceTheme === 'dark' ? 'active' : ''}`} onClick={() => setAppearanceTheme('dark')} />
+                                        <div className={`lv-preview-box lv-preview-system ${appearanceTheme === 'system' ? 'active' : ''}`} onClick={() => setAppearanceTheme('system')} />
+                                    </div>
+                                    <button className="lv-dot-menu-item" style={{justifyContent: 'space-between'}} onClick={() => setAppearanceTheme('light')}>
+                                        <span>Light</span>{appearanceTheme === 'light' && <Check size={14} />}
+                                    </button>
+                                    <button className="lv-dot-menu-item" style={{justifyContent: 'space-between'}} onClick={() => setAppearanceTheme('dark')}>
+                                        <span>Dark</span>{appearanceTheme === 'dark' && <Check size={14} />}
+                                    </button>
+                                    <button className="lv-dot-menu-item" style={{justifyContent: 'space-between'}} onClick={() => setAppearanceTheme('system')}>
+                                        <span>System</span>{appearanceTheme === 'system' && <Check size={14} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="lv-dot-menu-item lv-appearance-item">
+                                <div className="lv-appearance-item-left">
+                                    <HelpCircle size={14} /><span>Support</span>
+                                </div>
+                                <ChevronRight size={14} />
+                                <div className="lv-submenu">
+                                    <button className="lv-dot-menu-item">
+                                        <span>Help Center</span>
+                                    </button>
+                                    <button className="lv-dot-menu-item">
+                                        <span>Email Support</span>
+                                    </button>
+                                    <button className="lv-dot-menu-item">
+                                        <span>Join Discord</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <button className="lv-dot-menu-item">
+                                <FileText size={14} /><span>Documentation</span>
+                            </button>
+                            <button className="lv-dot-menu-item">
+                                <Users size={14} /><span>Community</span>
+                            </button>
+                            <button className="lv-dot-menu-item" onClick={() => navigate("/")}>
+                                <Home size={14} /><span>Homepage</span>
+                            </button>
+                            
+                            <div className="lv-dot-menu-divider" />
+                            
+                            <button className="lv-dot-menu-item" onClick={() => signOut(() => navigate("/"))}>
+                                <LogOut size={14} /><span>Sign out</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </aside>

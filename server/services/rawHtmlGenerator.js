@@ -1,17 +1,7 @@
-/**
- * Raw HTML Generator
- * 
- * TWO MODES:
- *   1. FRESH GENERATION — Picks a design blueprint, adapts content to match the user's brand.
- *   2. CONTEXTUAL EDIT — Takes the EXISTING generated HTML and applies targeted changes
- *      based on the user's follow-up prompt (rename, recolor, add images, etc.)
- * 
- * The user NEVER sees which internal blueprint was used.
- */
-
 const fs = require('fs').promises;
 const path = require('path');
 const { callModel } = require('./modelRouter');
+const Template = require('../models/Template');
 
 async function ensureDirectoryExists(dir) {
   try {
@@ -22,39 +12,20 @@ async function ensureDirectoryExists(dir) {
 }
 
 async function getRawTemplate(enrichedSpec, requestModel) {
-  const templatesDir = path.join(__dirname, '../templates/raw');
-  await ensureDirectoryExists(templatesDir);
-  
+  const queryStr = `${enrichedSpec.businessName || ''} - ${enrichedSpec.description || ''} - ${enrichedSpec.rawPrompt || ''}`;
+
+  // ── PRIMARY: Read templates from MongoDB ──
   try {
-    const files = await fs.readdir(templatesDir);
-    const htmlFiles = files.filter(f => f.endsWith('.html'));
+    const templates = await Template.find({ isActive: true }).select('name description keywords').lean();
     
-    if (htmlFiles.length === 0) return null;
+    if (templates.length > 0) {
+      console.log(`[Generator] 📦 Found ${templates.length} templates in MongoDB`);
 
-    const queryStr = `${enrichedSpec.businessName || ''} - ${enrichedSpec.description || ''} - ${enrichedSpec.rawPrompt || ''}`;
+      const templateList = templates.map((t, i) => 
+        `${i + 1}. ${t.name} — ${t.description}${t.keywords ? ` (${t.keywords})` : ''}`
+      ).join('\n    ');
 
-    // Build selection prompt dynamically from available templates
-    const templateDescriptions = {
-      // ── Original templates ──
-      'aura.html': 'Tech, SaaS, smart home, software, futuristic, startups, AI, automation',
-      'terroir.html': 'Coffee shop, premium food brand, organic, luxury beverage, natural, artisan, tea',
-      'solar-terms.html': 'Cultural, traditional, nature, Chinese aesthetics, elegant, poetry, seasons, heritage',
-      'build-log.html': 'Developer blog, indie hacker, shipping in public, tech portfolio, changelog, open-source',
-      'lifebydesign.html': 'Personal blog, lifestyle, self-improvement, wellness coaching, intentional living, habits, journaling, productivity',
-      // ── New templates ──
-      'tempate1.html': 'Developer platform, API tools, SaaS product, tech startup, devtools, cloud infrastructure, code tools, CLI, SDK, backend service, hosting',
-      'template2.html': 'Wellness, meditation, mindfulness, yoga studio, health coaching, mental health, breathwork, self-care, spa, retreat, holistic healing',
-      'template3.html': 'Restaurant, food business, Mexican kitchen, dining, bistro, cafe, bar, catering, chef portfolio, culinary, bakery, pizzeria, food truck',
-      'template4.html': 'Portfolio, freelancer, art director, designer, creative agency, personal brand, photography, illustrator, architect, consultant',
-      'template5.html': 'Fashion brand, clothing, e-commerce, boutique, luxury apparel, streetwear, accessories, jewelry, shoe brand, online store, retail'
-    };
-
-    const templateList = htmlFiles.map((f, i) => {
-      const desc = templateDescriptions[f] || 'General purpose website';
-      return `${i + 1}. ${f} — ${desc}`;
-    }).join('\n    ');
-
-    const selectionPrompt = `You are a design selector. Based on the user's business, pick the single best template.
+      const selectionPrompt = `You are a design selector. Based on the user's business, pick the single best template.
 
 User's business: "${queryStr}"
 
@@ -70,25 +41,48 @@ INSTRUCTIONS:
 - A developer tools company should match tech/SaaS/developer templates.
 - If nothing is a strong match, pick the most visually versatile option.
 
-Reply with ONLY the exact filename (e.g. template3.html). No explanation.`;
-    
-    let chosenFile = htmlFiles[Math.floor(Math.random() * htmlFiles.length)];
-    try {
-        const selRes = await callModel('template_selector', queryStr, selectionPrompt, { forceModel: requestModel });
-        const respFilename = selRes.content.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
-        if (htmlFiles.includes(respFilename)) {
-            chosenFile = respFilename;
-        } else {
-            // Fuzzy match
-            const match = htmlFiles.find(f => respFilename.includes(f.replace('.html', '')));
-            if (match) chosenFile = match;
-        }
-    } catch (err) {
-        console.warn('[Generator] Style prediction failed, using default', err.message);
-        chosenFile = htmlFiles[Math.floor(Math.random() * htmlFiles.length)];
-    }
+Reply with ONLY the exact template name (e.g. template3). No explanation.`;
 
-    console.log(`[Generator] Selected design style: ${chosenFile}`);
+      let chosenTemplate = templates[Math.floor(Math.random() * templates.length)];
+      
+      try {
+        const selRes = await callModel('template_selector', queryStr, selectionPrompt, { forceModel: requestModel });
+        const respName = selRes.content.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
+        
+        const exactMatch = templates.find(t => t.name === respName);
+        if (exactMatch) {
+          chosenTemplate = exactMatch;
+        } else {
+          // Fuzzy match
+          const fuzzy = templates.find(t => respName.includes(t.name) || t.name.includes(respName));
+          if (fuzzy) chosenTemplate = fuzzy;
+        }
+      } catch (err) {
+        console.warn('[Generator] Template selection failed, using random:', err.message);
+      }
+
+      // Fetch the full HTML content for the chosen template
+      const fullTemplate = await Template.findOne({ name: chosenTemplate.name }).select('name htmlContent').lean();
+      console.log(`[Generator] Selected template: ${fullTemplate.name} (from MongoDB)`);
+      return { name: fullTemplate.name, content: fullTemplate.htmlContent };
+    }
+  } catch (dbErr) {
+    console.warn('[Generator] MongoDB template lookup failed, falling back to filesystem:', dbErr.message);
+  }
+
+  // ── FALLBACK: Read from local filesystem (backward compatible) ──
+  const templatesDir = path.join(__dirname, '../templates/raw');
+  await ensureDirectoryExists(templatesDir);
+  
+  try {
+    const files = await fs.readdir(templatesDir);
+    const htmlFiles = files.filter(f => f.endsWith('.html'));
+    
+    if (htmlFiles.length === 0) return null;
+
+    // Simple random selection for fallback mode
+    const chosenFile = htmlFiles[Math.floor(Math.random() * htmlFiles.length)];
+    console.log(`[Generator] Selected template: ${chosenFile} (from filesystem — fallback)`);
     return { name: chosenFile.replace('.html', ''), content: await fs.readFile(path.join(templatesDir, chosenFile), 'utf-8') };
     
   } catch (e) {
@@ -247,6 +241,20 @@ ${existingHtml}`;
  * Returns: { elements: [{tag: 'span'}, {tag: 'p', text: 'some text'}], prompt: 'change font to bold' }
  */
 function parseVisualEditPrefix(prompt) {
+  // NEW multi-line format with section context
+  const newMatch = prompt.match(/^\[Visual Edit on \d+ element\(s\):\n([\s\S]+?)\]\n?([\s\S]*)$/);
+  if (newMatch) {
+    const elementsBlock = newMatch[1];
+    const actualPrompt = newMatch[2].trim();
+    const elements = [];
+    const lineRegex = /\d+\.\s*<(\w+)(#[\w-]+)?>\s*(?:containing "([^"]*)")?\s*(?:in <(\w+)>)?/g;
+    let lm;
+    while ((lm = lineRegex.exec(elementsBlock)) !== null) {
+      elements.push({ tag: lm[1], id: lm[2] ? lm[2].substring(1) : null, text: lm[3] || null, section: lm[4] || null });
+    }
+    if (elements.length > 0) return { elements, prompt: actualPrompt };
+  }
+  // LEGACY single-line format
   const match = prompt.match(/^\[Visual Edit on:\s*(.+?)\]\n?([\s\S]*)$/);
   if (!match) return null;
 
@@ -279,6 +287,7 @@ async function editTargetedElements(existingHtml, parsedEdit, enrichedSpec, onPr
     let desc = `<${el.tag}>`;
     if (el.id) desc += ` with id="${el.id}"`;
     if (el.text) desc += ` containing text "${el.text}"`;
+    if (el.section) desc += ` in <${el.section}> section`;
     return desc;
   }).join(', ');
 
@@ -297,6 +306,7 @@ ${elements.map((el, i) => {
   let desc = `  ${i + 1}. <${el.tag}> element`;
   if (el.id) desc += ` with id="${el.id}"`;
   if (el.text) desc += ` — currently showing: "${el.text}"`;
+  if (el.section) desc += ` — located inside the <${el.section}> section`;
   return desc;
 }).join('\n')}
 

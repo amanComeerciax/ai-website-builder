@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { useAuth } from '@clerk/clerk-react'
 import { X, Type, Palette as PaletteIcon, Box, Square, ChevronDown, Undo2, Plus, ArrowUp, Mic, MessageSquare } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import './VisualEditPanel.css'
@@ -15,6 +16,7 @@ export default function VisualEditPanel({ onApplyStyle, onClose }) {
         isVisualEditMode, setVisualEditMode,
         addMessage, startGeneration, isGenerating
     } = useChatStore()
+    const { getToken } = useAuth()
     
     const [activeSection, setActiveSection] = useState('typography')
     const [hasPendingChanges, setHasPendingChanges] = useState(false)
@@ -38,9 +40,9 @@ export default function VisualEditPanel({ onApplyStyle, onClose }) {
         setVisualEditMode(false)
         if (onClose) onClose()
     }
-
+    
     // Send prompt from visual edit chat input — same pipeline as ChatPanel
-    const handleVeSend = () => {
+    const handleVeSend = async () => {
         const trimmed = veInput.trim()
         if (!trimmed || isGenerating) return
 
@@ -58,7 +60,9 @@ export default function VisualEditPanel({ onApplyStyle, onClose }) {
 
         addMessage({ role: 'user', content: messageContent })
         setVeInput('')
-        startGeneration(messageContent, projectId)
+        
+        const token = await getToken()
+        startGeneration(messageContent, projectId, token)
     }
 
     const canSend = veInput.trim().length > 0 && !isGenerating
@@ -274,8 +278,8 @@ export default function VisualEditPanel({ onApplyStyle, onClose }) {
                     </div>
                 )}
 
-                {/* Chat textarea + toolbar — only for multi-select */}
-                {selectedElements.length > 1 && (
+                {/* Chat textarea + toolbar — show if any elements are selected */}
+                {selectedElements.length > 0 && (
                     <>
                         <textarea
                             value={veInput}
