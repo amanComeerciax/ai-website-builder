@@ -166,14 +166,10 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
     }
   }
 
-  // ─── FALLBACK TO MISTRAL CLOUD API ───
-  if (!mistralClient) {
-    throw new Error('Local generation failed and no MISTRAL_API_KEY is configured for fallback.');
-  }
-
-  console.log(`[Mistral Fallback] Local Qwen failed, falling back to Mistral Cloud API...`);
-  return await generateWithMistral(systemPrompt, userPrompt, jsonMode);
+  // ─── ERROR: Local generation failed ───
+  throw new Error(`Local Qwen generation failed after ${retries} attempts.`);
 }
+
 
 /**
  * Direct Mistral Cloud API generation.

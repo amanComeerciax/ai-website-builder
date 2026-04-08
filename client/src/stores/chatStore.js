@@ -162,12 +162,45 @@ export const useChatStore = create(
                                 if (formattedFiles['index.html']) {
                                     editorStore.setPreview('srcdoc', formattedFiles['index.html'].content);
                                 }
+                            } else if (data.project?.currentFileTree && Object.keys(data.project.currentFileTree).length > 0) {
+                                // TEMPLATE PREVIEW FALLBACK (messages exist but none have files):
+                                const formattedFiles = {};
+                                Object.entries(data.project.currentFileTree).forEach(([path, content]) => {
+                                    formattedFiles[path] = { content: typeof content === 'string' ? content : (content.content || '') };
+                                });
+                                
+                                const editorStore = useEditorStore.getState();
+                                editorStore.setFiles(formattedFiles);
+
+                                if (formattedFiles['index.html']) {
+                                    editorStore.setPreview('srcdoc', formattedFiles['index.html'].content);
+                                }
+                                console.log('[ChatStore] ✅ Hydrated preview from project.currentFileTree (template mode)');
                             } else {
                                 // If the DB has no files (e.g. projects made before the DB fix), 
                                 // FORCE wipe the virtual file system to prevent the currently active
                                 // local storage cache (like FreshCart) from bleeding into old projects.
                                 useEditorStore.getState().setFiles({});
                             }
+                        } else if (data?.project?.currentFileTree && Object.keys(data.project.currentFileTree).length > 0) {
+                            // TEMPLATE PROJECTS WITH NO MESSAGES YET:
+                            // The project was just created from a template — no chat messages exist,
+                            // but the backend pre-populated currentFileTree with the rendered HTML.
+                            const formattedFiles = {};
+                            Object.entries(data.project.currentFileTree).forEach(([path, content]) => {
+                                formattedFiles[path] = { content: typeof content === 'string' ? content : (content.content || '') };
+                            });
+                            
+                            const editorStore = useEditorStore.getState();
+                            editorStore.setFiles(formattedFiles);
+
+                            if (formattedFiles['index.html']) {
+                                editorStore.setPreview('srcdoc', formattedFiles['index.html'].content);
+                            }
+                            
+                            // Show the preview panel
+                            set({ isIdeVisible: true, activeView: 'preview' });
+                            console.log('[ChatStore] ✅ Template project hydrated — no messages, loaded from currentFileTree');
                         }
                     } catch (err) {
                         console.warn('[ChatStore] DB hydration skipped:', err.message);

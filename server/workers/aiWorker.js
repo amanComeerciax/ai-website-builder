@@ -31,7 +31,10 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   let existingHtmlForEdit = null;
   if (!prompt) throw new Error("Missing 'prompt' in job data");
 
-  const currentModel = model || 'mistral';
+  // ─── MODEL SELECTION ───
+  // We now prioritize Mistral Cloud API as the primary engine for all tasks.
+  // Local Qwen and Groq are handled as fallbacks within the modelRouter.
+  const currentModel = 'mistral'; 
 
   // ─── STEP 1: ENHANCE PROMPT ────────────────────────────────────
   await job.updateProgress({

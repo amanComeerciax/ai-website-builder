@@ -7,6 +7,28 @@
  * UPDATED: Every component uses themeConfig colors/fonts, dark/light aware
  */
 
+/**
+ * Normalize any image URL to be browser-renderable.
+ * - Adds required query params to bare Unsplash photo URLs
+ * - Passes through Pexels and other CDN URLs unchanged
+ * - Returns a fallback if URL is missing or invalid
+ */
+function normalizeImageUrl(url, width = 1200, height = 800) {
+  const FALLBACK = `https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=${width}&h=${height}&q=80`;
+  if (!url || typeof url !== 'string' || url.trim().length < 5) return FALLBACK;
+  const clean = url.trim();
+  // Not a URL at all (AI put a description here) — use fallback
+  if (!clean.toLowerCase().startsWith('http')) return FALLBACK;
+  // Already has query params — pass through as-is
+  if (clean.includes('?')) return clean;
+  // Bare Unsplash photo URL — add required params
+  if (clean.includes('images.unsplash.com/photo-')) {
+    return `${clean}?auto=format&fit=crop&w=${width}&h=${height}&q=80`;
+  }
+  // Pexels, picsum, or other CDN — pass through
+  return clean;
+}
+
 const LUCIDE_ICON_SVG = {
   ArrowRight: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
   Check: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
@@ -381,7 +403,7 @@ function renderBentoGrid(props, theme) {
           <h3 style="font-family:'${theme.fontHeading}',sans-serif;font-size:1.2rem;font-weight:700;color:${theme.text};margin:0 0 10px;letter-spacing:-0.02em;">${item.title}</h3>
           <p style="font-family:'${theme.fontBody}',sans-serif;font-size:0.9rem;line-height:1.65;color:${theme.textDim};margin:0;">${item.description}</p>
         </div>
-        ${item.header ? `<div style="height:140px;overflow:hidden;border-top:1px solid ${cardBorder};"><img src="${item.header}" alt="${item.title}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.6s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform=''"></div>` : `<div style="height:140px;background:linear-gradient(135deg,${theme.accent}12,${dark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'});border-top:1px solid ${cardBorder};"></div>`}
+        ${item.header ? `<div style="height:140px;overflow:hidden;border-top:1px solid ${cardBorder};"><img src="${normalizeImageUrl(item.header, 600, 300)}" alt="${item.title}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.6s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform=''"></div>` : `<div style="height:140px;background:linear-gradient(135deg,${theme.accent}12,${dark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'});border-top:1px solid ${cardBorder};"></div>`}
       </div>`;
   }).join('')}
     </div>
@@ -411,7 +433,7 @@ function renderPortfolioSection(props, theme) {
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;">
       ${items.map((item, i) => {
-    const imgSrc = (item.image && !item.image.includes('undefined')) ? item.image : fallbackImages[i % fallbackImages.length];
+    const imgSrc = normalizeImageUrl(item.image || fallbackImages[i % fallbackImages.length], 800, 600);
     return `
       <div style="position:relative;border-radius:20px;overflow:hidden;aspect-ratio:4/3;cursor:pointer;" onmouseover="this.querySelector('.port-overlay').style.opacity='1';this.querySelector('img').style.transform='scale(1.08)'" onmouseout="this.querySelector('.port-overlay').style.opacity='0';this.querySelector('img').style.transform='scale(1)'">
         <img src="${imgSrc}" alt="${item.title}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.7s cubic-bezier(0.4,0,0.2,1);">
@@ -437,7 +459,7 @@ function renderAboutSection(props, theme) {
     <div style="position:relative;">
       <div style="position:absolute;inset:-30px;background:radial-gradient(circle at 30% 50%,${theme.accent}14,transparent 70%);filter:blur(30px);"></div>
       <div style="position:relative;border-radius:24px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,${dark ? '0.4' : '0.1'});">
-        <img src="${props.image || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=900&q=80'}" alt="${props.heading}" style="width:100%;height:500px;object-fit:cover;display:block;">
+        <img src="${normalizeImageUrl(props.image, 900, 700)}" alt="${props.heading}" style="width:100%;height:500px;object-fit:cover;display:block;">
         <div style="position:absolute;inset:0;background:linear-gradient(135deg,${theme.accent}18,transparent 60%);"></div>
       </div>
     </div>

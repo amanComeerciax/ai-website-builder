@@ -23,17 +23,22 @@ const GROQ_MAX_RETRIES = 2;
  * @param {number} options.temperature - 0.2 for code fallback, 0.5 for chat
  * @returns {{ content: string, model: string, durationMs: number }}
  */
-async function callGroq(systemPrompt, userMessage, options = {}) {
+async function callGroq(systemPrompt, userMessage, options = {}, history = []) {
   if (!GROQ_API_KEY) {
     throw new Error('GROQ_API_KEY is not configured.');
   }
 
-  const { jsonMode = false, temperature = 0.2 } = options;
+  const { jsonMode = false, temperature = 0.2, tools = undefined } = options;
   const startTime = Date.now();
 
   for (let attempt = 1; attempt <= GROQ_MAX_RETRIES; attempt++) {
     try {
-      console.log(`[Groq Service] Attempt ${attempt}/${GROQ_MAX_RETRIES} — model: ${GROQ_MODEL}, temp: ${temperature}`);
+      console.log(`[Groq Service] Attempt ${attempt}/${GROQ_MAX_RETRIES} — model: ${GROQ_MODEL}${tools ? ' (with tools)' : ''}`);
+
+      const messages = history.length > 0 ? history : [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ];
 
       const response = await fetch(GROQ_API_URL, {
         method: 'POST',
@@ -43,11 +48,10 @@ async function callGroq(systemPrompt, userMessage, options = {}) {
         },
         body: JSON.stringify({
           model: GROQ_MODEL,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-          ],
+          messages,
           temperature,
+          tools,
+          tool_choice: tools ? 'auto' : undefined,
           max_tokens: 8192,
           response_format: jsonMode ? { type: 'json_object' } : undefined
         })
@@ -68,28 +72,24 @@ async function callGroq(systemPrompt, userMessage, options = {}) {
       }
 
       const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
+      const message = data.choices?.[0]?.message;
 
-      if (!content || content.trim().length === 0) {
-        throw new Error('Groq returned empty response');
-      }
-
-      if (jsonMode) {
-        JSON.parse(content); // Validate parseable
+      if (jsonMode && message.content) {
+        try { JSON.parse(message.content); } catch (e) { throw new Error('Invalid JSON returned'); }
       }
 
       const durationMs = Date.now() - startTime;
-      console.log(`[Groq Service] ✅ Completed in ${(durationMs / 1000).toFixed(1)}s (${content.length} chars)`);
+      console.log(`[Groq Service] ✅ Completed in ${(durationMs / 1000).toFixed(1)}s`);
 
-      return { content, model: GROQ_MODEL, durationMs };
+      return { 
+        content: message.content || '', 
+        toolCalls: message.tool_calls,
+        model: GROQ_MODEL, 
+        durationMs 
+      };
 
     } catch (error) {
-      if (attempt === GROQ_MAX_RETRIES) {
-        console.error(`[Groq Service] ❌ Failed after ${GROQ_MAX_RETRIES} attempts:`, error.message);
-        throw new Error(`Groq generation failed: ${error.message}`);
-      }
-
-      console.warn(`[Groq Service] Attempt ${attempt} failed: ${error.message}. Retrying in 2s...`);
+      if (attempt === GROQ_MAX_RETRIES) throw error;
       await new Promise(r => setTimeout(r, 2000));
     }
   }
