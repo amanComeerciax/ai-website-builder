@@ -95,13 +95,14 @@
 }
 
 .lp-nav-link:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    background: var(--glass-hover);
 }
 
 .lp-nav-link-active {
-    color: white;
-    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+    background: var(--glass-card);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .lp-nav-right {
@@ -188,7 +189,7 @@
     font-weight: 700;
     line-height: 1;
     letter-spacing: -0.04em;
-    color: #1a1a2e;
+    color: var(--text-main);
     margin-bottom: 1.5rem;
 }
 
@@ -236,8 +237,8 @@
     font-weight: 700 !important;
     font-style: italic;
     letter-spacing: -0.04em;
-    color: #ffffff !important;
-    text-shadow: 0 2px 10px rgba(255, 255, 255, 0.4) !important;
+    color: var(--text-main) !important;
+    text-shadow: 0 2px 10px var(--text-glow) !important;
     width: 100% !important;
 }
 
@@ -563,9 +564,10 @@
 }
 
 .hiw-card:hover {
-    border-color: rgba(245, 158, 11, 0.2);
+    border-color: var(--accent-main);
     transform: translateY(-4px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 40px var(--accent-glow);
+    background: var(--glass-hover);
 }
 
 /* --- Grid Spans & Row Layout for Large Cards --- */
@@ -828,10 +830,10 @@
 }
 
 .feat-card:hover {
-    border-color: rgba(249, 115, 22, 0.15);
-    background: rgba(25, 20, 14, 0.8);
+    border-color: var(--accent-main);
+    background: var(--glass-hover);
     transform: translateY(-3px);
-    box-shadow: 0 16px 48px rgba(249, 115, 22, 0.06);
+    box-shadow: 0 16px 48px var(--accent-glow);
 }
 
 .feat-num {
@@ -1267,7 +1269,7 @@
 /* ── Card Base ── */
 .tmpl-card {
     border: 1px solid var(--glass-border);
-    background: var(--glass-card);
+    background: var(--tmpl-bg, var(--glass-card));
     border-radius: 1.25rem;
     padding: 1.25rem;
     overflow: hidden;
@@ -1281,12 +1283,22 @@
     box-shadow: 0 20px 48px rgba(0, 0, 0, 0.4);
 }
 
+.light-mode .tmpl-card {
+    background: var(--glass-card);
+}
+
+.light-mode .tmpl-card:hover {
+    border-color: var(--accent-main);
+    box-shadow: 0 20px 48px var(--accent-glow);
+}
+
+
 /* ── Browser Mockup ── */
 .tmpl-card-browser {
     border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-subtle);
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--glass-hover);
     margin-bottom: 1.25rem;
 }
 
@@ -1295,8 +1307,8 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 0.75rem;
-    background: rgba(0, 0, 0, 0.25);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    background: var(--glass-hover);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .tmpl-browser-dots {
@@ -1316,8 +1328,8 @@
 
 .tmpl-browser-url {
     font-size: 0.65rem;
-    color: #71717a;
-    background: rgba(255,255,255,0.04);
+    color: var(--text-dim);
+    background: var(--glass-card);
     padding: 0.2rem 0.6rem;
     border-radius: 4px;
     flex: 1;
@@ -1339,7 +1351,7 @@
     justify-content: space-between;
     padding-bottom: 0.5rem;
     margin-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .tmpl-wire-nav-sm {
@@ -1365,7 +1377,7 @@
     width: 1rem;
     height: 0.25rem;
     border-radius: 2px;
-    background: rgba(255,255,255,0.08);
+    background: var(--border-subtle);
 }
 
 .tmpl-wire-btn {
@@ -1411,7 +1423,7 @@
     height: 0.2rem;
     width: 100%;
     border-radius: 2px;
-    background: rgba(255,255,255,0.06);
+    background: var(--border-subtle);
 }
 
 .tmpl-wire-p.sm span {
@@ -1688,7 +1700,7 @@
     width: 100%;
     background: transparent;
     border: none;
-    color: #f4f4f5;
+    color: var(--text-main);
     font-size: 1rem;
     font-family: inherit;
     resize: none;
@@ -1698,7 +1710,7 @@
 }
 
 .cta-v2-textarea::placeholder {
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--text-muted);
 }
 
 .cta-v2-prompt-footer {
@@ -1707,7 +1719,7 @@
     justify-content: space-between;
     margin-top: 0.5rem;
     padding-top: 0.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--border-subtle);
 }
 
 .cta-v2-prompt-left {
@@ -1761,7 +1773,7 @@
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    color: white;
+    color: var(--text-main);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1772,6 +1784,7 @@
 .cta-v2-send-btn:hover {
     background: var(--accent-main);
     border-color: var(--accent-main);
+    color: var(--accent-text);
     transform: scale(1.05);
 }
 
@@ -1789,7 +1802,7 @@
     margin: 0 auto;
     display: block;
     padding-bottom: 3rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .footer-v2-grid {
@@ -1807,7 +1820,7 @@
 .footer-v2-col-title {
     font-size: 0.8rem;
     font-weight: 700;
-    color: white;
+    color: var(--text-main);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.25rem;
@@ -1815,14 +1828,14 @@
 
 .footer-v2-link {
     font-size: 0.875rem;
-    color: #a1a1aa;
+    color: var(--text-dim);
     text-decoration: none;
     transition: color 0.2s;
     line-height: 1.4;
 }
 
 .footer-v2-link:hover {
-    color: white;
+    color: var(--text-main);
 }
 
 /* Bottom Bar */
@@ -1849,7 +1862,7 @@
 
 .footer-v2-copy {
     font-size: 0.8rem;
-    color: #71717a;
+    color: var(--text-muted);
 }
 
 /* Responsive */

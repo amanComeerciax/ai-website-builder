@@ -36,7 +36,7 @@ export const CategoryList = ({
 
     return (
         <div style={{
-            color: "#fff",
+            color: "var(--text-main)",
             fontFamily: "system-ui, -apple-system, sans-serif",
             display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px",
             width: "100%"
@@ -58,7 +58,7 @@ export const CategoryList = ({
                         {title}
                     </h1>
                     {subtitle && (
-                        <h2 style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", fontWeight: 800, margin: 0, color: "rgba(255,255,255,0.35)", lineHeight: 1.1 }}>
+                        <h2 style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", fontWeight: 800, margin: 0, color: "var(--text-dim)", opacity: 0.6, lineHeight: 1.1 }}>
                             {subtitle}
                         </h2>
                     )}
@@ -76,8 +76,8 @@ export const CategoryList = ({
                                 onClick={cat.onClick}
                                 style={{
                                     position: "relative",
-                                    background: isHovered ? themeBgHover : "rgba(255,255,255,0.03)",
-                                    border: isHovered ? `1px solid ${themeColor}` : "1px solid rgba(255,255,255,0.12)",
+                                    background: isHovered ? themeBgHover : "var(--glass-card)",
+                                    border: isHovered ? `1px solid ${themeColor}` : "1px solid var(--border-subtle)",
                                     borderRadius: "8px",
                                     padding: "0 28px",
                                     height: isHovered ? "120px" : "88px",
@@ -107,7 +107,7 @@ export const CategoryList = ({
                                     <h3 style={{
                                         fontSize: cat.featured ? "1.6rem" : "1.25rem",
                                         fontWeight: 700, margin: "0 0 6px",
-                                        color: isHovered ? themeColor : "rgba(255,255,255,0.9)",
+                                        color: isHovered ? themeColor : "var(--text-main)",
                                         transition: "color 0.3s",
                                     }}>
                                         {cat.title}
@@ -115,7 +115,7 @@ export const CategoryList = ({
                                     {cat.subtitle && (
                                         <p style={{
                                             margin: 0, fontSize: "0.9rem",
-                                            color: isHovered ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.45)",
+                                            color: isHovered ? "var(--text-main)" : "var(--text-muted)",
                                             transition: "color 0.3s", maxWidth: "600px", lineHeight: 1.5,
                                         }}>
                                             {cat.subtitle}

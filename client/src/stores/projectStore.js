@@ -55,7 +55,10 @@ export const useProjectStore = create((set, get) => ({
                 lastEdited: new Date(p.updatedAt).getTime(),
                 isStarred: p.isStarred || false,
                 isShared: p.isShared || false,
-                folderId: p.folderId || null
+                folderId: p.folderId || null,
+                publishedUrl: p.publishedUrl || null,
+                websiteName: p.websiteName || null,
+                description: p.description || null
             }));
             set({ projects });
         } catch (err) {

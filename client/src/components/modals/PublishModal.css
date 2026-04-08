@@ -1,0 +1,394 @@
+.publish-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.publish-modal-content {
+  background: #18181b; /* Zinc 900 */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pm-header {
+  padding: 24px 24px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.pm-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.pm-header p {
+  font-size: 0.9375rem;
+  color: #a1a1aa;
+  margin: 0;
+}
+
+.pm-docs-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.pm-docs-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.pm-body {
+  padding: 0 24px 24px;
+}
+
+/* Common Section Container */
+.pm-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+/* Step 1: Address */
+.pm-url-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pm-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  color: #a1a1aa;
+}
+
+.pm-url-display {
+  flex: 1;
+  font-size: 0.9375rem;
+  color: #fff;
+  font-family: ui-monospace, monospace;
+}
+
+.pm-edit-btn {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.pm-edit-btn:hover {
+  color: #fff;
+}
+
+.pm-add-domain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: border-color 0.2s;
+}
+
+.pm-add-domain:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pm-badge-pro {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Step 2: Permissions */
+.pm-permissions-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.pm-permission-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.pm-permission-item.active {
+    border-color: #fff;
+}
+.pm-perm-info {
+    flex: 1;
+}
+.pm-perm-title {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.pm-perm-desc {
+    display: block;
+    font-size: 0.8125rem;
+    color: #a1a1aa;
+}
+.pm-radio {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    position: relative;
+}
+.pm-permission-item.active .pm-radio {
+    border-color: #fff;
+}
+.pm-permission-item.active .pm-radio::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+/* Step 3: Info */
+.pm-input-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.pm-input-with-counter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-char-counter {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 0.75rem;
+  color: #71717a;
+}
+
+.pm-input {
+  background: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.pm-textarea {
+  resize: none;
+  height: 80px;
+}
+
+.pm-social-preview-card {
+  background: #27272a;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 12px;
+}
+
+.pm-social-img-box {
+  background: #18181b;
+  aspect-ratio: 1.91 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pm-social-img-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pm-social-footer {
+  padding: 12px;
+  background: #27272a;
+}
+
+.pm-social-domain {
+  font-size: 0.7rem;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.pm-social-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.pm-social-desc {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+}
+
+/* Step 4: Review */
+.pm-review-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.pm-review-row:hover {
+    background: rgba(255,255,255,0.05);
+}
+.pm-review-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    color: #a1a1aa;
+}
+.pm-review-content {
+    flex: 1;
+}
+.pm-review-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.pm-review-value {
+    font-size: 0.8125rem;
+    color: #a1a1aa;
+}
+.pm-check-circle {
+    color: #22c55e;
+}
+
+.pm-security-scan {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: rgba(255, 237, 213, 0.05);
+    border: 1px solid rgba(255, 237, 213, 0.1);
+    border-radius: 12px;
+    margin-top: 12px;
+}
+.pm-security-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Footer Actions */
+.pm-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pm-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.pm-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  border: none;
+}
+
+.pm-btn-primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.pm-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ep-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

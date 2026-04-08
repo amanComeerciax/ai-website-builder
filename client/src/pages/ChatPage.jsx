@@ -15,6 +15,7 @@ import ProjectPopover from '../components/editor/ProjectPopover'
 import VisualEditPanel from '../components/editor/VisualEditPanel'
 import RenameModal from '../components/modals/RenameModal'
 import MoveToFolderModal from '../components/modals/MoveToFolderModal'
+import PublishModal from '../components/modals/PublishModal'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import { useChatStore } from '../stores/chatStore'
@@ -49,13 +50,30 @@ export default function ChatPage() {
         
     // Deployment state
     const [isDeploying, setIsDeploying] = useState(false)
+    const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
     const [publishedUrl, setPublishedUrl] = useState(null)
 
-    const handleDeploy = async () => {
+    const project = getProjectById(projectId)
+
+    // Sync publishedUrl from store on load or change
+    useEffect(() => {
+        if (project?.publishedUrl) {
+            setPublishedUrl(project.publishedUrl);
+        }
+    }, [project]);
+
+    const handleDeploy = async (metadata = {}) => {
         if (!projectId || projectId === 'new') return;
         setIsDeploying(true);
         try {
             const token = await getToken();
+            
+            // 1. Update project metadata (title/description) first
+            if (metadata.websiteName || metadata.description) {
+                await useProjectStore.getState().updateProjectConfig(projectId, metadata, token);
+            }
+
+            // 2. Trigger deployment
             const res = await fetch(`/api/projects/${projectId}/deploy`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -63,7 +81,13 @@ export default function ChatPage() {
             const data = await res.json();
             if (res.ok && data.publishedUrl) {
                 setPublishedUrl(data.publishedUrl);
-                // toast is handled in the component below, or we could add import toast
+                // Update store as well for immediate persistent UI elsewhere
+                useProjectStore.setState((state) => ({
+                    projects: state.projects.map(p => 
+                        p.id === projectId ? { ...p, publishedUrl: data.publishedUrl } : p
+                    )
+                }));
+                setIsPublishModalOpen(false);
             } else {
                 console.error("Deploy failed:", data.error);
                 alert(data.error || "Deploy failed");
@@ -81,7 +105,7 @@ export default function ChatPage() {
     // 2. OR the project has generated content from a previous session
     const showRightPanel = isIdeVisible || hasGeneratedContent
     
-    const project = getProjectById(projectId)
+    
     const projectName = project ? project.name : (projectId === 'new' ? 'Untitled Project' : 'Unknown Project')
     
 
@@ -115,6 +139,8 @@ export default function ChatPage() {
         if (projectId && isAuthLoaded) {
             const sync = async () => {
                 const token = await getToken();
+                // Ensure project store has data for the "Live" button and Modals
+                useProjectStore.getState().fetchProjects(token);
                 useChatStore.getState().loadProject(projectId, token);
                 useEditorStore.getState().loadProject(projectId);
             }
@@ -315,16 +341,25 @@ export default function ChatPage() {
                         <span>Share</span>
                     </button>
                     {publishedUrl ? (
-                        <a href={publishedUrl} target="_blank" rel="noreferrer" className="ep-tool-btn ep-deploy-btn published" style={{background: '#3b82f6', color: '#fff', border: 'none'}}>
-                            <Rocket size={14} />
-                            <span>Live</span>
-                        </a>
+                        <div style={{display:'flex', gap:'8px'}}>
+                            <a href={publishedUrl} target="_blank" rel="noreferrer" className="ep-tool-btn ep-deploy-btn published" style={{background: '#3b82f6', color: '#fff', border: 'none'}}>
+                                <Rocket size={14} />
+                                <span>Live</span>
+                            </a>
+                            <button 
+                                className="ep-tool-btn ep-deploy-btn" 
+                                onClick={() => setIsPublishModalOpen(true)}
+                                title="Update site settings or re-deploy"
+                            >
+                                <ChevronDown size={14} />
+                            </button>
+                        </div>
                     ) : (
                         <button 
                             className="ep-tool-btn ep-deploy-btn" 
-                            onClick={handleDeploy} 
+                            onClick={() => setIsPublishModalOpen(true)} 
                             disabled={isDeploying || !hasGeneratedContent}
-                            title={!hasGeneratedContent ? "Nothing to deploy yet" : "Deploy to Cloudflare R2"}
+                            title={!hasGeneratedContent ? "Nothing to deploy yet" : "Publish your site"}
                             style={isDeploying ? { opacity: 0.7, cursor: 'wait' } : {}}
                         >
                             {isDeploying ? (
@@ -422,6 +457,14 @@ export default function ChatPage() {
                     const token = await getToken();
                     useProjectStore.getState().moveToFolder(moveModal.id, folderId, token);
                 }}
+            />
+
+            <PublishModal
+                isOpen={isPublishModalOpen}
+                onClose={() => setIsPublishModalOpen(false)}
+                project={{...project, publishedUrl}}
+                onPublish={handleDeploy}
+                isPublishing={isDeploying}
             />
         </div>
     )
