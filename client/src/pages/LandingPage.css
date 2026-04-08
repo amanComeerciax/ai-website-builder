@@ -125,10 +125,21 @@
     transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.light-mode .lp-nav-cta {
+    background: var(--text-main);
+    color: var(--bg-landing);
+}
+
 .lp-nav-cta:hover {
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--accent-main);
+    color: var(--bg-landing);
     transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 20px var(--accent-glow);
+}
+
+.light-mode .lp-nav-cta:hover {
+    background: var(--text-dim);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
 }
 
 /* ═══════════════════════════════════════
