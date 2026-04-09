@@ -508,3 +508,134 @@
   .sp-footer-inner { grid-template-columns: repeat(2, 1fr); }
   .sp-profile-name-row { flex-direction: column; gap: 16px; }
 }
+
+/* Loading spinner for settings pages */
+.sp-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #333;
+  border-top-color: #4f6ef7;
+  border-radius: 50%;
+  margin: 0 auto;
+  animation: sp-spin 0.7s linear infinite;
+}
+
+@keyframes sp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Remix Modal ── */
+.sp-remix-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.sp-remix-modal {
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 32px;
+  width: 440px;
+  max-width: 90vw;
+  position: relative;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.sp-remix-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.sp-remix-close:hover {
+  color: #fff;
+}
+
+.sp-remix-icon-wrap {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #1e1e2e, #2a2a3a);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.sp-remix-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: #fff;
+}
+
+.sp-remix-desc {
+  font-size: 14px;
+  color: #888;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.sp-remix-field {
+  margin-bottom: 20px;
+}
+
+.sp-remix-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.sp-remix-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 24px;
+}
+
+.sp-remix-toggle-row span {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ccc;
+}
+
+.sp-remix-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.sp-btn-white {
+  background: #fff !important;
+  color: #111 !important;
+  border: none !important;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.sp-btn-white:hover {
+  opacity: 0.9;
+}
+
+.sp-btn-white:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

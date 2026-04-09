@@ -37,6 +37,9 @@ import RenameModal from './modals/RenameModal'
 import DeleteModal from './modals/DeleteModal'
 import MoveToFolderModal from './modals/MoveToFolderModal'
 import WorkspaceDropdown from './WorkspaceDropdown'
+import ProjectHoverPreview from './ProjectHoverPreview'
+import CreateWorkspaceModal from './modals/CreateWorkspaceModal'
+import { useWorkspaceStore } from '../stores/workspaceStore'
 import './Sidebar.css'
 
 export default function Sidebar() {
@@ -44,9 +47,10 @@ export default function Sidebar() {
     const { user: clerkUser } = useUser()
     const { signOut } = useClerk()
     const { userData, fetchUserData, syncUser } = useAuthStore()
-    const { toggleSidebar, toggleWorkspaceDropdown, setCreateFolderOpen, isWorkspaceDropdownOpen } = useUIStore()
+    const { toggleSidebar, toggleWorkspaceDropdown, setCreateFolderOpen, isWorkspaceDropdownOpen, isCreateWorkspaceOpen, setCreateWorkspaceOpen } = useUIStore()
     const { projects, fetchProjects, toggleStar, renameProject, deleteProject, moveToFolder } = useProjectStore()
     const { folders, fetchFolders } = useFolderStore()
+    const { workspaces, activeWorkspaceId, fetchWorkspaces } = useWorkspaceStore()
     
     const navigate = useNavigate()
     const [isProjectsExpanded, setIsProjectsExpanded] = useState(false)
@@ -54,6 +58,7 @@ export default function Sidebar() {
 
     // Three-dot menu
     const [menuOpenId, setMenuOpenId] = useState(null)
+    const [menuPos, setMenuPos] = useState({ x: 0, y: 0 })
     const menuRef = useRef(null)
 
     // Modal states
@@ -64,6 +69,9 @@ export default function Sidebar() {
     // User profile dropdown
     const [isUserProfileOpen, setIsUserProfileOpen] = useState(false)
     const [appearanceTheme, setAppearanceTheme] = useState('system') // 'light', 'dark', 'system'
+    // Project hover preview
+    const [hoveredProject, setHoveredProject] = useState(null)
+    const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 })
     const userProfileRef = useRef(null)
 
     useEffect(() => {
@@ -81,24 +89,43 @@ export default function Sidebar() {
     // Get up to 3 most recently edited projects
     const recentProjects = projects.slice(0, 3)
 
+    // Initial sync: sync user → fetch user data (sets default workspace) → fetch workspaces list
     useEffect(() => {
         if (isLoaded && isSignedIn && clerkUser) {
             const sync = async () => {
                 const token = await getToken();
                 
-                // Sync user metadata to backend
+                // 1. Sync user metadata to backend
                 await syncUser(getToken, {
                     email: clerkUser.primaryEmailAddress?.emailAddress,
                     name: clerkUser.fullName || clerkUser.username || "",
                     avatar: clerkUser.imageUrl || ""
                 });
 
-                fetchProjects(token)
-                if (fetchFolders) fetchFolders(token)
+                // 2. Fetch user data (sets activeWorkspaceId via defaultWorkspaceId)
+                await fetchUserData(getToken);
+
+                // 3. Fetch all workspaces for the dropdown list
+                await fetchWorkspaces(token);
             }
             sync()
         }
-    }, [isLoaded, isSignedIn, clerkUser, syncUser, fetchProjects, fetchFolders, getToken])
+    }, [isLoaded, isSignedIn, clerkUser])
+
+    // Re-fetch projects & folders whenever activeWorkspaceId changes
+    useEffect(() => {
+        // Clear hover preview immediately
+        setHoveredProject(null)
+        
+        if (isLoaded && isSignedIn && activeWorkspaceId) {
+            const load = async () => {
+                const token = await getToken();
+                fetchProjects(token, activeWorkspaceId)
+                if (fetchFolders) fetchFolders(token, activeWorkspaceId)
+            }
+            load()
+        }
+    }, [activeWorkspaceId, isLoaded, isSignedIn])
 
     // Close three-dot menu on outside click
     useEffect(() => {
@@ -162,10 +189,21 @@ export default function Sidebar() {
         const isStarred = proj.isStarred
 
         return (
-            <div key={projId} className="lv-project-row">
+            <div 
+                key={projId} 
+                className="lv-project-row"
+            >
                 <NavLink 
                     to={`/chat/${projId}`} 
                     className={({ isActive }) => `lv-nav-link lv-project-link ${isActive ? 'lv-nav-link-active' : ''}`}
+                    onMouseEnter={(e) => {
+                        const row = e.currentTarget.closest('.lv-project-row')
+                        if (!row) return
+                        const rect = row.getBoundingClientRect()
+                        setHoveredProject(proj)
+                        setHoverPos({ x: rect.right + 8, y: rect.top - 20 })
+                    }}
+                    onMouseLeave={() => setHoveredProject(null)}
                 >
                     <LayoutTemplate size={14} style={{ flexShrink: 0 }} />
                     <span className="lv-project-name" title={proj.name}>{proj.name}</span>
@@ -176,14 +214,21 @@ export default function Sidebar() {
                     onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        setMenuOpenId(isMenuOpen ? null : projId)
+                        setHoveredProject(null)
+                        if (isMenuOpen) {
+                            setMenuOpenId(null)
+                        } else {
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setMenuPos({ x: rect.right + 8, y: rect.top })
+                            setMenuOpenId(projId)
+                        }
                     }}
                 >
                     <MoreHorizontal size={14} />
                 </button>
 
                 {isMenuOpen && (
-                    <div className="lv-dot-menu" ref={menuRef}>
+                    <div className="lv-dot-menu lv-dot-menu-fixed" ref={menuRef} style={{ top: menuPos.y, left: menuPos.x }}>
                         <button className="lv-dot-menu-item" onClick={() => handleStar(projId)}>
                             <Star size={14} fill={isStarred ? '#fbbf24' : 'none'} color={isStarred ? '#fbbf24' : '#999'} />
                             <span>{isStarred ? 'Unstar' : 'Star'}</span>
@@ -196,7 +241,7 @@ export default function Sidebar() {
                             <Edit2 size={14} />
                             <span>Rename</span>
                         </button>
-                        <button className="lv-dot-menu-item" onClick={() => navigate(`/chat/${projId}`)}>
+                        <button className="lv-dot-menu-item" onClick={() => navigate(`/settings?id=${projId}#project`)}>
                             <Settings size={14} />
                             <span>Settings</span>
                         </button>
@@ -231,7 +276,7 @@ export default function Sidebar() {
                     ) : (
                         <div className="lv-workspace-avatar">{userInitial}</div>
                     )}
-                    <span className="lv-workspace-name">{userName}'s Lovable</span>
+                    <span className="lv-workspace-name">{(workspaces.find(w => w._id === activeWorkspaceId) || workspaces[0])?.name || `${userName}'s StackForge`}</span>
                 </div>
                 <ChevronDown 
                     size={14} 
@@ -478,6 +523,13 @@ export default function Sidebar() {
 
         <WorkspaceDropdown />
 
+        {hoveredProject && (
+            <ProjectHoverPreview 
+                project={hoveredProject} 
+                position={hoverPos} 
+            />
+        )}
+
         {/* ── Modals ── */}
         <RenameModal
             isOpen={renameModal.open}
@@ -497,6 +549,10 @@ export default function Sidebar() {
             projectName={moveModal.name}
             currentFolderId={moveModal.folderId}
             onConfirm={handleMoveConfirm}
+        />
+        <CreateWorkspaceModal 
+            isOpen={isCreateWorkspaceOpen} 
+            onClose={() => setCreateWorkspaceOpen(false)} 
         />
         </>
     )

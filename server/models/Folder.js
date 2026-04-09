@@ -7,6 +7,12 @@ const folderSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    workspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Workspace',
+      default: null,
+      index: true
+    },
     name: {
       type: String,
       required: true,

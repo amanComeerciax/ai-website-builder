@@ -1,0 +1,136 @@
+.lv-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+}
+
+.create-workspace-modal {
+    max-width: 440px;
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.create-workspace-modal .lv-modal-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.create-workspace-modal .lv-modal-icon-bg {
+    width: 48px;
+    height: 48px;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+}
+
+.create-workspace-modal h2 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    color: #fff;
+    font-weight: 600;
+}
+
+.create-workspace-modal p {
+    margin: 0;
+    color: #888;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.create-workspace-modal .lv-modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.create-workspace-modal .lv-input-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #ddd;
+}
+
+.create-workspace-modal .lv-input-group input {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.create-workspace-modal .lv-input-group input:focus {
+    outline: none;
+    border-color: #6366f1;
+    background: #1a1a1a;
+}
+
+.create-workspace-modal .lv-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.create-workspace-modal .lv-btn-cancel {
+    background: transparent;
+    border: 1px solid #333;
+    color: #ddd;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.create-workspace-modal .lv-btn-cancel:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.create-workspace-modal .lv-btn-primary {
+    background: #e0206e;
+    border: none;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.create-workspace-modal .lv-btn-primary:hover:not(:disabled) {
+    background: #f12577;
+    transform: translateY(-1px);
+}
+
+.create-workspace-modal .lv-btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.create-workspace-modal .lv-btn-primary:disabled,
+.create-workspace-modal .lv-btn-cancel:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

@@ -21,6 +21,7 @@ export const useEditorStore = create(
             // ── Active State ──
             activeFile: 'index.html',
             openTabs: ['index.html'],
+            codeHighlightSearch: null,  // Search string from visual edit "View Code"
 
             _sync: (updater) => set((state) => {
                 const updates = typeof updater === 'function' ? updater(state) : updater;

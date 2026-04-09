@@ -91,12 +91,12 @@ function getVisualEditScript() {
         // Click handler - select element
         'document.addEventListener("click",function(e){',
         '  if(!enabled)return;',
-        '  e.preventDefault();e.stopPropagation();',
         '  var t=e.target;',
         '  if(t===hoverOverlay||t===tagLabel||t.id&&t.id.startsWith("__ve_"))return;',
-        '  if(t.closest&&t.closest(".__ve_sel"))return;',
         '  if(t.closest&&t.closest(".__ve_bubble"))return;',
+        '  if(t.closest&&t.closest(".__ve_sel"))return;',
         '  if(t===document.body||t===document.documentElement)return;',
+        '  e.preventDefault();e.stopPropagation();',
         '  var xpath=getXPath(t);',
         '  var r=t.getBoundingClientRect();',
 
@@ -105,6 +105,8 @@ function getVisualEditScript() {
         '  if(!isMulti){',
         '    var markers=document.querySelectorAll(".__ve_sel");',
         '    markers.forEach(function(m){m.remove();});',
+        '    var oldBubs=document.querySelectorAll(".__ve_bubble");',
+        '    oldBubs.forEach(function(b){b.remove();});',
         '    selected=[];',
         '  }',
 
@@ -116,11 +118,18 @@ function getVisualEditScript() {
         '  marker.style.cssText="position:fixed;pointer-events:none;border:2px solid "+c+";z-index:99998;left:"+r.left+"px;top:"+r.top+"px;width:"+r.width+"px;height:"+r.height+"px;";',
 
 
-        // Floating bubble below selected element (single-select only, non-selectable)
+        // Floating bubble below selected element — appended to BODY (not marker)
+        // so it's outside .__ve_sel and won't be blocked by the click guard
         '  if (!isMulti) {',
+        '    var oldBubbles=document.querySelectorAll(".__ve_bubble");',
+        '    oldBubbles.forEach(function(b){b.remove();});',
         '    var bubble=document.createElement("div");',
         '    bubble.className="__ve_bubble";',
-        '    bubble.style.cssText="position:absolute;pointer-events:auto;background:#1a1a1a;border:1px solid #333;border-radius:24px;padding:6px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 16px rgba(0,0,0,0.4);bottom:-48px;left:50%;transform:translateX(-50%);width:280px;z-index:99999;";',
+        '    var bLeft=r.left+r.width/2-140;',
+        '    var bTop=r.top+r.height+8;',
+        '    if(bLeft<8)bLeft=8;',
+        '    if(bTop+48>window.innerHeight)bTop=r.top-56;',
+        '    bubble.style.cssText="position:fixed;pointer-events:auto;background:#1a1a1a;border:1px solid #333;border-radius:24px;padding:6px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 16px rgba(0,0,0,0.4);left:"+bLeft+"px;top:"+bTop+"px;width:280px;z-index:100001;";',
         '    var inp=document.createElement("input");',
         '    inp.id="__ve_bubble_input";',
         '    inp.placeholder="Ask StackForge...";',
@@ -138,36 +147,86 @@ function getVisualEditScript() {
         '    codeBtn.innerHTML="<svg width=\\"14\\" height=\\"14\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#aaa\\" stroke-width=\\"2\\"><polyline points=\\"16 18 22 12 16 6\\"></polyline><polyline points=\\"8 6 2 12 8 18\\"></polyline></svg>";',
         '    codeBtn.style.cssText="background:transparent;border:none;cursor:pointer;padding:4px;";',
         '    codeBtn.title="View code";',
+        // Send prompt — postMessage to parent
         '    sendBtn.onclick=function(ev){',
-        '      ev.stopPropagation();',
-        '      if(inp.value.trim()){',
-        '        window.parent.postMessage({type:"VE_QUICK_PROMPT",text:inp.value,xpath:xpath},"*");',
-        '        inp.value="";',
+        '      ev.preventDefault();ev.stopPropagation();',
+        '      var txt=inp.value.trim();',
+        '      if(txt){',
+        '        window.parent.postMessage({type:"VE_QUICK_PROMPT",text:txt,xpath:xpath},"*");',
+        '        inp.value="";bubble.remove();',
         '      }',
         '    };',
+        // Select parent — navigate up DOM tree, keep bubble visible
         '    parentBtn.onclick=function(ev){',
-        '      ev.stopPropagation();',
-        '      if(t.parentElement && t.parentElement !== document.body && t.parentElement !== document.documentElement){',
-        '        var evt = new MouseEvent("click", { bubbles: true, cancelable: true, view: window });',
-        '        t.parentElement.dispatchEvent(evt);',
+        '      ev.preventDefault();ev.stopPropagation();',
+        '      if(t.parentElement && t.parentElement!==document.body && t.parentElement!==document.documentElement){',
+        '        var p=t.parentElement;',
+        '        var pxp=getXPath(p);',
+        '        var pr=p.getBoundingClientRect();',
+        '        var pdata={tag:p.tagName.toLowerCase(),id:p.id||"",classes:p.className||"",xpath:pxp,text:(p.textContent||"").substring(0,80),styles:getStyles(p)};',
+        // Clear old selections
+        '        var oldM=document.querySelectorAll(".__ve_sel");oldM.forEach(function(m){m.remove();});',
+        '        selected=[];',
+        // Remove old bubble
+        '        bubble.remove();',
+        // Build new marker for parent
+        '        var nm=document.createElement("div");nm.className="__ve_sel";nm.dataset.xpath=pxp;',
+        '        var pc=tagColor(p.tagName);',
+        '        nm.style.cssText="position:fixed;pointer-events:none;border:2px solid "+pc+";z-index:99998;left:"+pr.left+"px;top:"+pr.top+"px;width:"+pr.width+"px;height:"+pr.height+"px;";',
+        '        var nb=document.createElement("div");',
+        '        nb.style.cssText="position:absolute;top:-1px;left:-1px;padding:1px 5px;font-size:9px;font-weight:700;font-family:monospace;color:#fff;border-radius:0 0 4px 0;background:"+pc+";";',
+        '        nb.textContent=p.tagName.toLowerCase();nm.appendChild(nb);document.body.appendChild(nm);',
+        '        selected.push({el:p,xpath:pxp,marker:nm});',
+        // Create new bubble on parent element
+        '        var nb2=document.createElement("div");nb2.className="__ve_bubble";',
+        '        var nbLeft=pr.left+pr.width/2-140;',
+        '        var nbTop=pr.top+pr.height+8;',
+        '        if(nbLeft<8)nbLeft=8;',
+        '        if(nbTop+48>window.innerHeight)nbTop=pr.top-56;',
+        '        nb2.style.cssText="position:fixed;pointer-events:auto;background:#1a1a1a;border:1px solid #333;border-radius:24px;padding:6px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 16px rgba(0,0,0,0.4);left:"+nbLeft+"px;top:"+nbTop+"px;width:280px;z-index:100001;";',
+        '        var ninp=document.createElement("input");ninp.id="__ve_bubble_input";ninp.placeholder="Ask StackForge...";',
+        '        ninp.style.cssText="background:transparent;border:none;color:#fff;font-size:13px;outline:none;flex:1;font-family:inherit;";',
+        '        var nbb=document.createElement("div");nbb.style.cssText="display:flex;gap:4px;align-items:center;";',
+        '        var nsb=document.createElement("button");',
+        '        nsb.innerHTML="<svg width=\\"14\\" height=\\"14\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#fff\\" stroke-width=\\"2\\"><path d=\\"M5 12h14m-7-7 7 7-7 7\\"/></svg>";',
+        '        nsb.style.cssText="background:#333;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.2s;";',
+        '        nsb.onclick=function(e2){e2.preventDefault();e2.stopPropagation();var tx=ninp.value.trim();if(tx){window.parent.postMessage({type:"VE_QUICK_PROMPT",text:tx,xpath:pxp},"*");ninp.value="";nb2.remove();}};',
+        '        var npb=document.createElement("button");',
+        '        npb.innerHTML="<svg width=\\"14\\" height=\\"14\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#aaa\\" stroke-width=\\"2\\"><path d=\\"M12 19V5M5 12l7-7 7 7\\"/></svg>";',
+        '        npb.style.cssText="background:transparent;border:none;cursor:pointer;padding:4px;";npb.title="Select parent";',
+        '        npb.onclick=function(e3){e3.preventDefault();e3.stopPropagation();t=p;parentBtn.click();};',
+        '        var ncb=document.createElement("button");',
+        '        ncb.innerHTML="<svg width=\\"14\\" height=\\"14\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#aaa\\" stroke-width=\\"2\\"><polyline points=\\"16 18 22 12 16 6\\"></polyline><polyline points=\\"8 6 2 12 8 18\\"></polyline></svg>";',
+        '        ncb.style.cssText="background:transparent;border:none;cursor:pointer;padding:4px;";ncb.title="View code";',
+        '        ncb.onclick=function(e4){e4.preventDefault();e4.stopPropagation();var oh=p.outerHTML;window.parent.postMessage({type:"VE_VIEW_CODE",xpath:pxp,outerHTML:oh?oh.substring(0,500):""},"*");};',
+        '        ninp.onkeydown=function(e5){if(e5.key==="Enter"){e5.preventDefault();nsb.onclick(e5);}e5.stopPropagation();};',
+        '        ninp.onclick=function(e6){e6.stopPropagation();};',
+        '        nbb.appendChild(nsb);nbb.appendChild(npb);nbb.appendChild(ncb);',
+        '        nb2.appendChild(ninp);nb2.appendChild(nbb);',
+        '        document.body.appendChild(nb2);',
+        '        t=p;xpath=pxp;bubble=nb2;',
+        '        setTimeout(function(){ninp.focus();},20);',
+        '        window.parent.postMessage({type:"VE_ELEMENT_SELECTED",data:pdata,isMulti:false},"*");',
         '      }',
         '    };',
+        // View code — postMessage to parent with element outerHTML for highlighting
         '    codeBtn.onclick=function(ev){',
-        '      ev.stopPropagation();',
-        '      window.parent.postMessage({type:"VE_VIEW_CODE",xpath:xpath},"*");',
+        '      ev.preventDefault();ev.stopPropagation();',
+        '      var oh=t.outerHTML;',
+        '      window.parent.postMessage({type:"VE_VIEW_CODE",xpath:xpath,outerHTML:oh?oh.substring(0,500):""},"*");',
         '    };',
         '    inp.onkeydown=function(ev){',
-        '      if(ev.key==="Enter"){ sendBtn.click(); }',
+        '      if(ev.key==="Enter"){ev.preventDefault();sendBtn.onclick(ev);}',
         '      ev.stopPropagation();',
         '    };',
-        '    inp.onclick=function(ev){ ev.stopPropagation(); };',
+        '    inp.onclick=function(ev){ev.stopPropagation();};',
         '    btnBox.appendChild(sendBtn);',
         '    btnBox.appendChild(parentBtn);',
         '    btnBox.appendChild(codeBtn);',
         '    bubble.appendChild(inp);',
         '    bubble.appendChild(btnBox);',
-        '    marker.appendChild(bubble);',
-        '    setTimeout(function(){ inp.focus(); }, 20);',
+        '    document.body.appendChild(bubble);',
+        '    setTimeout(function(){inp.focus();},20);',
         '  }',
 
 
@@ -208,6 +267,8 @@ function getVisualEditScript() {
         '    tagLabel.style.display="none";',
         '    var markers=document.querySelectorAll(".__ve_sel");',
         '    markers.forEach(function(m){m.remove();});',
+        '    var bubbles=document.querySelectorAll(".__ve_bubble");',
+        '    bubbles.forEach(function(b){b.remove();});',
         '    selected=[];',
         '  }',
 
@@ -233,6 +294,8 @@ function getVisualEditScript() {
         '  if(d.type==="VE_CLEAR"){',
         '    var markers2=document.querySelectorAll(".__ve_sel");',
         '    markers2.forEach(function(m){m.remove();});',
+        '    var bubbles2=document.querySelectorAll(".__ve_bubble");',
+        '    bubbles2.forEach(function(b){b.remove();});',
         '    selected=[];',
         '  }',
 
@@ -369,9 +432,24 @@ export default function PreviewPanel() {
             }
 
             if (d.type === 'VE_VIEW_CODE' && d.xpath) {
-                // Switch the main editor view to the code editor
-                useChatStore.getState().setActiveView('code')
-                useChatStore.getState().setIdeVisible(true)
+                const chatState = useChatStore.getState()
+                // Switch to code view
+                chatState.setActiveView('code')
+                chatState.setIdeVisible(true)
+                
+                // Open index.html in the editor and try to highlight the element
+                const editorState = useEditorStore.getState()
+                editorState.setActiveFile('index.html')
+                
+                // Store the search snippet for CodeEditor to pick up (delay to let Monaco load)
+                if (d.outerHTML) {
+                    const match = d.outerHTML.match(/^<[^>]+>/)
+                    if (match) {
+                        setTimeout(() => {
+                            useEditorStore.setState({ codeHighlightSearch: match[0] })
+                        }, 300)
+                    }
+                }
             }
 
         }

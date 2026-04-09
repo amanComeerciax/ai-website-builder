@@ -4,14 +4,18 @@ import { apiClient } from '../lib/api'
 export const useProjectStore = create((set, get) => ({
     projects: [],
     
+    // Clear all projects (for workspace switching)
+    clearProjects: () => set({ projects: [] }),
+    
     // Create a new project via API — returns a real MongoDB ObjectId
     // templateId is optional — when provided, the backend pre-populates currentFileTree with the template HTML
-    createProject: async (prompt, token, folderId = null, templateId = null) => {
+    createProject: async (prompt, token, folderId = null, templateId = null, workspaceId = null) => {
         try {
             const payload = { 
                 name: prompt.substring(0, 40),
                 prompt: prompt,
-                folderId
+                folderId,
+                workspaceId
             };
             if (templateId) payload.templateId = templateId;
 
@@ -45,17 +49,21 @@ export const useProjectStore = create((set, get) => ({
     },
 
     // Fetch all projects from DB
-    fetchProjects: async (token) => {
+    fetchProjects: async (token, workspaceId = null) => {
         try {
-            const data = await apiClient.getProjects(token);
+            const data = await apiClient.getProjects(token, workspaceId);
             const projects = (data.projects || []).map(p => ({
                 id: p._id,
                 name: p.name,
                 time: new Date(p.createdAt).toLocaleDateString(),
                 lastEdited: new Date(p.updatedAt).getTime(),
+                createdAt: p.createdAt,
+                updatedAt: p.updatedAt,
                 isStarred: p.isStarred || false,
                 isShared: p.isShared || false,
-                folderId: p.folderId || null
+                folderId: p.folderId || null,
+                techStack: p.techStack || 'react',
+                status: p.status || 'idle'
             }));
             set({ projects });
         } catch (err) {

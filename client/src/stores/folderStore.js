@@ -9,11 +9,14 @@ export const useFolderStore = create(
             isLoading: false,
             error: null,
 
+            // Clear all folders (for workspace switching)
+            clearFolders: () => set({ folders: [] }),
+
             // Fetch all folders from DB
-            fetchFolders: async (token) => {
+            fetchFolders: async (token, workspaceId = null) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const data = await apiClient.getFolders(token);
+                    const data = await apiClient.getFolders(token, workspaceId);
                     const folders = (data.folders || []).map(f => ({
                         id: f._id,
                         name: f.name,
@@ -28,10 +31,10 @@ export const useFolderStore = create(
             },
 
             // Create a new folder
-            createFolder: async (name, visibility, token) => {
+            createFolder: async (name, visibility, token, workspaceId = null) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const data = await apiClient.createFolder({ name, visibility }, token);
+                    const data = await apiClient.createFolder({ name, visibility, workspaceId }, token);
                     const newFolder = {
                         id: data.folder._id,
                         name: data.folder.name,

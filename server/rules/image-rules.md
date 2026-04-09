@@ -1,60 +1,116 @@
-# HIGH-QUALITY IMAGE LIBRARY
+# AUTONOMOUS IMAGE SYSTEM
 
-### Guidelines for AI Generation
-
-> Use this library to select visually stunning, professional images for every website section. Never use generic placeholders (`placehold.co`) if a high-quality alternative exists here.
-
----
-
-## SECTION 1 — QUALITY STANDARDS
-
-- **Resolution:** Use `w=1200&q=80` for hero sections, `w=800&q=60` for feature cards.
-- **Aspect Ratio:** Hero images should be `landscape` (16:9 or 21:9). Feature thumbnails should be `square` (1:1) or `portrait` (4:5).
-- **Overlay:** Always ensure text on top of images is readable. Use `bg-black/40` or CSS `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5))` if the image is a background.
+> The AI must decide what each image should depict based on the user's prompt and page context.
+> No hardcoded image libraries. Every image is generated dynamically to match the content.
 
 ---
 
-## SECTION 2 — IMAGE REPOSITORY (UNSPLASH)
+## HOW IT WORKS
 
-### 2.1 Coffee Shop / Bakery / Cafe
-- **Main Hero:** `https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=1200` (Modern cafe interior)
-- **Latte Art:** `https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&q=80&w=800`
-- **Pastries:** `https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800`
-- **Barista at work:** `https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=800`
+For every `<img>` tag in the generated website, the AI writes a **short, specific visual description** of what the image should show, then encodes it into a Pollinations AI URL:
 
-### 2.2 Restaurant / Fine Dining / Food
-- **Hero Plate:** `https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1200`
-- **Kitchen/Chef:** `https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=800`
-- **Table Setting:** `https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&q=80&w=800`
-- **Dessert:** `https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&q=80&w=800`
+```
+https://image.pollinations.ai/prompt/{URL-ENCODED-DESCRIPTION}?width={W}&height={H}&nologo=true
+```
 
-### 2.3 SaaS / Tech / Dashboard / Business
-- **Abstract Tech Hero:** `https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1200`
-- **Modern Office/Team:** `https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=1200`
-- **Data/Analytics Visual:** `https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1200`
-- **Laptop on Desk:** `https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=800`
-
-### 2.4 Portfolio / Creative / Photography
-- **Architectural Minimalism:** `https://images.unsplash.com/photo-1487014679447-9f8336841d58?auto=format&fit=crop&q=80&w=1200`
-- **Studio Setup:** `https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200`
-- **Abstract Art Background:** `https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&q=80&w=1200`
-
-### 2.5 Fitness / Gym / Wellness
-- **Gym Interior:** `https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=1200`
-- **Yoga/Wellness:** `https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=1200`
-- **Fresh Smoothies:** `https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&q=80&w=800`
+The AI's job is to:
+1. Understand the user's business/website context
+2. For EACH image slot, decide exactly what it should depict
+3. Write a concise visual description (3-8 words)
+4. URL-encode the description and build the Pollinations URL
 
 ---
 
-## SECTION 3 — FALLBACK PATTERNS
+## URL FORMAT
 
-If a specific category is NOT listed above, use the following dynamic keyword-based Unsplash pattern:
+### Hero / Banner images (large, wide)
+```
+https://image.pollinations.ai/prompt/{description}?width=1200&height=800&nologo=true
+```
 
-`https://images.unsplash.com/featured/?<KEYWORD1>,<KEYWORD2>&w=1200&q=80`
+### Card / Feature images (medium)
+```
+https://image.pollinations.ai/prompt/{description}?width=800&height=600&nologo=true
+```
 
-**Examples:**
-- For a **Pet Shop**: `https://images.unsplash.com/featured/?dog,cat&w=1200&q=80`
-- For a **Law Firm**: `https://images.unsplash.com/featured/?office,lawyer&w=1200&q=80`
-- For a **Travel Agency**: `https://images.unsplash.com/featured/?mountains,beach&w=1200&q=80`
+### Thumbnail / Avatar images (small, square)
+```
+https://image.pollinations.ai/prompt/{description}?width=400&height=400&nologo=true
+```
 
-**MANDATORY:** Always include high-quality, descriptive `alt` tags (e.g., `alt="Premium espresso machine making coffee"`).
+---
+
+## DESCRIPTION WRITING RULES (CRITICAL)
+
+1. **BE SPECIFIC TO THE ITEM:** The description MUST match the exact card/section content.
+   - ✅ Menu card "Masala Chai" → `hot masala chai cup with spices on wooden table`
+   - ✅ Menu card "Samosa" → `crispy golden samosa with green chutney`
+   - ✅ Hero for gym → `modern gym interior with weights and treadmills`
+   - ❌ WRONG: Using "food" for a samosa card — too generic
+   - ❌ WRONG: Using the same description for different cards
+
+2. **CONTEXT FROM USER PROMPT:** Derive the visual style from what the user asked for.
+   - User says "luxury spa" → descriptions should include "elegant", "marble", "calm lighting"
+   - User says "street food stall" → descriptions should include "vibrant", "busy street", "colorful"
+   - User says "tech startup" → descriptions should include "modern", "minimal", "gradient", "laptop"
+
+3. **UNIQUE PER CARD:** Every image on the page MUST use a DIFFERENT description. Never repeat.
+
+4. **PROFESSIONAL PHOTOGRAPHY STYLE:** Append style keywords to improve quality:
+   - Add `professional photography` for product/food shots
+   - Add `modern interior design` for space/venue shots  
+   - Add `minimal clean background` for product shots
+   - Add `aerial view` for landscape/location shots
+
+5. **KEEP DESCRIPTIONS SHORT:** 3-8 words is ideal. Too long = slow/unpredictable.
+   - ✅ `hot latte art in ceramic cup`
+   - ✅ `cozy cafe interior warm lighting`
+   - ❌ `a beautiful photograph of a hot cup of latte with intricate art in a handmade ceramic cup sitting on a rustic wooden counter in a cozy cafe with warm ambient lighting` — TOO LONG
+
+---
+
+## EXAMPLES BY WEBSITE TYPE
+
+### Chai / Tea Shop
+```html
+<img src="https://image.pollinations.ai/prompt/hot%20masala%20chai%20glass%20cup%20with%20cardamom?width=800&height=600&nologo=true" alt="Masala Chai">
+<img src="https://image.pollinations.ai/prompt/crispy%20golden%20samosa%20with%20mint%20chutney?width=800&height=600&nologo=true" alt="Samosa">
+<img src="https://image.pollinations.ai/prompt/indian%20chai%20stall%20street%20vendor?width=1200&height=800&nologo=true" alt="Our Chai Stall">
+```
+
+### Restaurant
+```html
+<img src="https://image.pollinations.ai/prompt/gourmet%20pasta%20dish%20professional%20photography?width=800&height=600&nologo=true" alt="Signature Pasta">
+<img src="https://image.pollinations.ai/prompt/elegant%20restaurant%20interior%20candlelight?width=1200&height=800&nologo=true" alt="Restaurant Interior">
+```
+
+### SaaS / Tech
+```html
+<img src="https://image.pollinations.ai/prompt/modern%20saas%20dashboard%20analytics%20dark%20mode?width=1200&height=800&nologo=true" alt="Dashboard">
+<img src="https://image.pollinations.ai/prompt/diverse%20team%20collaborating%20modern%20office?width=800&height=600&nologo=true" alt="Our Team">
+```
+
+### Fitness / Gym
+```html
+<img src="https://image.pollinations.ai/prompt/modern%20gym%20interior%20weights%20equipment?width=1200&height=800&nologo=true" alt="Gym Floor">
+<img src="https://image.pollinations.ai/prompt/person%20doing%20yoga%20sunrise%20peaceful?width=800&height=600&nologo=true" alt="Yoga Class">
+```
+
+---
+
+## BANNED PATTERNS
+
+- ❌ `source.unsplash.com` — DEAD SERVICE, returns 503
+- ❌ `images.unsplash.com/featured/?keywords` — UNRELIABLE, often broken
+- ❌ `placehold.co` or `placeholder.com` — ugly grey boxes
+- ❌ `src=""` — empty source, shows broken icon
+- ❌ Same image URL used twice on the same page
+- ❌ Generic descriptions that don't match the card content
+
+## MANDATORY
+
+- ✅ Every `<img>` must have a Pollinations URL with a context-specific description
+- ✅ Every `<img>` must have a descriptive `alt` tag
+- ✅ Hero images use `width=1200&height=800`
+- ✅ Card images use `width=800&height=600`
+- ✅ Thumbnails use `width=400&height=400`

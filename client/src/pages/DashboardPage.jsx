@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth, useUser } from '@clerk/clerk-react'
 import { useAuthStore } from '../stores/authStore'
 import { useProjectStore } from '../stores/projectStore'
+import { useWorkspaceStore } from '../stores/workspaceStore'
 import WebsiteStylePicker from '../components/editor/WebsiteStylePicker'
 import './DashboardPage.css'
 
@@ -79,7 +80,8 @@ export default function DashboardPage() {
         if (trimmed) {
             const token = await getToken();
             const folderId = searchParams.get('folder');
-            const newProjectId = await createProject(trimmed, token, folderId || null);
+            const { activeWorkspaceId } = useWorkspaceStore.getState();
+            const newProjectId = await createProject(trimmed, token, folderId || null, null, activeWorkspaceId);
             
             // Redirect to the real project URL — no more style params here!
             const url = `/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`;

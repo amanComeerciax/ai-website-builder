@@ -10,7 +10,7 @@ import { useProjectStore } from '../../stores/projectStore'
 import { useAuth } from '@clerk/clerk-react'
 import './ProjectPopover.css'
 
-export default function ProjectPopover({ isOpen, onClose, project, onRename, onMove }) {
+export default function ProjectPopover({ isOpen, onClose, project, onRename, onMove, onDetails }) {
     const popoverRef = useRef(null)
     const navigate = useNavigate()
     const { userData } = useAuthStore()
@@ -85,7 +85,7 @@ export default function ProjectPopover({ isOpen, onClose, project, onRename, onM
 
             {/* Menu Items */}
             <div className="ppv-menu-list">
-                <button className="ppv-menu-item" onClick={() => navigate('/settings#project')}>
+                <button className="ppv-menu-item" onClick={() => navigate(`/settings?id=${project?.id || project?._id}#project`)}>
                     <Settings size={16} className="ppv-icon" />
                     <span className="ppv-label">Settings</span>
                     <span className="ppv-shortcut">⌘.</span>
@@ -122,7 +122,7 @@ export default function ProjectPopover({ isOpen, onClose, project, onRename, onM
                 </button>
                 <div className="ppv-divider"></div>
 
-                <button className="ppv-menu-item">
+                <button className="ppv-menu-item" onClick={onDetails}>
                     <Info size={16} className="ppv-icon" />
                     <span className="ppv-label">Details</span>
                 </button>

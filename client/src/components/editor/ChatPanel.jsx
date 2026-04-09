@@ -7,7 +7,7 @@ import {
     Plus, 
     Mic, ArrowUp, ArrowRight, ChevronRight, ChevronDown,
     Palette, ExternalLink, Sparkles, Camera, Paperclip, X,
-    Eye, Upload, Monitor, ImagePlus, Zap
+    Eye, Upload, Monitor, ImagePlus, Zap, Copy, Check
 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import WebsiteStylePicker from './WebsiteStylePicker'
@@ -42,6 +42,8 @@ export default function ChatPanel() {
     const [isDragOver, setIsDragOver] = useState(false)
     const [cycleIndex, setCycleIndex] = useState(0)
     const [isCompact, setIsCompact] = useState(false)
+    const [copiedId, setCopiedId] = useState(null)
+    const [lightboxSrc, setLightboxSrc] = useState(null)
     
     const messagesEndRef = useRef(null)
     const fileInputRef = useRef(null)
@@ -274,6 +276,20 @@ export default function ChatPanel() {
 
     const handleChipClick = (chip) => { setInput(chip) }
 
+    // Copy message text
+    const handleCopy = (msgId, text) => {
+        // Strip attachment description tags for cleaner copy
+        const cleaned = text.replace(/\[Attached (?:image|file): [^\]]+\]\n?/g, '').trim()
+        navigator.clipboard.writeText(cleaned)
+        setCopiedId(msgId)
+        setTimeout(() => setCopiedId(null), 2000)
+    }
+
+    // Strip [Attached image: ...] from displayed content
+    const cleanMessageContent = (content) => {
+        return content.replace(/\n?\[Attached (?:image|file): [^\]]+\]/g, '').trim()
+    }
+
     const getLogIcon = (type) => {
         switch (type) {
             case 'Thinking': return <Lightbulb size={16} className="cp-log-icon cp-amber" />
@@ -344,26 +360,42 @@ export default function ChatPanel() {
                         <div className="cp-msg-avatar">
                             {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                         </div>
-                        <div className="cp-msg-content">
-                            {/* Visual edit tag chips (above message) */}
-                            {msg.visualEditElements && msg.visualEditElements.length > 0 && (
-                                <div className="cp-msg-tags">
-                                    {msg.visualEditElements.map((el, i) => (
-                                        <span key={i} className={`cp-el-tag cp-el-tag-${el.tag}`}>
-                                            <span className="cp-el-tag-icon">{getTagIcon(el.tag)}</span>
-                                            {el.tag}{el.id ? `#${el.id}` : ''}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                            {msg.images && msg.images.length > 0 && (
-                                <div className="cp-msg-images">
-                                    {msg.images.map((src, i) => (
-                                        <img key={i} src={src} alt="Attachment" className="cp-msg-image" />
-                                    ))}
-                                </div>
-                            )}
-                            <p>{msg.content}</p>
+                        <div className="cp-msg-body">
+                            <div className="cp-msg-content">
+                                {/* Visual edit tag chips (above message) */}
+                                {msg.visualEditElements && msg.visualEditElements.length > 0 && (
+                                    <div className="cp-msg-tags">
+                                        {msg.visualEditElements.map((el, i) => (
+                                            <span key={i} className={`cp-el-tag cp-el-tag-${el.tag}`}>
+                                                <span className="cp-el-tag-icon">{getTagIcon(el.tag)}</span>
+                                                {el.tag}{el.id ? `#${el.id}` : ''}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {/* Image thumbnails — clickable for preview */}
+                                {msg.images && msg.images.length > 0 && (
+                                    <div className="cp-msg-images">
+                                        {msg.images.map((src, i) => (
+                                            <div key={i} className="cp-msg-image-wrap" onClick={() => setLightboxSrc(src)}>
+                                                <img src={src} alt="Attachment" className="cp-msg-image" />
+                                                <div className="cp-msg-image-overlay">
+                                                    <Eye size={14} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <p>{cleanMessageContent(msg.content)}</p>
+                            </div>
+                            {/* Copy button */}
+                            <button 
+                                className={`cp-copy-btn ${copiedId === msg.id ? 'copied' : ''}`}
+                                onClick={() => handleCopy(msg.id, msg.content)}
+                                title="Copy message"
+                            >
+                                {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
                         </div>
                     </div>
                 ))}
@@ -686,6 +718,17 @@ export default function ChatPanel() {
                 </div>
             </div>
 
+            {/* Image Lightbox */}
+            {lightboxSrc && (
+                <div className="cp-lightbox" onClick={() => setLightboxSrc(null)}>
+                    <div className="cp-lightbox-content" onClick={(e) => e.stopPropagation()}>
+                        <img src={lightboxSrc} alt="Preview" />
+                        <button className="cp-lightbox-close" onClick={() => setLightboxSrc(null)}>
+                            <X size={18} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
         </div>
     )

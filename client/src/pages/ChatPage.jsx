@@ -15,19 +15,26 @@ import ProjectPopover from '../components/editor/ProjectPopover'
 import VisualEditPanel from '../components/editor/VisualEditPanel'
 import RenameModal from '../components/modals/RenameModal'
 import MoveToFolderModal from '../components/modals/MoveToFolderModal'
+import DetailsModal from '../components/modals/DetailsModal'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import { useChatStore } from '../stores/chatStore'
 import { useProjectStore } from '../stores/projectStore'
 import { useEditorStore } from '../stores/editorStore'
+import { useFolderStore } from '../stores/folderStore'
+import { useWorkspaceStore } from '../stores/workspaceStore'
+import { useAuthStore } from '../stores/authStore'
+import { useUser } from '@clerk/clerk-react'
 import './ChatPage.css'
 
 export default function ChatPage() {
     const { projectId } = useParams()
     const { isLoaded: isAuthLoaded, getToken } = useAuth()
+    const { user: clerkUser } = useUser()
     const location = useLocation()
     const navigate = useNavigate()
     const { getProjectById } = useProjectStore()
+    const { folders, fetchFolders } = useFolderStore()
     const [isPopoverOpen, setIsPopoverOpen] = useState(false)
     const [isHistoryOpen, setIsHistoryOpen] = useState(false)
     const [isChatVisible, setIsChatVisible] = useState(true)
@@ -35,6 +42,7 @@ export default function ChatPage() {
     const [isDragging, setIsDragging] = useState(false)
     const [renameModal, setRenameModal] = useState({ open: false, id: null, name: '' })
     const [moveModal, setMoveModal] = useState({ open: false, id: null, name: '', folderId: null })
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
     
     const { 
         isGenerating, generationStatus, isDetailsExpanded, setDetailsExpanded,
@@ -82,6 +90,13 @@ export default function ChatPage() {
     const showRightPanel = isIdeVisible || hasGeneratedContent
     
     const project = getProjectById(projectId)
+    const folder = folders.find(f => f.id === project?.folderId)
+
+    useEffect(() => {
+        if (isAuthLoaded) {
+            getToken().then(token => fetchFolders(token))
+        }
+    }, [isAuthLoaded, getToken, fetchFolders])
     const projectName = project ? project.name : (projectId === 'new' ? 'Untitled Project' : 'Unknown Project')
     
 
@@ -133,11 +148,19 @@ export default function ChatPage() {
         if (projectId === 'new' && (prompt || templateId) && isAuthLoaded) {
             const createAndRedirect = async () => {
                 const token = await getToken();
+                
+                // CRITICAL: Ensure server workspace state is loaded so activeWorkspaceId is not null
+                const authStore = useAuthStore.getState();
+                if (!authStore.userData) {
+                    await authStore.fetchUserData(getToken);
+                }
+                
                 const { createProject } = useProjectStore.getState();
+                const { activeWorkspaceId } = useWorkspaceStore.getState();
                 
                 // Use template name or prompt for the project name
                 const projectPrompt = prompt || templateName || 'Template Project';
-                const newId = await createProject(projectPrompt, token, null, templateId || null);
+                const newId = await createProject(projectPrompt, token, null, templateId || null, activeWorkspaceId);
                 
                 if (newId) {
                     // Build redirect URL — preserve prompt if present, add templateId context
@@ -234,6 +257,10 @@ export default function ChatPage() {
                             onMove={() => {
                                 setIsPopoverOpen(false)
                                 setMoveModal({ open: true, id: project?.id || project?._id, name: project?.name, folderId: project?.folderId })
+                            }}
+                            onDetails={() => {
+                                setIsPopoverOpen(false)
+                                setIsDetailsModalOpen(true)
                             }}
                         />
                     </div>
@@ -422,6 +449,13 @@ export default function ChatPage() {
                     const token = await getToken();
                     useProjectStore.getState().moveToFolder(moveModal.id, folderId, token);
                 }}
+            />
+            <DetailsModal
+                isOpen={isDetailsModalOpen}
+                onClose={() => setIsDetailsModalOpen(false)}
+                project={project}
+                ownerName={clerkUser?.fullName || clerkUser?.emailAddresses[0]?.emailAddress}
+                folderName={folder?.name}
             />
         </div>
     )

@@ -133,7 +133,7 @@ Format as a highly structured, dense text block.`;
     }
   }
 
-  const VISION_MODEL = 'llama-3.2-11b-vision-preview';
+  const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
   console.log(`[Groq Vision] Extracting context from ${images.length} image(s) using ${VISION_MODEL}...`);
 
   try {

@@ -10,4 +10,7 @@ export const useUIStore = create((set) => ({
     
     isCreateFolderOpen: false,
     setCreateFolderOpen: (isOpen) => set({ isCreateFolderOpen: isOpen }),
+    
+    isCreateWorkspaceOpen: false,
+    setCreateWorkspaceOpen: (isOpen) => set({ isCreateWorkspaceOpen: isOpen }),
 }));

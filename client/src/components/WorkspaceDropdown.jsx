@@ -1,17 +1,22 @@
 import { useUIStore } from '../stores/uiStore'
 import { useAuthStore } from '../stores/authStore'
+import { useWorkspaceStore } from '../stores/workspaceStore'
+import { useAuth } from '@clerk/clerk-react'
 import { Settings, UserPlus, Zap, Check, Plus, Globe } from 'lucide-react'
 import './WorkspaceDropdown.css'
 
 export default function WorkspaceDropdown() {
-  const { isWorkspaceDropdownOpen, setWorkspaceDropdownOpen } = useUIStore()
+  const { isWorkspaceDropdownOpen, setWorkspaceDropdownOpen, setCreateWorkspaceOpen } = useUIStore()
   const { userData } = useAuthStore()
+  const { workspaces, activeWorkspaceId, switchWorkspace } = useWorkspaceStore()
+  const { getToken } = useAuth()
 
   if (!isWorkspaceDropdownOpen) return null
 
   const userName = userData?.email ? userData.email.split('@')[0] : 'User'
-  const workspaceName = `${userName}'s Lovable`
   const userInitial = userData?.email ? userData.email[0].toUpperCase() : 'U'
+  const activeWorkspace = workspaces.find(w => w._id === activeWorkspaceId) || workspaces[0]
+  const currentPlan = activeWorkspace?.plan?.toUpperCase() || 'FREE'
 
   return (
     <>
@@ -20,8 +25,8 @@ export default function WorkspaceDropdown() {
         <div className="lv-drop-header">
           <div className="lv-drop-avatar">{userInitial}</div>
           <div className="lv-drop-meta">
-            <h3>{workspaceName}</h3>
-            <p>Free Plan • 1 member</p>
+            <h3>{activeWorkspace?.name || `${userName}'s StackForge`}</h3>
+            <p>{activeWorkspace?.plan === 'free' ? 'Free Plan' : activeWorkspace?.plan === 'pro' ? 'Pro Plan' : 'Business Plan'} • 1 member</p>
           </div>
         </div>
 
@@ -50,16 +55,34 @@ export default function WorkspaceDropdown() {
 
         <div className="lv-drop-workspaces">
           <h5>All workspaces</h5>
-          <div className="lv-workspace-item active">
-             <div className="lv-drop-avatar small">{userInitial}</div>
-             <span className="lv-ws-name">{workspaceName}</span>
-             <span className="lv-badge-free">FREE</span>
-             <Check size={16} className="lv-check-icon" />
-          </div>
+          {workspaces.map(ws => (
+            <div 
+                key={ws._id} 
+                className={`lv-workspace-item ${ws._id === activeWorkspaceId ? 'active' : ''}`}
+                onClick={async () => {
+                    setWorkspaceDropdownOpen(false)
+                    const token = await getToken()
+                    switchWorkspace(ws._id, token)
+                }}
+            >
+               <div className="lv-drop-avatar small">{userInitial}</div>
+               <span className="lv-ws-name">{ws.name}</span>
+               <span className="lv-badge-free">{ws.plan.toUpperCase()}</span>
+               {ws._id === activeWorkspaceId && <Check size={16} className="lv-check-icon" />}
+            </div>
+          ))}
         </div>
 
         <div className="lv-drop-footer">
-          <button className="lv-footer-btn" onClick={() => setWorkspaceDropdownOpen(false)}><Plus size={16} /> Create new workspace</button>
+          <button 
+            className="lv-footer-btn" 
+            onClick={() => {
+              setWorkspaceDropdownOpen(false)
+              setCreateWorkspaceOpen(true)
+            }}
+          >
+            <Plus size={16} /> Create new workspace
+          </button>
           <button className="lv-footer-btn" onClick={() => setWorkspaceDropdownOpen(false)}><Globe size={16} /> Find workspaces</button>
         </div>
       </div>

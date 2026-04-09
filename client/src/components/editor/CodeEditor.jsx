@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
 import { X } from 'lucide-react'
 import { useEditorStore } from '../../stores/editorStore'
@@ -25,7 +26,8 @@ const getLanguage = (filename) => {
 }
 
 export default function CodeEditor() {
-    const { files, activeFile, openTabs, setActiveFile, closeTab, setFile } = useEditorStore()
+    const { files, activeFile, openTabs, setActiveFile, closeTab, setFile, codeHighlightSearch } = useEditorStore()
+    const editorRef = useRef(null)
 
     const content = activeFile ? (files[activeFile]?.content || '') : ''
     const language = getLanguage(activeFile)
@@ -35,6 +37,34 @@ export default function CodeEditor() {
             setFile(activeFile, value)
         }
     }
+
+    const handleEditorDidMount = (editor) => {
+        editorRef.current = editor
+    }
+
+    // When codeHighlightSearch changes, find and highlight the matching text
+    useEffect(() => {
+        if (!codeHighlightSearch || !editorRef.current) return
+        
+        const editor = editorRef.current
+        const model = editor.getModel()
+        if (!model) return
+
+        // Search for the opening tag in the code
+        const searchStr = codeHighlightSearch
+        const matches = model.findMatches(searchStr, false, false, true, null, true)
+        
+        if (matches.length > 0) {
+            const match = matches[0]
+            // Reveal and highlight the match
+            editor.revealLineInCenter(match.range.startLineNumber)
+            editor.setSelection(match.range)
+            editor.focus()
+        }
+
+        // Clear after use
+        useEditorStore.setState({ codeHighlightSearch: null })
+    }, [codeHighlightSearch])
 
     return (
         <div className="code-editor">
@@ -65,6 +95,7 @@ export default function CodeEditor() {
                         language={language}
                         value={content}
                         onChange={handleEditorChange}
+                        onMount={handleEditorDidMount}
                         theme="vs-dark"
                         options={{
                             fontSize: 13,

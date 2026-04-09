@@ -31,7 +31,14 @@ const clerkAuth = async (req, res, next) => {
 router.get("/", clerkAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const folders = await Folder.find({ userId }).sort({ createdAt: -1 });
+        const workspaceId = req.query.workspaceId;
+        
+        const query = { userId };
+        if (workspaceId) {
+            query.workspaceId = workspaceId;
+        }
+
+        const folders = await Folder.find(query).sort({ createdAt: -1 });
         res.json({ folders });
     } catch (error) {
         next(error);
@@ -42,7 +49,7 @@ router.get("/", clerkAuth, async (req, res, next) => {
 router.post("/", clerkAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const { name, visibility } = req.body;
+        const { name, visibility, workspaceId } = req.body;
         
         if (!name) {
             return res.status(400).json({ error: "Folder name is required" });
@@ -50,6 +57,7 @@ router.post("/", clerkAuth, async (req, res, next) => {
 
         const folder = await Folder.create({
             userId,
+            workspaceId: workspaceId || null,
             name,
             visibility: visibility || 'personal'
         });

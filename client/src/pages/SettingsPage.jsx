@@ -5,6 +5,10 @@ import {
   Plug, Github, Search, ChevronDown, Check, MoreHorizontal, Settings,
   Pencil, Info, X, ExternalLink, Activity, FolderPlus
 } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
+import { useAuthStore } from '../stores/authStore';
+import { apiClient } from '../lib/api';
+import { toast } from 'react-hot-toast';
 import './SettingsPage.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -748,74 +752,336 @@ const KnowledgePage = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: PROJECT SETTINGS
 // ─────────────────────────────────────────────────────────────────────────────
-const ProjectSettingsPage = () => (
-  <div className="sp-content">
-    <div className="sp-page-header">
-      <div>
-        <h1 className="sp-page-title">Project Settings</h1>
-        <p className="sp-page-subtitle">Configure the current project.</p>
-      </div>
-    </div>
+const ProjectSettingsPage = () => {
+  const { getToken } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const projectId = searchParams.get('id');
 
-    <div className="sp-card">
-      <div className="sp-project-grid">
-        <div className="sp-project-meta-box">
-          <div className="sp-project-meta-label">Project name</div>
-          <div className="sp-project-meta-val">Starry Night Project <Pencil size={12} color="#666" style={{cursor: 'pointer'}} /></div>
-        </div>
-        <div className="sp-project-meta-box">
-          <div className="sp-project-meta-label">URL Subdomain</div>
-          <div className="sp-project-meta-val">starry-night-2f8.stackforge.app <Pencil size={12} color="#666" style={{cursor: 'pointer'}} /></div>
-        </div>
-        <div className="sp-project-meta-box">
-          <div className="sp-project-meta-label">Owner</div>
-          <div className="sp-project-meta-val"><div className="sp-avatar-sm">T</div> tikku</div>
-        </div>
-        <div className="sp-project-meta-box">
-          <div className="sp-project-meta-label">Created at</div>
-          <div className="sp-project-meta-val">Mar 12, 2026</div>
-        </div>
-        <div className="sp-project-meta-box">
-          <div className="sp-project-meta-label">Messages count</div>
-          <div className="sp-project-meta-val">42</div>
-        </div>
-        <div className="sp-project-meta-box">
-          <div className="sp-project-meta-label">Credits used</div>
-          <div className="sp-project-meta-val">15 credits</div>
-        </div>
-      </div>
-    </div>
+  const [project, setProject] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUnpublishing, setIsUnpublishing] = useState(false);
+  const [isRemixing, setIsRemixing] = useState(false);
+  const [showRemixModal, setShowRemixModal] = useState(false);
+  const [remixName, setRemixName] = useState('');
+  const [remixIncludeHistory, setRemixIncludeHistory] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [toggles, setToggles] = useState({ badge: false, sharing: true });
+  const { userData } = useAuthStore();
 
-    <div className="sp-card-no-padding">
-      <div className="sp-row">
-        <div className="sp-row-info"><h4 className="sp-row-title">Project visibility</h4><p className="sp-row-desc">Who can view this project.</p></div>
-        <MutedDropdown options={['Private', 'Workspace', 'Public']} value="Workspace" />
-      </div>
-      <div className="sp-row">
-        <div className="sp-row-info"><h4 className="sp-row-title">Hide StackForge badge <span className="sp-badge sp-badge-pro">Pro</span></h4><p className="sp-row-desc">Remove the powered-by badge.</p></div>
-        <Toggle isOn={false} onToggle={() => {}} />
-      </div>
-      <div className="sp-row">
-        <div className="sp-row-info"><h4 className="sp-row-title">Cross-project sharing</h4><p className="sp-row-desc">Allow sharing resources.</p></div>
-        <Toggle isOn={true} onToggle={() => {}} />
-      </div>
-      <div className="sp-row">
-        <div className="sp-row-info"><h4 className="sp-row-title">Transfer ownership</h4><p className="sp-row-desc">Transfer to another workspace member.</p></div>
-        <button className="sp-btn sp-btn-outline">Transfer</button>
-      </div>
-      <div className="sp-row">
-        <div className="sp-row-info"><h4 className="sp-row-title">Unpublish project</h4><p className="sp-row-desc">Take down the live website.</p></div>
-        <button className="sp-btn sp-btn-outline" disabled>Unpublish</button>
-      </div>
-    </div>
+  // Fetch project data
+  useEffect(() => {
+    if (!projectId) return;
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const token = await getToken();
+        const data = await apiClient.getProject(projectId, token);
+        setProject(data.project);
+        setMessages(data.messages || []);
+        setRenameValue(data.project.name || '');
+      } catch (err) {
+        console.error('[ProjectSettings] Failed to load:', err);
+        toast.error('Failed to load project');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [projectId, getToken]);
 
-    <div className="sp-card sp-card-danger">
-      <h4 className="sp-row-title" style={{marginBottom: '8px'}}>Delete project</h4>
-      <p className="sp-row-desc" style={{marginBottom: '16px'}}>Permanently delete this project and all its assets. This action is irreversible.</p>
-      <button className="sp-btn sp-btn-danger">Delete</button>
+  // Rename project
+  const handleRename = async () => {
+    if (!renameValue.trim() || renameValue === project.name) {
+      setIsRenaming(false);
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const token = await getToken();
+      const data = await apiClient.updateProject(projectId, { name: renameValue.trim() }, token);
+      setProject(data.project);
+      setIsRenaming(false);
+      toast.success('Project renamed');
+    } catch (err) {
+      toast.error('Failed to rename project');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Unpublish project
+  const handleUnpublish = async () => {
+    setIsUnpublishing(true);
+    try {
+      const token = await getToken();
+      await apiClient.unpublishProject(projectId, token);
+      setProject(p => ({ ...p, publishedUrl: null, netlifySiteId: null }));
+      toast.success('Project unpublished');
+    } catch (err) {
+      toast.error(err.message || 'Failed to unpublish');
+    } finally {
+      setIsUnpublishing(false);
+    }
+  };
+
+  // Remix (duplicate) project
+  const handleRemixOpen = () => {
+    setRemixName(`Remix of ${project.name}`);
+    setRemixIncludeHistory(false);
+    setShowRemixModal(true);
+  };
+
+  const handleRemixSubmit = async () => {
+    setIsRemixing(true);
+    try {
+      const token = await getToken();
+      const data = await apiClient.remixProject(projectId, token);
+      // If user customized the name, rename the remixed project
+      const finalName = remixName.trim() || `Remix of ${project.name}`;
+      if (finalName !== data.project.name) {
+        await apiClient.updateProject(data.project._id, { name: finalName }, token);
+      }
+      toast.success(`Created "${finalName}"`);
+      setShowRemixModal(false);
+      navigate(`/settings?id=${data.project._id}#project`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to duplicate project');
+    } finally {
+      setIsRemixing(false);
+    }
+  };
+
+  // Delete project
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const token = await getToken();
+      await apiClient.deleteProject(projectId, token);
+      toast.success('Project deleted');
+      navigate('/dashboard');
+    } catch (err) {
+      toast.error('Failed to delete project');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  if (!projectId) {
+    return (
+      <div className="sp-content">
+        <div className="sp-card" style={{textAlign: 'center', padding: '48px 24px'}}>
+          <Settings size={32} color="#666" style={{margin: '0 auto 12px'}} />
+          <p style={{color: '#888', fontSize: '14px'}}>No project selected. Open project settings from the sidebar menu.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="sp-content">
+        <div className="sp-card" style={{textAlign: 'center', padding: '48px 24px'}}>
+          <div className="sp-loading-spinner" />
+          <p style={{color: '#888', fontSize: '14px', marginTop: '12px'}}>Loading project...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="sp-content">
+        <div className="sp-card" style={{textAlign: 'center', padding: '48px 24px'}}>
+          <p style={{color: '#ef4444', fontSize: '14px'}}>Project not found or you don't have access.</p>
+          <button className="sp-btn sp-btn-outline" style={{marginTop: '12px'}} onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+        </div>
+      </div>
+    );
+  }
+
+  const ownerName = userData?.name || userData?.email?.split('@')[0] || 'You';
+  const ownerInitial = ownerName[0]?.toUpperCase() || 'U';
+  const createdAt = project.createdAt ? new Date(project.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+  const messageCount = messages.length;
+  const slug = project.publishedUrl ? new URL(project.publishedUrl).hostname : `${(project.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 20)}.stackforge.app`;
+
+  return (
+    <div className="sp-content">
+      <div className="sp-page-header">
+        <div>
+          <h1 className="sp-page-title">Project Settings</h1>
+          <p className="sp-page-subtitle">Configure the current project.</p>
+        </div>
+      </div>
+
+      {/* ── Info Grid ── */}
+      <div className="sp-card">
+        <div className="sp-project-grid">
+          <div className="sp-project-meta-box">
+            <div className="sp-project-meta-label">Project name</div>
+            <div className="sp-project-meta-val">
+              {isRenaming ? (
+                <div style={{display: 'flex', gap: '6px', alignItems: 'center'}}>
+                  <input
+                    type="text"
+                    className="sp-input"
+                    value={renameValue}
+                    onChange={e => setRenameValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') { setIsRenaming(false); setRenameValue(project.name); }}}
+                    autoFocus
+                    style={{fontSize: '14px', padding: '4px 8px', width: '180px'}}
+                  />
+                  <button className="sp-btn sp-btn-primary" onClick={handleRename} disabled={isSaving} style={{padding: '4px 10px', fontSize: '12px'}}>
+                    {isSaving ? '...' : '✓'}
+                  </button>
+                  <button className="sp-btn sp-btn-outline" onClick={() => { setIsRenaming(false); setRenameValue(project.name); }} style={{padding: '4px 10px', fontSize: '12px'}}>✕</button>
+                </div>
+              ) : (
+                <>{project.name} <Pencil size={12} color="#666" style={{cursor: 'pointer', marginLeft: '6px'}} onClick={() => setIsRenaming(true)} /></>
+              )}
+            </div>
+          </div>
+          <div className="sp-project-meta-box">
+            <div className="sp-project-meta-label">URL Subdomain</div>
+            <div className="sp-project-meta-val">
+              {project.publishedUrl ? (
+                <a href={project.publishedUrl} target="_blank" rel="noopener noreferrer" style={{color: '#4f6ef7', textDecoration: 'none', fontSize: '13px'}}>
+                  {slug} <ExternalLink size={10} style={{marginLeft: '4px'}} />
+                </a>
+              ) : (
+                <span style={{color: '#666', fontSize: '13px'}}>Not published</span>
+              )}
+            </div>
+          </div>
+          <div className="sp-project-meta-box">
+            <div className="sp-project-meta-label">Owner</div>
+            <div className="sp-project-meta-val"><div className="sp-avatar-sm">{ownerInitial}</div> {ownerName}</div>
+          </div>
+          <div className="sp-project-meta-box">
+            <div className="sp-project-meta-label">Created at</div>
+            <div className="sp-project-meta-val">{createdAt}</div>
+          </div>
+          <div className="sp-project-meta-box">
+            <div className="sp-project-meta-label">Messages count</div>
+            <div className="sp-project-meta-val">{messageCount}</div>
+          </div>
+          <div className="sp-project-meta-box">
+            <div className="sp-project-meta-label">Credits used</div>
+            <div className="sp-project-meta-val">{messageCount} credits</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Settings Rows ── */}
+      <div className="sp-card-no-padding">
+        <div className="sp-row">
+          <div className="sp-row-info"><h4 className="sp-row-title">Project visibility</h4><p className="sp-row-desc">Who can view this project.</p></div>
+          <MutedDropdown options={['Private', 'Workspace', 'Public']} value="Workspace" />
+        </div>
+        <div className="sp-row">
+          <div className="sp-row-info"><h4 className="sp-row-title">Hide StackForge badge <span className="sp-badge sp-badge-pro">Pro</span></h4><p className="sp-row-desc">Remove the powered-by badge.</p></div>
+          <Toggle isOn={toggles.badge} onToggle={() => setToggles(t => ({...t, badge: !t.badge}))} />
+        </div>
+        <div className="sp-row">
+          <div className="sp-row-info"><h4 className="sp-row-title">Cross-project sharing</h4><p className="sp-row-desc">Allow sharing resources.</p></div>
+          <Toggle isOn={toggles.sharing} onToggle={() => setToggles(t => ({...t, sharing: !t.sharing}))} />
+        </div>
+        <div className="sp-row">
+          <div className="sp-row-info"><h4 className="sp-row-title">Transfer ownership</h4><p className="sp-row-desc">Transfer to another workspace member.</p></div>
+          <button className="sp-btn sp-btn-outline">Transfer</button>
+        </div>
+        <div className="sp-row">
+          <div className="sp-row-info"><h4 className="sp-row-title">Remix this project</h4><p className="sp-row-desc">Create a duplicate with all files and settings.</p></div>
+          <button className="sp-btn sp-btn-outline" onClick={handleRemixOpen}>
+            Remix
+          </button>
+        </div>
+        <div className="sp-row">
+          <div className="sp-row-info"><h4 className="sp-row-title">Unpublish project</h4><p className="sp-row-desc">Take down the live website.</p></div>
+          <button
+            className="sp-btn sp-btn-outline"
+            onClick={handleUnpublish}
+            disabled={!project.publishedUrl || isUnpublishing}
+          >
+            {isUnpublishing ? 'Unpublishing...' : project.publishedUrl ? 'Unpublish' : 'Not published'}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Danger Zone ── */}
+      <div className="sp-card sp-card-danger">
+        <h4 className="sp-row-title" style={{marginBottom: '8px'}}>Delete project</h4>
+        <p className="sp-row-desc" style={{marginBottom: '16px'}}>Permanently delete this project and all its assets. This action is irreversible.</p>
+        {!confirmDelete ? (
+          <button className="sp-btn sp-btn-danger" onClick={() => setConfirmDelete(true)}>Delete</button>
+        ) : (
+          <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+            <span style={{color: '#ef4444', fontSize: '13px', fontWeight: 500}}>Are you sure?</span>
+            <button className="sp-btn sp-btn-danger" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Yes, delete permanently'}
+            </button>
+            <button className="sp-btn sp-btn-outline" onClick={() => setConfirmDelete(false)}>Cancel</button>
+          </div>
+        )}
+      </div>
+
+      {/* ── Remix Modal ── */}
+      {showRemixModal && (
+        <div className="sp-remix-overlay" onClick={() => setShowRemixModal(false)}>
+          <div className="sp-remix-modal" onClick={e => e.stopPropagation()}>
+            <button className="sp-remix-close" onClick={() => setShowRemixModal(false)}>
+              <X size={20} />
+            </button>
+            
+            <div className="sp-remix-icon-wrap">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="url(#heartGrad)" stroke="none">
+                <defs><linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#f97316" />
+                  <stop offset="100%" stopColor="#a855f7" />
+                </linearGradient></defs>
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </div>
+            
+            <h2 className="sp-remix-title">Remix project</h2>
+            <p className="sp-remix-desc">By remixing a project, you will create a copy that you own.</p>
+            
+            <div className="sp-remix-field">
+              <label>Project name</label>
+              <input
+                type="text"
+                value={remixName}
+                onChange={e => setRemixName(e.target.value)}
+                autoFocus
+                className="sp-input"
+                style={{width: '100%', marginTop: '6px'}}
+              />
+            </div>
+            
+            <div className="sp-remix-toggle-row">
+              <span>Include project history</span>
+              <Toggle isOn={remixIncludeHistory} onToggle={() => setRemixIncludeHistory(!remixIncludeHistory)} />
+            </div>
+            
+            <div className="sp-remix-actions">
+              <button className="sp-btn sp-btn-outline" onClick={() => setShowRemixModal(false)}>Cancel</button>
+              <button className="sp-btn sp-btn-white" onClick={handleRemixSubmit} disabled={isRemixing}>
+                {isRemixing ? 'Remixing...' : 'Remix'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: DOMAINS

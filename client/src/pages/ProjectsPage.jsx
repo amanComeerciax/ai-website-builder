@@ -4,6 +4,7 @@ import { Search, ChevronDown, LayoutGrid, List, Heart, Users, LayoutTemplate, Mo
 import { useAuth } from '@clerk/clerk-react'
 import { useAuthStore } from '../stores/authStore'
 import { useProjectStore } from '../stores/projectStore'
+import { useWorkspaceStore } from '../stores/workspaceStore'
 import { toast } from 'react-hot-toast'
 import './ProjectsPage.css'
 
@@ -36,6 +37,7 @@ export default function ProjectsPage() {
     const { isLoaded, isSignedIn, getToken } = useAuth()
     const { userData } = useAuthStore()
     const { projects, fetchProjects, deleteProject, toggleStar, renameProject } = useProjectStore()
+    const { activeWorkspaceId } = useWorkspaceStore()
     const [activeDropdown, setActiveDropdown] = useState(null)
     
     // Attempt to pull in folderStore to get the name of the folder for the title
@@ -48,14 +50,14 @@ export default function ProjectsPage() {
     } catch(e) {}
 
     useEffect(() => {
-        if (isLoaded && isSignedIn) {
+        if (isLoaded && isSignedIn && activeWorkspaceId) {
             const sync = async () => {
                 const token = await getToken();
-                fetchProjects(token);
+                fetchProjects(token, activeWorkspaceId);
             }
             sync()
         }
-    }, [isLoaded, isSignedIn, getToken, fetchProjects])
+    }, [isLoaded, isSignedIn, getToken, fetchProjects, activeWorkspaceId])
 
     const handleDelete = async (e, projectId) => {
         e.preventDefault();

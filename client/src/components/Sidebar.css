@@ -547,6 +547,13 @@ img.lv-user-avatar {
   animation: dotMenuIn 0.12s ease-out;
 }
 
+.lv-dot-menu-fixed {
+  position: fixed;
+  top: auto;
+  right: auto;
+  z-index: 10002;
+}
+
 @keyframes dotMenuIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }

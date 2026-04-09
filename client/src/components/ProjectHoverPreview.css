@@ -1,0 +1,137 @@
+/* ═══════════════════════════════════════
+   Project Hover Preview — Live Site Card
+   ═══════════════════════════════════════ */
+
+.php-container {
+    position: fixed;
+    z-index: 10001;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(6px) scale(0.96);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.55));
+}
+
+.php-visible {
+    opacity: 1;
+    transform: translateX(12px) scale(1);
+}
+
+.php-card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 14px;
+    width: 280px;
+    overflow: hidden;
+}
+
+/* ── Preview Viewport (scaled iframe) ── */
+
+.php-preview-wrapper {
+    width: 280px;
+    height: 170px;
+    overflow: hidden;
+    position: relative;
+    background: #111;
+    border-bottom: 1px solid #222;
+}
+
+.php-iframe-viewport {
+    width: 1440px;
+    height: 900px;
+    transform: scale(0.194);
+    transform-origin: top left;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+}
+
+.php-iframe {
+    width: 1440px;
+    height: 900px;
+    border: none;
+    pointer-events: none;
+    background: #fff;
+}
+
+/* ── Loading Skeleton ── */
+
+.php-skeleton {
+    width: 100%;
+    height: 100%;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+}
+
+.php-skel-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #222 25%, #2a2a2a 50%, #222 75%);
+    background-size: 200% 100%;
+    animation: php-shimmer 1.4s ease-in-out infinite;
+}
+
+.php-skel-lg { width: 55%; }
+.php-skel-md { width: 80%; }
+.php-skel-sm { width: 100%; }
+
+.php-skel-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.php-skel-box {
+    height: 44px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #222 25%, #2a2a2a 50%, #222 75%);
+    background-size: 200% 100%;
+    animation: php-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes php-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* ── No preview fallback ── */
+
+.php-skeleton-static .php-skel-bar,
+.php-skeleton-static .php-skel-box {
+    animation: none;
+    background: #222;
+}
+
+.php-no-preview {
+    color: #555;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 16px;
+}
+
+/* ── Info Footer ── */
+
+.php-info {
+    padding: 14px 16px;
+}
+
+.php-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 4px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.php-meta {
+    font-size: 11px;
+    color: #777;
+    margin: 0;
+}

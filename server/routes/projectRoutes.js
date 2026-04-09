@@ -11,7 +11,14 @@ const { requireAuth } = require('../middleware/requireAuth');
 router.get("/", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const projects = await Project.find({ userId }).sort({ createdAt: -1 });
+        const workspaceId = req.query.workspaceId;
+        
+        const query = { userId };
+        if (workspaceId) {
+            query.workspaceId = workspaceId;
+        }
+
+        const projects = await Project.find(query).sort({ createdAt: -1 });
         res.json({ projects });
     } catch (error) {
         next(error);
@@ -22,7 +29,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 router.post("/", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const { name, folderId, templateId, prompt: userPrompt } = req.body;
+        const { name, folderId, workspaceId, templateId, prompt: userPrompt } = req.body;
         
         let projectName = name;
         if (!projectName && userPrompt) {
@@ -90,6 +97,7 @@ router.post("/", requireAuth, async (req, res, next) => {
 
         const project = await Project.create({
             userId,
+            workspaceId: workspaceId || null,
             name: projectName,
             status: currentFileTree['index.html'] ? 'done' : 'idle',
             folderId: folderId || null,
@@ -100,6 +108,22 @@ router.post("/", requireAuth, async (req, res, next) => {
 
         console.log(`[ProjectCreate] Created project ${project._id}${templateId ? ` (from template: ${templateId})` : ''}`);
         res.status(201).json({ project });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ── GET /api/projects/:id/preview-html — Lightweight: return just index.html for hover previews ──
+router.get("/:id/preview-html", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const project = await Project.findOne({ _id: req.params.id, userId })
+            .select('currentFileTree name');
+        if (!project) {
+            return res.status(404).json({ error: "Project not found" });
+        }
+        const html = project.currentFileTree?.['index.html'] || null;
+        res.json({ html, name: project.name });
     } catch (error) {
         next(error);
     }
@@ -221,6 +245,58 @@ router.put("/:id/star", requireAuth, async (req, res, next) => {
         next(error);
     }
 })
+
+// ── POST /api/projects/:id/unpublish — Take down the live site ──
+router.post("/:id/unpublish", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const project = await Project.findOne({ _id: req.params.id, userId });
+        if (!project) return res.status(404).json({ error: "Project not found" });
+
+        if (!project.publishedUrl) {
+            return res.status(400).json({ error: "Project is not published" });
+        }
+
+        project.publishedUrl = null;
+        project.netlifySiteId = null;
+        await project.save();
+
+        res.json({ success: true, message: "Project unpublished successfully" });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ── POST /api/projects/:id/remix — Duplicate the project ──
+router.post("/:id/remix", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const original = await Project.findOne({ _id: req.params.id, userId });
+        if (!original) return res.status(404).json({ error: "Project not found" });
+
+        const remixed = await Project.create({
+            userId,
+            workspaceId: original.workspaceId,
+            name: `${original.name} (copy)`,
+            status: original.status,
+            folderId: original.folderId || null,
+            currentFileTree: original.currentFileTree || {},
+            theme: original.theme,
+            outputTrack: original.outputTrack,
+            techStack: original.techStack,
+            websiteName: original.websiteName,
+            description: original.description,
+            logoUrl: original.logoUrl,
+            brandColors: original.brandColors,
+            isConfigured: original.isConfigured
+        });
+
+        console.log(`[ProjectRemix] Remixed ${original._id} → ${remixed._id}`);
+        res.status(201).json({ project: remixed });
+    } catch (error) {
+        next(error);
+    }
+});
 
 // ── DELETE /api/projects/:id — Delete workspace ──
 router.delete("/:id", requireAuth, async (req, res, next) => {

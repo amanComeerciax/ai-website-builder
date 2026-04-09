@@ -42,6 +42,12 @@ const userSchema = new mongoose.Schema(
             generationsThisMonth: { type: Number, default: 0 },
             generationsResetAt: { type: Date, default: Date.now },
         },
+        // Workspace - persists which workspace the user last used
+        lastActiveWorkspaceId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Workspace',
+            default: null
+        },
     },
     {
         timestamps: true,

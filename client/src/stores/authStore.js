@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useWorkspaceStore } from './workspaceStore';
 
 /**
  * 1.8 Zustand Auth Store
@@ -26,6 +27,13 @@ export const useAuthStore = create((set) => ({
             if (!res.ok) throw new Error(data.error || 'Failed to fetch user data');
 
             set({ userData: data, isLoading: false });
+            
+            // Server always returns the accurate activeWorkspaceId based on the User model
+            if (data.activeWorkspaceId) {
+                useWorkspaceStore.getState().setActiveWorkspaceId(data.activeWorkspaceId);
+            } else if (data.defaultWorkspaceId) {
+                useWorkspaceStore.getState().setActiveWorkspaceId(data.defaultWorkspaceId);
+            }
         } catch (error) {
             console.error('Failed to fetch user metadata from backend API', error);
             set({ error: error.message, isLoading: false });

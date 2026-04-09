@@ -33,9 +33,35 @@ class ApiClient {
         }
     }
 
+    // ── Workspaces ──
+    getWorkspaces(token) {
+        return this.request('/workspaces', {}, token)
+    }
+
+    createWorkspace(data, token) {
+        return this.request('/workspaces', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, token)
+    }
+
+    deleteWorkspace(id, token) {
+        return this.request(`/workspaces/${id}`, {
+            method: 'DELETE',
+        }, token)
+    }
+
+    setActiveWorkspace(workspaceId, token) {
+        return this.request('/auth/active-workspace', {
+            method: 'PUT',
+            body: JSON.stringify({ workspaceId }),
+        }, token)
+    }
+
     // ── Projects ──
-    getProjects(token) {
-        return this.request('/projects', {}, token)
+    getProjects(token, workspaceId = null) {
+        const url = workspaceId ? `/projects?workspaceId=${workspaceId}` : '/projects';
+        return this.request(url, {}, token)
     }
 
     getProject(id, token) {
@@ -45,6 +71,11 @@ class ApiClient {
     // Full workspace hydration: returns { project, messages }
     getWorkspace(id, token) {
         return this.request(`/projects/${id}`, {}, token)
+    }
+
+    // Lightweight: just returns { html, name } for hover previews
+    getProjectPreviewHtml(id, token) {
+        return this.request(`/projects/${id}/preview-html`, {}, token)
     }
 
     createProject(data, token) {
@@ -71,6 +102,18 @@ class ApiClient {
     deleteProject(id, token) {
         return this.request(`/projects/${id}`, {
             method: 'DELETE',
+        }, token)
+    }
+
+    unpublishProject(id, token) {
+        return this.request(`/projects/${id}/unpublish`, {
+            method: 'POST',
+        }, token)
+    }
+
+    remixProject(id, token) {
+        return this.request(`/projects/${id}/remix`, {
+            method: 'POST',
         }, token)
     }
 
@@ -104,8 +147,9 @@ class ApiClient {
     }
 
     // ── Folders ──
-    getFolders(token) {
-        return this.request('/folders', {}, token)
+    getFolders(token, workspaceId = null) {
+        const url = workspaceId ? `/folders?workspaceId=${workspaceId}` : '/folders';
+        return this.request(url, {}, token)
     }
 
     createFolder(data, token) {

@@ -688,19 +688,133 @@
     margin-bottom: 6px;
 }
 
-/* ── Message Images ── */
+/* ── Message Body (wraps content + copy btn) ── */
+.cp-msg-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: calc(100% - 40px);
+    min-width: 0;
+}
+.cp-msg-body:hover .cp-copy-btn {
+    opacity: 1;
+}
+
+/* ── Copy Button ── */
+.cp-copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    opacity: 0;
+    transition: all 0.15s ease;
+    align-self: flex-start;
+}
+.cp-copy-btn:hover {
+    color: #aaa;
+    background: rgba(255,255,255,0.05);
+}
+.cp-copy-btn.copied {
+    opacity: 1;
+    color: #22c55e;
+}
+
+/* ── Message Images (clickable thumbnails) ── */
 .cp-msg-images {
     display: flex;
     gap: 6px;
     margin-bottom: 8px;
     flex-wrap: wrap;
 }
-.cp-msg-image {
-    max-width: 180px;
-    max-height: 140px;
+.cp-msg-image-wrap {
+    position: relative;
     border-radius: 8px;
-    object-fit: cover;
+    overflow: hidden;
+    cursor: pointer;
     border: 1px solid #333;
+    transition: border-color 0.15s;
+}
+.cp-msg-image-wrap:hover {
+    border-color: #555;
+}
+.cp-msg-image-wrap:hover .cp-msg-image-overlay {
+    opacity: 1;
+}
+.cp-msg-image {
+    max-width: 120px;
+    max-height: 90px;
+    border-radius: 7px;
+    object-fit: cover;
+    display: block;
+}
+.cp-msg-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+    color: #fff;
+}
+
+/* ── Image Lightbox ── */
+.cp-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    animation: lightboxFadeIn 0.15s ease-out;
+    cursor: zoom-out;
+}
+@keyframes lightboxFadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+.cp-lightbox-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 85vh;
+    cursor: default;
+}
+.cp-lightbox-content img {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    object-fit: contain;
+}
+.cp-lightbox-close {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.cp-lightbox-close:hover {
+    background: #333;
+    transform: scale(1.1);
 }
 
 /* ── Bottom Bar (Visual Edits toggle) ── */

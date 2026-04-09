@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { callModel } = require('./modelRouter');
 const Template = require('../models/Template');
+const { resolveImages } = require('./imageResolver');
 
 async function ensureDirectoryExists(dir) {
   try {
@@ -9,6 +10,50 @@ async function ensureDirectoryExists(dir) {
   } catch (err) {
     if (err.code !== 'EEXIST') throw err;
   }
+}
+
+/**
+ * Post-processing: Fix broken image URLs in generated HTML.
+ * Catches source.unsplash.com (dead), placehold.co, empty src, and
+ * images.unsplash.com/featured (unreliable) — replaces with Pollinations AI.
+ */
+function fixBrokenImages(html, businessContext = '') {
+  let fixCount = 0;
+  const ctx = encodeURIComponent(businessContext || 'professional website hero image');
+
+  // Fix source.unsplash.com (DEAD service)
+  html = html.replace(/https?:\/\/source\.unsplash\.com\/[^\s"')]+/g, (match) => {
+    fixCount++;
+    const keywordsMatch = match.match(/\?([^"'\s]+)/);
+    const keywords = keywordsMatch ? encodeURIComponent(keywordsMatch[1].replace(/[,&=]/g, ' ').trim()) : ctx;
+    return `https://image.pollinations.ai/prompt/${keywords}?width=800&height=600&nologo=true`;
+  });
+
+  // Fix images.unsplash.com/featured (unreliable, often 404s)
+  html = html.replace(/https?:\/\/images\.unsplash\.com\/featured\/?\?[^\s"')]+/g, (match) => {
+    fixCount++;
+    const keywordsMatch = match.match(/\?([^&"'\s]+)/);
+    const keywords = keywordsMatch ? encodeURIComponent(keywordsMatch[1].replace(/[,&=]/g, ' ').trim()) : ctx;
+    return `https://image.pollinations.ai/prompt/${keywords}?width=800&height=600&nologo=true`;
+  });
+
+  // Fix placehold.co, placeholder.com, via.placeholder.com, dummyimage.com
+  html = html.replace(/https?:\/\/(placehold\.co|placeholder\.com|via\.placeholder\.com|dummyimage\.com)\/[^\s"')]+/g, () => {
+    fixCount++;
+    return `https://image.pollinations.ai/prompt/${ctx}?width=800&height=600&nologo=true`;
+  });
+
+  // Fix empty src=""
+  html = html.replace(/src\s*=\s*""\s*/g, () => {
+    fixCount++;
+    return `src="https://image.pollinations.ai/prompt/${ctx}?width=800&height=600&nologo=true" `;
+  });
+
+  if (fixCount > 0) {
+    console.log(`[ImageFixer] 🔧 Fixed ${fixCount} broken image URL(s)`);
+  }
+
+  return html;
 }
 
 async function getRawTemplate(enrichedSpec, requestModel) {
@@ -167,9 +212,11 @@ LOGO / ICON RULES:
 - Place it INSIDE the same container, BEFORE the brand text.
 
 IMAGE RULES:
-- For images, use ONLY images.unsplash.com URLs with real photo IDs:
-  https://images.unsplash.com/photo-PHOTOID?w=WIDTH&h=HEIGHT&fit=crop&q=80
-  NEVER use source.unsplash.com — it is dead.
+- For images, write a short visual description (3-8 words) of what the image should show.
+  Use: https://image.pollinations.ai/prompt/{URL-ENCODED-DESCRIPTION}?width=800&height=600&nologo=true
+  The description must match the specific content (e.g., "hot masala chai cup" for a chai item).
+- NEVER use source.unsplash.com (DEAD), placehold.co, or leave src="" empty.
+- Images MUST match the business context.
 
 INTENT:
 - "Add a pizza logo beside the div" = place an emoji/SVG inside the div before the text — NOT add text "Pizza Logo".
@@ -218,7 +265,7 @@ ${existingHtml}`;
 
   onProgress({ event: 'thinking', message: `Applying ${patches.length} surgical patches...` });
 
-  const { result: finalHtml, appliedCount, totalPatches } = applyPatches(existingHtml, patches);
+  let { result: finalHtml, appliedCount, totalPatches } = applyPatches(existingHtml, patches);
 
   if (appliedCount === 0) {
     console.error(`[Generator] ❌ No patches could be applied — falling back to unmodified HTML`);
@@ -227,6 +274,10 @@ ${existingHtml}`;
   }
 
   onProgress({ event: 'log', type: 'Editing', file: 'index.html', message: `Applied ${appliedCount}/${totalPatches} changes successfully` });
+
+  // Post-process: resolve images via Pexels API (falls back to fixBrokenImages if no API key)
+  onProgress({ event: 'log', type: 'Resolving', file: 'images', message: 'Finding matching stock photos...' });
+  finalHtml = await resolveImages(finalHtml, enrichedSpec.businessName || enrichedSpec.description || '');
 
   return finalHtml;
 }
@@ -368,7 +419,7 @@ ${existingHtml}`;
 
   onProgress({ event: 'thinking', message: `Applying ${patches.length} patches to ${elements.length} element(s)...` });
 
-  const { result: finalHtml, appliedCount, totalPatches } = applyPatches(existingHtml, patches);
+  let { result: finalHtml, appliedCount, totalPatches } = applyPatches(existingHtml, patches);
 
   if (appliedCount === 0) {
     console.error(`[Generator] ❌ No visual edit patches matched — returning unmodified HTML`);
@@ -378,7 +429,11 @@ ${existingHtml}`;
 
   onProgress({ event: 'log', type: 'Editing', file: 'index.html', message: `Modified ${appliedCount} element(s) successfully` });
 
-  return finalHtml;
+  // Post-process: resolve images via Pexels API
+  onProgress({ event: 'log', type: 'Resolving', file: 'images', message: 'Finding matching stock photos...' });
+  const fixedHtml = await resolveImages(finalHtml, enrichedSpec?.businessName || '');
+
+  return fixedHtml;
 }
 
 // ─────────────────────────────────────────────────────────
@@ -399,24 +454,30 @@ async function generateFreshHtml(enrichedSpec, onProgress, requestModel) {
 
   const systemPrompt = `You are an expert web developer and copywriter.
 You will be provided with a design blueprint and a target business specification.
-Your job is to rewrite ONLY the text content, image placeholders, and brand names to match the new business.
+Your job is to rewrite ONLY the text content, images, and brand names to match the new business.
 
 CRITICAL RULES:
 1. NEVER modify the HTML structure, class names, CSS, scripts, or IDs.
 2. Maintain the EXACT length and tone of the original text blocks.
-3. For images, use ONLY high-quality images.unsplash.com URLs with REAL photo IDs. The format is:
-   https://images.unsplash.com/photo-PHOTOID?w=WIDTH&h=HEIGHT&fit=crop&q=80
-   Here are reliable photo IDs by category — pick the MOST relevant ones:
-   BUSINESS/TECH: photo-1497366216548-37526070297c, photo-1522071820081-009f0129c71c, photo-1553877522-43269d4ea984
-   FOOD/RESTAURANT: photo-1504674900247-0877df9cc836, photo-1414235077428-338989a2e8c0, photo-1517248135467-4c7edcad34c4
-   NATURE/TRAVEL: photo-1506744038136-46273834b3fb, photo-1469474968028-56623f02e42e, photo-1507525428034-b723cf961d3e
-   FASHION/LIFESTYLE: photo-1483985988355-763728e1935b, photo-1515886657613-9f3515b0c78f, photo-1469334031218-e382a71b716b
-   HEALTH/FITNESS: photo-1571019613454-1cb2f99b2d8b, photo-1517836357463-d25dfeac3438, photo-1544367567-0f2fcb009e0b
-   ABSTRACT/HERO: photo-1557682250-33bd709cbe85, photo-1579546929518-9e396f3cc809, photo-1557683316-973673baf926
-   TEAM/PEOPLE: photo-1522202176988-66273c2fd55f, photo-1556761175-5973dc0f32e7, photo-1600880292203-757bb62b4baf
-   Example: https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop&q=80
-   NEVER use source.unsplash.com — it is DEAD and returns errors.
-4. If ANY image src is empty, broken, or uses source.unsplash.com, replace it with a relevant image from the curated list above.
+3. IMAGES — AUTONOMOUS CONTEXT-AWARE SYSTEM:
+   For EVERY <img> tag, think: "What should this image ACTUALLY show for this business?"
+   Write a short visual description (3-8 words) matching the specific card/section content.
+   Use this URL pattern:
+   https://image.pollinations.ai/prompt/{URL-ENCODED-DESCRIPTION}?width={W}&height={H}&nologo=true
+   
+   Hero/banner images: width=1200&height=800
+   Card/feature images: width=800&height=600
+   Thumbnails/avatars: width=400&height=400
+   
+   Example for a chai shop "Masala Chai" card:
+   <img src="https://image.pollinations.ai/prompt/hot%20masala%20chai%20glass%20cup%20with%20cardamom?width=800&height=600&nologo=true" alt="Masala Chai">
+   
+   RULES:
+   - Each image MUST have a UNIQUE description that matches its specific card/item content.
+   - Descriptions must be relevant to the business. A chai shop = chai, tea, Indian snacks images. A gym = weights, yoga, fitness images.
+   - NEVER repeat the same URL on the page.
+   - NEVER use source.unsplash.com (DEAD), placehold.co, or leave src="" empty.
+4. If ANY image src is empty, broken, or uses source.unsplash.com, replace it with a Pollinations URL matching the business.
 5. Return ONLY the final valid HTML code. No markdown wrapping. No explanations.`;
 
   const userMessage = `=== TARGET SPECIFICATION ===
@@ -441,6 +502,10 @@ ${template.content}`;
   }
 
   onProgress({ event: 'log', type: 'Creating', file: 'index.html', message: 'Website code generated successfully' });
+
+  // Post-process: resolve images via Pexels API (real stock photos)
+  onProgress({ event: 'log', type: 'Resolving', file: 'images', message: 'Finding matching stock photos...' });
+  finalHtml = await resolveImages(finalHtml, enrichedSpec.businessName || enrichedSpec.description || '');
 
   return { html: finalHtml, templateName: template.name };
 }
