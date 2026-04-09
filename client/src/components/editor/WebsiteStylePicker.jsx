@@ -1,26 +1,102 @@
-import React, { useState } from 'react';
-import { Type, Layout, Image as ImageIcon, Palette } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Type, Layout, Grid3X3, Check,
+  Briefcase, Camera, Coffee, Utensils, Code2, Palette, 
+  PenTool, Heart, Globe, FileText, Sparkles, ChevronLeft, Layers
+} from 'lucide-react';
+
+// Category icon + color mapping
+const CATEGORY_META = {
+  blog:        { icon: FileText,  color: '#f472b6', label: 'Blog' },
+  'coffee-shop': { icon: Coffee, color: '#fbbf24', label: 'Coffee Shop' },
+  fashion:     { icon: PenTool,   color: '#c084fc', label: 'Fashion' },
+  landing:     { icon: Globe,     color: '#60a5fa', label: 'Landing Page' },
+  portfolio:   { icon: Camera,    color: '#34d399', label: 'Portfolio' },
+  restaurant:  { icon: Utensils,  color: '#fb923c', label: 'Restaurant' },
+  saas:        { icon: Code2,     color: '#818cf8', label: 'SaaS' },
+  service:     { icon: Briefcase, color: '#38bdf8', label: 'Service' },
+  wellness:    { icon: Heart,     color: '#f9a8d4', label: 'Wellness' },
+};
 
 const STEP_INFO = [
   { icon: Type, label: 'Name', color: '#8b5cf6' },
   { icon: Layout, label: 'About', color: '#a855f7' },
-  { icon: Palette, label: 'Brand', color: '#f59e0b' },
+  { icon: Grid3X3, label: 'Template', color: '#f59e0b' },
 ];
 
 export default function WebsiteStylePicker({ step = 0, value, onChange }) {
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState(value.templateId || null);
+
   const details = {
     websiteName: value.websiteName || '',
     description: value.description || '',
-    logoUrl: value.logoUrl || '',
-    brandColors: value.brandColors || '',
   };
 
   const StepIcon = STEP_INFO[step]?.icon || Type;
   const stepColor = STEP_INFO[step]?.color || '#8b5cf6';
 
+  // Fetch templates on mount
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/templates');
+        const data = await res.json();
+        setTemplates(data.templates || []);
+      } catch (err) {
+        console.error('[StylePicker] Failed to fetch templates:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTemplates();
+  }, []);
+
+  // Group templates by categoryId
+  const categoriesMap = {};
+  templates.forEach(t => {
+    const cid = t.categoryId;
+    if (!categoriesMap[cid]) categoriesMap[cid] = [];
+    categoriesMap[cid].push(t);
+  });
+
+  const categories = Object.keys(categoriesMap).sort();
+  const filteredTemplates = selectedCategory ? (categoriesMap[selectedCategory] || []) : [];
+
   const handleDetailChange = (e) => {
     const { name, value: val } = e.target;
     onChange({ ...value, [name]: val });
+  };
+
+  const handleCategorySelect = (catId) => {
+    setSelectedCategory(catId);
+    setSelectedTemplate(null);
+    onChange({ ...value, category: catId, templateId: '' });
+  };
+
+  const handleTemplateSelect = (templateId) => {
+    setSelectedTemplate(templateId);
+    onChange({ ...value, category: selectedCategory, templateId });
+  };
+
+  // Shared input styles
+  const inputStyle = {
+    width: '100%', background: 'rgba(0,0,0,0.3)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '12px', padding: '14px 16px',
+    color: '#fff', fontSize: '14px', fontWeight: '500',
+    outline: 'none', transition: 'all 0.2s',
+    letterSpacing: '-0.01em',
+    boxSizing: 'border-box',
+  };
+
+  const cardBase = {
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.06)',
+    borderRadius: '16px', padding: '16px',
   };
 
   return (
@@ -68,7 +144,7 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
           }}>
             {step === 0 && "What's your brand name?"}
             {step === 1 && 'Describe your project'}
-            {step === 2 && 'Brand assets (optional)'}
+            {step === 2 && (selectedCategory ? 'Choose a template' : 'Pick a category')}
           </div>
           <div style={{
             fontSize: '11px', color: 'rgba(255,255,255,0.35)',
@@ -79,15 +155,9 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
         </div>
       </div>
 
-
-
       {/* Step 0: Website Name */}
       {step === 0 && (
-        <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '16px', padding: '16px',
-        }}>
+        <div style={cardBase}>
           <input
             type="text"
             name="websiteName"
@@ -95,15 +165,7 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
             placeholder="e.g. BrewHouse Coffee"
             value={details.websiteName}
             onChange={handleDetailChange}
-            style={{
-              width: '100%', background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '12px', padding: '14px 16px',
-              color: '#fff', fontSize: '14px', fontWeight: '500',
-              outline: 'none', transition: 'all 0.2s',
-              letterSpacing: '-0.01em',
-              boxSizing: 'border-box',
-            }}
+            style={inputStyle}
             onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
             onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
           />
@@ -118,11 +180,7 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
 
       {/* Step 1: Description */}
       {step === 1 && (
-        <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '16px', padding: '16px',
-        }}>
+        <div style={cardBase}>
           <textarea
             name="description"
             autoFocus
@@ -131,14 +189,10 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
             value={details.description}
             onChange={handleDetailChange}
             style={{
-              width: '100%', background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '12px', padding: '14px 16px',
-              color: '#fff', fontSize: '14px', fontWeight: '400',
-              outline: 'none', transition: 'all 0.2s',
+              ...inputStyle,
+              fontWeight: '400',
               resize: 'none', fontFamily: 'inherit',
-              lineHeight: '1.5', letterSpacing: '-0.01em',
-              boxSizing: 'border-box',
+              lineHeight: '1.5',
             }}
             onFocus={(e) => { e.target.style.borderColor = '#a855f7'; e.target.style.boxShadow = '0 0 0 3px rgba(168,85,247,0.1)'; }}
             onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
@@ -152,80 +206,221 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
         </div>
       )}
 
-      {/* Step 2: Logo & Colors */}
+      {/* Step 2: Category → Template Selection */}
       {step === 2 && (
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: '12px',
-        }}>
-          <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '16px', padding: '16px',
-          }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {loading ? (
             <div style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              fontSize: '11px', fontWeight: '600', color: 'rgba(255,255,255,0.4)',
-              textTransform: 'uppercase', letterSpacing: '0.05em',
-              marginBottom: '10px',
+              textAlign: 'center', padding: '32px',
+              color: 'rgba(255,255,255,0.4)', fontSize: '13px',
             }}>
-              <ImageIcon size={12} /> Logo URL
+              <Sparkles size={20} style={{ marginBottom: '8px', opacity: 0.5 }} />
+              <div>Loading templates...</div>
             </div>
-            <input
-              type="text"
-              name="logoUrl"
-              placeholder="https://your-logo-url.png"
-              value={details.logoUrl}
-              onChange={handleDetailChange}
-              style={{
-                width: '100%', background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '12px', padding: '12px 14px',
-                color: '#fff', fontSize: '13px',
-                outline: 'none', transition: 'all 0.2s',
-                boxSizing: 'border-box',
-              }}
-              onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
-            />
-          </div>
+          ) : !selectedCategory ? (
+            /* ──── Part A: Category Grid ──── */
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '8px',
+            }}>
+              {categories.map(catId => {
+                const meta = CATEGORY_META[catId] || { icon: Layers, color: '#888', label: catId };
+                const CatIcon = meta.icon;
+                const count = categoriesMap[catId].length;
 
-          <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '16px', padding: '16px',
-          }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              fontSize: '11px', fontWeight: '600', color: 'rgba(255,255,255,0.4)',
-              textTransform: 'uppercase', letterSpacing: '0.05em',
-              marginBottom: '10px',
-            }}>
-              <Palette size={12} /> Brand Colors
+                return (
+                  <button
+                    key={catId}
+                    onClick={() => handleCategorySelect(catId)}
+                    style={{
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', gap: '6px',
+                      padding: '14px 8px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: '14px',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                      color: '#fff',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = meta.color + '55';
+                      e.currentTarget.style.background = meta.color + '10';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = `0 8px 24px ${meta.color}15`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                      e.currentTarget.style.transform = 'none';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{
+                      width: '32px', height: '32px', borderRadius: '10px',
+                      background: `${meta.color}18`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <CatIcon size={16} style={{ color: meta.color }} />
+                    </div>
+                    <div style={{
+                      fontSize: '11px', fontWeight: '600',
+                      textAlign: 'center', lineHeight: '1.3',
+                      letterSpacing: '-0.01em',
+                    }}>
+                      {meta.label}
+                    </div>
+                    <div style={{
+                      fontSize: '9px', 
+                      color: 'rgba(255,255,255,0.3)',
+                      fontWeight: '500',
+                    }}>
+                      {count} {count === 1 ? 'template' : 'templates'}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-            <input
-              type="text"
-              name="brandColors"
-              placeholder="#3b82f6, #000000 (comma separated)"
-              value={details.brandColors}
-              onChange={handleDetailChange}
-              style={{
-                width: '100%', background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '12px', padding: '12px 14px',
-                color: '#fff', fontSize: '13px',
-                outline: 'none', transition: 'all 0.2s',
-                boxSizing: 'border-box',
-              }}
-              onFocus={(e) => { e.target.style.borderColor = '#f59e0b'; e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.1)'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
-            />
-          </div>
+          ) : (
+            /* ──── Part B: Template Cards ──── */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* Back to categories */}
+              <button
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setSelectedTemplate(null);
+                  onChange({ ...value, category: '', templateId: '' });
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'rgba(255,255,255,0.4)', fontSize: '11px',
+                  fontWeight: '500', padding: '4px 0',
+                  transition: 'color 0.2s',
+                  fontFamily: 'inherit',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+              >
+                <ChevronLeft size={12} /> Change category
+              </button>
+
+              {/* Category label */}
+              {(() => {
+                const meta = CATEGORY_META[selectedCategory] || { icon: Layers, color: '#888', label: selectedCategory };
+                return (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    fontSize: '11px', fontWeight: '600',
+                    color: meta.color,
+                    textTransform: 'uppercase', letterSpacing: '0.05em',
+                    marginBottom: '2px',
+                  }}>
+                    <meta.icon size={12} />
+                    {meta.label}
+                  </div>
+                );
+              })()}
+
+              {/* Template list */}
+              {filteredTemplates.map(tmpl => {
+                const isSelected = selectedTemplate === tmpl.id;
+                const meta = CATEGORY_META[selectedCategory] || { color: '#888' };
+
+                return (
+                  <button
+                    key={tmpl.id}
+                    onClick={() => handleTemplateSelect(tmpl.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '12px',
+                      background: isSelected ? `${meta.color}12` : 'rgba(255,255,255,0.02)',
+                      border: `1.5px solid ${isSelected ? meta.color : 'rgba(255,255,255,0.06)'}`,
+                      borderRadius: '14px',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                      textAlign: 'left',
+                      width: '100%',
+                      color: '#fff',
+                      fontFamily: 'inherit',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.borderColor = `${meta.color}44`;
+                        e.currentTarget.style.background = `${meta.color}08`;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                      }
+                    }}
+                  >
+                    {/* Thumbnail */}
+                    <div style={{
+                      width: '48px', height: '48px', borderRadius: '10px',
+                      overflow: 'hidden', flexShrink: 0,
+                      background: tmpl.image 
+                        ? `url(${tmpl.image}) center/cover` 
+                        : `linear-gradient(135deg, ${meta.color}30, ${meta.color}08)`,
+                    }} />
+
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: '13px', fontWeight: '600',
+                        letterSpacing: '-0.01em', lineHeight: '1.3',
+                        marginBottom: '2px',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>
+                        {tmpl.title}
+                      </div>
+                      <div style={{
+                        fontSize: '10.5px', color: 'rgba(255,255,255,0.35)',
+                        lineHeight: '1.4',
+                        display: '-webkit-box', WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                      }}>
+                        {tmpl.description}
+                      </div>
+                    </div>
+
+                    {/* Check icon */}
+                    {isSelected && (
+                      <div style={{
+                        width: '22px', height: '22px', borderRadius: '50%',
+                        background: meta.color,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <Check size={12} color="#fff" strokeWidth={3} />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+
+              {filteredTemplates.length === 0 && (
+                <div style={{
+                  textAlign: 'center', padding: '24px',
+                  color: 'rgba(255,255,255,0.3)', fontSize: '12px',
+                }}>
+                  No templates available for this category yet.
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{
             fontSize: '11px', color: 'rgba(255,255,255,0.2)',
-            textAlign: 'center', paddingTop: '4px',
+            textAlign: 'center', paddingTop: '2px',
           }}>
-            Both fields are optional — skip to start building
+            {selectedTemplate 
+              ? '✓ Template selected — click Build to start!' 
+              : 'Select a template to get started'}
           </div>
         </div>
       )}

@@ -60,10 +60,19 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
 
         // CRITICAL: Grab the existing generated HTML for contextual editing
         if (project.currentFileTree && project.currentFileTree['index.html']) {
-          existingHtmlForEdit = project.currentFileTree['index.html'];
-          isModification = true;
-          enhanceOptionsOverride.isModification = true;
-          console.log(`[Worker] 🔄 MODIFICATION MODE — project "${project.websiteName || project.name}" has existing HTML for editing`);
+          // If a templateId is present → this is the FIRST generation from a user-selected template.
+          // The pre-loaded HTML is just a preview — we want FRESH generation, not an edit.
+          if (enhanceOptionsOverride.templateId) {
+            console.log(`[Worker] 🎯 Template-based first generation — forcing FRESH MODE (ignoring pre-loaded template HTML)`);
+            isModification = false;
+            enhanceOptionsOverride.isModification = false;
+            existingHtmlForEdit = null;
+          } else {
+            existingHtmlForEdit = project.currentFileTree['index.html'];
+            isModification = true;
+            enhanceOptionsOverride.isModification = true;
+            console.log(`[Worker] 🔄 MODIFICATION MODE — project "${project.websiteName || project.name}" has existing HTML for editing`);
+          }
         } else {
           console.warn(`[Worker] ⚠️ Project is configured but no existing HTML found — treating as FRESH GENERATION`);
           isModification = false;

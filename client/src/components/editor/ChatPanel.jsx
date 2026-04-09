@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useLocation } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import { 
     Send, Bot, User, Lightbulb, RefreshCw, Package, 
@@ -15,6 +15,7 @@ import './ChatPanel.css'
 
 export default function ChatPanel() {
     const { projectId } = useParams()
+    const location = useLocation()
     const { 
         messages, isGenerating, generationPhase, generationLogs, 
         generationSummary, generationTaskName, isDetailsExpanded,
@@ -34,8 +35,8 @@ export default function ChatPanel() {
         theme: 'modern-dark', 
         websiteName: '', 
         description: '', 
-        logoUrl: '', 
-        brandColors: [] 
+        category: '',
+        templateId: '' 
     })
     const [attachments, setAttachments] = useState([])
     const [showAttachMenu, setShowAttachMenu] = useState(false)
@@ -49,6 +50,15 @@ export default function ChatPanel() {
     const fileInputRef = useRef(null)
     const attachMenuRef = useRef(null)
     const panelRef = useRef(null)
+
+    // If navigated from TemplatesPage with templateId in URL, pre-fill it
+    useEffect(() => {
+        const params = new URLSearchParams(location.search)
+        const urlTemplateId = params.get('templateId')
+        if (urlTemplateId && !styleOptions.templateId) {
+            setStyleOptions(prev => ({ ...prev, templateId: urlTemplateId }))
+        }
+    }, [location.search])
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -312,8 +322,21 @@ export default function ChatPanel() {
             assistantNext = "Nice name! Can you give me a short description of what your website or business is about?"
         } else if (configStep === 1) {
             userContent = 'Description: ' + styleOptions.description
-            assistantNext = "Perfect. Lastly, do you have a logo URL or specific hex colors you'd like to use? (Optional)"
+            // If templateId is already set (from TemplatesPage URL), skip category step
+            if (styleOptions.templateId) {
+                addMessage({ role: 'user', content: userContent })
+                setTimeout(async () => {
+                    addMessage({ role: 'assistant', content: "Perfect! Using your selected template. Let's build! 🚀" })
+                    const freshToken = await getToken()
+                    completeProjectConfig(projectId, freshToken, styleOptions)
+                }, 600)
+                return
+            }
+            assistantNext = "Perfect! Now pick a category and template that matches your vision."
         } else if (configStep === 2) {
+            if (!styleOptions.templateId) {
+                return // Don't proceed without a template selected
+            }
             completeProjectConfig(projectId, token, styleOptions)
             return
         }
@@ -536,20 +559,26 @@ export default function ChatPanel() {
                         style={{
                             width: '100%', padding: '14px',
                             background: configStep === 2 
-                                ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' 
+                                ? (styleOptions.templateId 
+                                    ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
+                                    : 'rgba(255,255,255,0.06)')
                                 : 'linear-gradient(135deg, #3a8bfd 0%, #4466ff 100%)',
-                            color: '#fff', border: 'none',
+                            color: configStep === 2 && !styleOptions.templateId ? 'rgba(255,255,255,0.3)' : '#fff',
+                            border: 'none',
                             borderRadius: '14px', fontSize: '14px', fontWeight: '600',
-                            cursor: 'pointer', display: 'flex',
+                            cursor: configStep === 2 && !styleOptions.templateId ? 'not-allowed' : 'pointer',
+                            display: 'flex',
                             alignItems: 'center', justifyContent: 'center', gap: '8px',
                             boxShadow: configStep === 2 
-                                ? '0 4px 20px rgba(139,92,246,0.3)' 
+                                ? (styleOptions.templateId ? '0 4px 20px rgba(139,92,246,0.3)' : 'none')
                                 : '0 4px 20px rgba(59,130,246,0.25)',
                             transition: 'all 0.3s ease',
                             marginTop: '12px',
                             letterSpacing: '-0.01em',
+                            opacity: configStep === 2 && !styleOptions.templateId ? 0.5 : 1,
                         }}
                         onClick={handleNextStep}
+                        disabled={configStep === 2 && !styleOptions.templateId}
                     >
                         {configStep === 2 ? (
                             <><Sparkles size={16} /> Build Your Website</>

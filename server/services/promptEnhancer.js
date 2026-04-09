@@ -171,6 +171,8 @@ function ruleBasedEnrich(prompt, options = {}) {
     logoUrl = null,
     brandColors = null,
     isModification = false,
+    templateId = null,
+    category = null,
   } = options;
 
   // 1. Load and merge theme
@@ -193,6 +195,10 @@ function ruleBasedEnrich(prompt, options = {}) {
     description,
     logoUrl,
     brandColors,
+
+    // User-selected template (from the Category → Template picker)
+    templateId,
+    category,
 
     // Rule-based enrichment
     themeId: theme.id,

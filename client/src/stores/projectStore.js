@@ -63,7 +63,10 @@ export const useProjectStore = create((set, get) => ({
                 isShared: p.isShared || false,
                 folderId: p.folderId || null,
                 techStack: p.techStack || 'react',
-                status: p.status || 'idle'
+                status: p.status || 'idle',
+                publishedUrl: p.publishedUrl || null,
+                websiteName: p.websiteName || null,
+                description: p.description || null
             }));
             set({ projects });
         } catch (err) {

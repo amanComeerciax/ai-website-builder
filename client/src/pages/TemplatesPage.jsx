@@ -85,11 +85,64 @@ export default function TemplatesPage() {
     // Helper mapping to give each template a distinct, beautiful thumbnail
     const getThumbnail = (id) => {
         if (id.includes('saas') || id.includes('startup')) return 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80';
-        if (id.includes('coffee') || id.includes('roastery') || id.includes('terroir')) return 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=800&q=80';
-        if (id.includes('portfolio') || id.includes('blog') || id.includes('design')) return 'https://images.unsplash.com/photo-1545239351-ef35f43d514b?auto=format&fit=crop&w=800&q=80';
+        if (id.includes('coffee') || id.includes('roastery') || id.includes('terroir') || id.includes('restaurant')) return 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=800&q=80';
+        if (id.includes('portfolio') || id.includes('blog') || id.includes('design') || id.includes('wellness')) return 'https://images.unsplash.com/photo-1545239351-ef35f43d514b?auto=format&fit=crop&w=800&q=80';
+        if (id.includes('fashion') || id.includes('vesper')) return 'https://images.unsplash.com/photo-1488161628813-04466f872be2?auto=format&fit=crop&w=800&q=80';
         if (id.includes('aura')) return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80';
-        // fallback abstract graphic
         return 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=800&q=80';
+    };
+
+    // Sub-component for Live Previews
+    const LiveThumbnail = ({ template }) => {
+        const [html, setHtml] = useState(null);
+        const [isVisible, setIsVisible] = useState(false);
+        const [isLoaded, setIsLoaded] = useState(false);
+        const thumbnailRef = React.useRef();
+
+        useEffect(() => {
+            const observer = new IntersectionObserver(([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.disconnect();
+                }
+            }, { threshold: 0.1 });
+
+            if (thumbnailRef.current) observer.observe(thumbnailRef.current);
+            return () => observer.disconnect();
+        }, []);
+
+        useEffect(() => {
+            if (!isVisible) return;
+            const fetchPreview = async () => {
+                try {
+                    const res = await fetch(`/api/templates/preview/${template.id}`);
+                    const data = await res.json();
+                    if (res.ok) setHtml(data.html);
+                } catch (err) {}
+            };
+            fetchPreview();
+        }, [isVisible, template.id]);
+
+        return (
+            <div className="lv-template-iframe-wrapper" ref={thumbnailRef}>
+                {html ? (
+                    <iframe 
+                        className={`lv-template-iframe ${isLoaded ? 'loaded' : ''}`}
+                        srcDoc={html}
+                        frameBorder="0"
+                        scrolling="no"
+                        title={template.title}
+                        onLoad={() => setIsLoaded(true)}
+                    />
+                ) : (
+                    <img 
+                        src={template.image || getThumbnail(template.id)} 
+                        alt={template.title} 
+                        className="lv-template-image fallback" 
+                    />
+                )}
+            </div>
+        );
     };
 
     return (
@@ -111,7 +164,7 @@ export default function TemplatesPage() {
                                 onClick={() => handlePreviewTemplate(tpl)}
                             >
                                 <div className="lv-template-image-wrapper">
-                                    <img src={getThumbnail(tpl.id)} alt={tpl.title} className="lv-template-image" />
+                                    <LiveThumbnail template={tpl} />
                                     <div className="lv-template-overlay">
                                         <span>Preview Template</span>
                                     </div>

@@ -29,6 +29,7 @@ import { CategoryList } from '@/components/ui/category-list'
 import { Accordion05 } from '@/components/ui/accordion-05'
 import { GooeyText } from '@/components/ui/gooey-text-morphing'
 import { motion } from 'framer-motion'
+import Lenis from 'lenis'
 import ThemePicker from '../components/ThemePicker'
 // import WebsiteStylePicker from '../components/editor/WebsiteStylePicker'
 import './LandingPage.css'
@@ -246,6 +247,32 @@ export default function LandingPage() {
         }
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    // Initialize Lenis smooth scroll
+    useEffect(() => {
+        const lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            orientation: 'vertical',
+            gestureOrientation: 'vertical',
+            smoothWheel: true,
+            wheelMultiplier: 1,
+            smoothTouch: false,
+            touchMultiplier: 2,
+            infinite: false,
+        })
+
+        function raf(time) {
+            lenis.raf(time)
+            requestAnimationFrame(raf)
+        }
+
+        requestAnimationFrame(raf)
+
+        return () => {
+            lenis.destroy()
+        }
     }, [])
 
     // Typewriter placeholder
@@ -871,7 +898,7 @@ export default function LandingPage() {
                         <motion.div
                             className="tmpl-card tmpl-card-featured"
                             initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={scaleUp} custom={0}
-                            style={{ background: TEMPLATES[0].bg }}
+                            style={{ '--tmpl-bg': TEMPLATES[0].bg }}
                         >
                             <div className="tmpl-card-browser">
                                 <div className="tmpl-browser-bar">
@@ -910,7 +937,7 @@ export default function LandingPage() {
                                 <motion.div
                                     key={i} className="tmpl-card tmpl-card-small"
                                     initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={slideInRight} custom={i}
-                                    style={{ background: tmpl.bg }}
+                                    style={{ '--tmpl-bg': tmpl.bg }}
                                 >
                                     <div className="tmpl-card-browser tmpl-browser-sm">
                                         <div className="tmpl-browser-bar">
@@ -940,7 +967,7 @@ export default function LandingPage() {
                             <motion.div
                                 key={i} className="tmpl-card tmpl-card-equal"
                                 initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={scaleUp} custom={i}
-                                style={{ background: tmpl.bg }}
+                                style={{ '--tmpl-bg': tmpl.bg }}
                             >
                                 <div className="tmpl-card-browser tmpl-browser-sm">
                                     <div className="tmpl-browser-bar">
@@ -971,7 +998,7 @@ export default function LandingPage() {
                         className="tmpl-cta-row"
                         initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}
                     >
-                        <Link to="/pricing" className="tmpl-browse-btn">
+                        <Link to="/templates" className="tmpl-browse-btn">
                             Browse all templates
                             <ArrowRight size={16} />
                         </Link>

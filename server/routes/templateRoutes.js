@@ -28,14 +28,19 @@ router.get('/', async (req, res, next) => {
                             const fileContent = await fs.readFile(filePath, 'utf8');
                             const templateData = JSON.parse(fileContent);
 
-                            // We only extract metadata to keep the payload lightweight
+                            // Handle both legacy { meta: { title } } and new { name, description } structures
+                            const title = templateData.name || templateData.meta?.title || capitalize(file.replace('.json', ''));
+                            const description = templateData.description || templateData.meta?.description || 'Start your project with this foundational template.';
+                            const image = templateData.image || templateData.meta?.image || null;
+
                             templatesList.push({
                                 id: `${dirent.name}/${file.replace('.json', '')}`,
                                 category: capitalize(dirent.name),
                                 categoryId: dirent.name,
-                                title: templateData.meta?.title || capitalize(file.replace('.json', '')),
-                                description: templateData.meta?.description || 'Start your project with this foundational template.',
-                            });
+                                title,
+                                description,
+                                image
+                             });
                         } catch (parseErr) {
                             console.warn(`[TemplateRoute] Failed to parse template file ${file}:`, parseErr.message);
                         }
