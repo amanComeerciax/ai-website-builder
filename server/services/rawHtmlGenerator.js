@@ -14,7 +14,61 @@ async function ensureDirectoryExists(dir) {
 async function getRawTemplate(enrichedSpec, requestModel) {
   const queryStr = `${enrichedSpec.businessName || ''} - ${enrichedSpec.description || ''} - ${enrichedSpec.rawPrompt || ''}`;
 
-  // ── PRIMARY: Read templates from MongoDB ──
+  // ── PRIORITY 1: User pre-selected a template from the Category/Template picker ──
+  if (enrichedSpec.templateId) {
+    console.log(`[Generator] 🎯 User selected template: "${enrichedSpec.templateId}" — skipping AI selection`);
+    try {
+      const TEMPLATES_DIR = path.join(__dirname, '../templates');
+      const [category, templateName] = enrichedSpec.templateId.split('/');
+
+      if (!category || !templateName) {
+        console.warn(`[Generator] Invalid templateId format: "${enrichedSpec.templateId}" — falling through to AI selection`);
+      } else {
+        // Try HTML file paths (same approach as templateRoutes.js)
+        const nameNoHyphens = templateName.replace(/-/g, '');
+        const htmlPaths = [
+          path.join(TEMPLATES_DIR, category, `${templateName}.html`),
+          path.join(TEMPLATES_DIR, category, `${nameNoHyphens}.html`),
+          path.join(TEMPLATES_DIR, 'raw', `${templateName}.html`),
+          path.join(TEMPLATES_DIR, 'raw', `${nameNoHyphens}.html`),
+        ];
+
+        let htmlContent = null;
+        for (const htmlPath of htmlPaths) {
+          try {
+            htmlContent = await fs.readFile(htmlPath, 'utf-8');
+            console.log(`[Generator] ✅ Loaded user-selected template HTML from: ${htmlPath}`);
+            break;
+          } catch {}
+        }
+
+        // Fallback: render from JSON if no raw HTML found
+        if (!htmlContent) {
+          const jsonPath = path.join(TEMPLATES_DIR, category, `${templateName}.json`);
+          try {
+            const jsonContent = await fs.readFile(jsonPath, 'utf-8');
+            const templateData = JSON.parse(jsonContent);
+            const { renderToHTML } = require('../component-kit/html-renderer.js');
+            const { getTheme } = require('../config/themeRegistry.js');
+            const themeConfig = getTheme(enrichedSpec.themeId || 'modern-dark');
+            htmlContent = renderToHTML(templateData, themeConfig);
+            console.log(`[Generator] ✅ Rendered user-selected template from JSON: ${jsonPath}`);
+          } catch (renderErr) {
+            console.warn(`[Generator] ⚠️ Failed to load/render user-selected template "${enrichedSpec.templateId}":`, renderErr.message);
+          }
+        }
+
+        if (htmlContent) {
+          return { name: templateName, content: htmlContent };
+        }
+        console.warn(`[Generator] ⚠️ User-selected template "${enrichedSpec.templateId}" not found — falling through to AI selection`);
+      }
+    } catch (err) {
+      console.warn(`[Generator] ⚠️ Error loading user-selected template:`, err.message);
+    }
+  }
+
+  // ── PRIORITY 2: AI-based selection from MongoDB ──
   try {
     const templates = await Template.find({ isActive: true }).select('name description keywords').lean();
     
@@ -70,7 +124,7 @@ Reply with ONLY the exact template name (e.g. template3). No explanation.`;
     console.warn('[Generator] MongoDB template lookup failed, falling back to filesystem:', dbErr.message);
   }
 
-  // ── FALLBACK: Read from local filesystem (backward compatible) ──
+  // ── PRIORITY 3: Random selection from local filesystem (backward compatible) ──
   const templatesDir = path.join(__dirname, '../templates/raw');
   await ensureDirectoryExists(templatesDir);
   

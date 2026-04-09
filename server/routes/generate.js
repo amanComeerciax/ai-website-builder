@@ -23,6 +23,8 @@ router.post("/", async (req, res, next) => {
             projectId, prompt, model, existingFiles,
             // New fields for enhanced pipeline
             theme, websiteName, description, logoUrl, brandColors,
+            // Template selection from the user
+            templateId, category,
             // Attachment data
             images, fileContents
         } = req.body
@@ -75,6 +77,8 @@ router.post("/", async (req, res, next) => {
                 description: description || null,
                 logoUrl: logoUrl || null,
                 brandColors: brandColors || null,
+                templateId: templateId || null,
+                category: category || null,
             }
         });
 
