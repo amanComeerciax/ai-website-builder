@@ -255,6 +255,34 @@
     margin: 0;
 }
 
+/* ── Lovable-style Action Bar ── */
+.cp-action-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0 2px 0;
+}
+.cp-action-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.cp-action-icon:hover {
+    color: #ccc;
+    background: rgba(255,255,255,0.06);
+}
+.cp-action-icon.active {
+    color: #22c55e;
+}
+
 /* Chips */
 .cp-chips-container {
     display: flex;
@@ -688,19 +716,13 @@
     margin-bottom: 6px;
 }
 
-/* ── Message Body (wraps content + copy btn) ── */
-.cp-msg-body {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    max-width: calc(100% - 40px);
-    min-width: 0;
+/* ── Copy Button (inside cp-msg-content) ── */
+.cp-msg-content {
+    position: relative;
 }
-.cp-msg-body:hover .cp-copy-btn {
+.cp-msg-content:hover .cp-copy-btn {
     opacity: 1;
 }
-
-/* ── Copy Button ── */
 .cp-copy-btn {
     display: flex;
     align-items: center;
@@ -714,7 +736,7 @@
     font-size: 11px;
     opacity: 0;
     transition: all 0.15s ease;
-    align-self: flex-start;
+    margin-top: 4px;
 }
 .cp-copy-btn:hover {
     color: #aaa;
@@ -723,6 +745,12 @@
 .cp-copy-btn.copied {
     opacity: 1;
     color: #22c55e;
+}
+.cp-copy-btn.cp-copy-visible {
+    opacity: 0.5;
+}
+.cp-copy-btn.cp-copy-visible:hover {
+    opacity: 1;
 }
 
 /* ── Message Images (clickable thumbnails) ── */

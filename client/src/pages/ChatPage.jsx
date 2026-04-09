@@ -120,7 +120,19 @@ export default function ChatPage() {
     // 2. OR the project has generated content from a previous session
     const showRightPanel = isIdeVisible || hasGeneratedContent
 
-    const projectName = project ? project.name : (projectId === 'new' ? 'Untitled Project' : 'Unknown Project')
+    // Fetch project from API if not in local store (e.g., page refresh)
+    useEffect(() => {
+        if (projectId && projectId !== 'new' && !project && isAuthLoaded) {
+            const fetchProject = async () => {
+                const token = await getToken()
+                const { activeWorkspaceId } = useWorkspaceStore.getState()
+                await useProjectStore.getState().fetchProjects(token, activeWorkspaceId)
+            }
+            fetchProject()
+        }
+    }, [projectId, project, isAuthLoaded, getToken])
+
+    const projectName = project ? project.name : (projectId === 'new' ? 'Untitled Project' : 'Loading...')
     
 
     // Resizer logic — capped between 15% and 30% of viewport

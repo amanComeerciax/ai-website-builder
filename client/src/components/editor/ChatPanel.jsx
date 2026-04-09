@@ -7,7 +7,8 @@ import {
     Plus, 
     Mic, ArrowUp, ArrowRight, ChevronRight, ChevronDown,
     Palette, ExternalLink, Sparkles, Camera, Paperclip, X,
-    Eye, Upload, Monitor, ImagePlus, Zap, Copy, Check
+    Eye, Upload, Monitor, ImagePlus, Zap, Copy, Check,
+    Undo2, ThumbsUp, ThumbsDown, MoreHorizontal
 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import WebsiteStylePicker from './WebsiteStylePicker'
@@ -208,16 +209,11 @@ export default function ChatPanel() {
             .filter(a => a.type === 'image')
             .map(a => a.preview)
 
-        addMessage({ 
-            role: 'user', 
-            content: messageContent,
-            images: msgImages.length > 0 ? msgImages : undefined
-        })
-        
         setInput('')
         setAttachments([])
         
         if (!isConfigured) {
+            addMessage({ role: 'user', content: messageContent, images: msgImages.length > 0 ? msgImages : undefined })
             setTimeout(() => {
                 addMessage({ 
                     role: 'assistant', 
@@ -229,6 +225,7 @@ export default function ChatPanel() {
 
         const greetings = ['hi', 'hello', 'hey', 'yo', 'sup', 'hola']
         if (greetings.includes(trimmed.toLowerCase().replace(/[?.,!]/g, ''))) {
+            addMessage({ role: 'user', content: messageContent, images: msgImages.length > 0 ? msgImages : undefined })
             setTimeout(() => {
                 addMessage({ 
                     role: 'assistant', 
@@ -383,35 +380,31 @@ export default function ChatPanel() {
                         <div className="cp-msg-avatar">
                             {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                         </div>
-                        <div className="cp-msg-body">
-                            <div className="cp-msg-content">
-                                {/* Visual edit tag chips (above message) */}
-                                {msg.visualEditElements && msg.visualEditElements.length > 0 && (
-                                    <div className="cp-msg-tags">
-                                        {msg.visualEditElements.map((el, i) => (
-                                            <span key={i} className={`cp-el-tag cp-el-tag-${el.tag}`}>
-                                                <span className="cp-el-tag-icon">{getTagIcon(el.tag)}</span>
-                                                {el.tag}{el.id ? `#${el.id}` : ''}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                                {/* Image thumbnails — clickable for preview */}
-                                {msg.images && msg.images.length > 0 && (
-                                    <div className="cp-msg-images">
-                                        {msg.images.map((src, i) => (
-                                            <div key={i} className="cp-msg-image-wrap" onClick={() => setLightboxSrc(src)}>
-                                                <img src={src} alt="Attachment" className="cp-msg-image" />
-                                                <div className="cp-msg-image-overlay">
-                                                    <Eye size={14} />
-                                                </div>
+                        <div className="cp-msg-content">
+                            {/* Visual edit tag chips (above message) */}
+                            {msg.visualEditElements && msg.visualEditElements.length > 0 && (
+                                <div className="cp-msg-tags">
+                                    {msg.visualEditElements.map((el, i) => (
+                                        <span key={i} className={`cp-el-tag cp-el-tag-${el.tag}`}>
+                                            <span className="cp-el-tag-icon">{getTagIcon(el.tag)}</span>
+                                            {el.tag}{el.id ? `#${el.id}` : ''}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            {msg.images && msg.images.length > 0 && (
+                                <div className="cp-msg-images">
+                                    {msg.images.map((src, i) => (
+                                        <div key={i} className="cp-msg-image-wrap" onClick={() => setLightboxSrc(src)}>
+                                            <img src={src} alt="Attachment" className="cp-msg-image" />
+                                            <div className="cp-msg-image-overlay">
+                                                <Eye size={14} />
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                                <p>{cleanMessageContent(msg.content)}</p>
-                            </div>
-                            {/* Copy button */}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <p>{cleanMessageContent(msg.content)}</p>
                             <button 
                                 className={`cp-copy-btn ${copiedId === msg.id ? 'copied' : ''}`}
                                 onClick={() => handleCopy(msg.id, msg.content)}
@@ -480,6 +473,19 @@ export default function ChatPanel() {
                                 <div className="cp-edit-summary">
                                     <p>{generationSummary}</p>
                                 </div>
+                                <div className="cp-action-bar">
+                                    <button className="cp-action-icon" title="Undo"><Undo2 size={16} /></button>
+                                    <button className="cp-action-icon" title="Good response"><ThumbsUp size={16} /></button>
+                                    <button className="cp-action-icon" title="Bad response"><ThumbsDown size={16} /></button>
+                                    <button 
+                                        className={`cp-action-icon ${copiedId === 'edit-summary' ? 'active' : ''}`} 
+                                        title="Copy" 
+                                        onClick={() => handleCopy('edit-summary', generationSummary)}
+                                    >
+                                        {copiedId === 'edit-summary' ? <Check size={16} /> : <Copy size={16} />}
+                                    </button>
+                                    <button className="cp-action-icon" title="More"><MoreHorizontal size={16} /></button>
+                                </div>
                             </>
                         )}
 
@@ -491,6 +497,19 @@ export default function ChatPanel() {
                                         <p className="cp-summary-paragraph">{generationSummary}</p>
                                     </div>
                                 )}
+                                <div className="cp-action-bar">
+                                    <button className="cp-action-icon" title="Undo"><Undo2 size={16} /></button>
+                                    <button className="cp-action-icon" title="Good response"><ThumbsUp size={16} /></button>
+                                    <button className="cp-action-icon" title="Bad response"><ThumbsDown size={16} /></button>
+                                    <button 
+                                        className={`cp-action-icon ${copiedId === 'gen-summary' ? 'active' : ''}`} 
+                                        title="Copy" 
+                                        onClick={() => handleCopy('gen-summary', generationSummary)}
+                                    >
+                                        {copiedId === 'gen-summary' ? <Check size={16} /> : <Copy size={16} />}
+                                    </button>
+                                    <button className="cp-action-icon" title="More"><MoreHorizontal size={16} /></button>
+                                </div>
                                 <div className="cp-completion-card">
                                     <div className="cp-cc-header">
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

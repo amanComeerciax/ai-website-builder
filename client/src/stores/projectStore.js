@@ -12,7 +12,6 @@ export const useProjectStore = create((set, get) => ({
     createProject: async (prompt, token, folderId = null, templateId = null, workspaceId = null) => {
         try {
             const payload = { 
-                name: prompt.substring(0, 40),
                 prompt: prompt,
                 folderId,
                 workspaceId
