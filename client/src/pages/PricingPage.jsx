@@ -123,13 +123,48 @@ const ShaderCanvas = () => {
 
 export default function PricingPage() {
     const navigate = useNavigate();
-    const { isSignedIn } = useAuth();
+    const { isSignedIn, userId } = useAuth();
 
-    const handlePlanClick = () => {
+    const [loadingPlan, setLoadingPlan] = useState(null);
+
+    const handlePlanClick = async (plan) => {
         if (!isSignedIn) {
             navigate("/signup");
-        } else {
+            return;
+        }
+
+        if (plan.price === "0") {
             navigate("/dashboard");
+            return;
+        }
+
+        setLoadingPlan(plan.name);
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payment/create-checkout-session`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    planName: plan.name,
+                    planPrice: plan.price,
+                    userId: userId,
+                })
+            });
+
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to create checkout session');
+            }
+
+            const { url } = await response.json();
+            if (url) {
+                window.location.href = url; // Redirect to Stripe Checkout
+            }
+        } catch (error) {
+            console.error('Checkout Error:', error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            setLoadingPlan(null);
         }
     };
 
@@ -218,9 +253,10 @@ export default function PricingPage() {
                             }}
                                 onMouseEnter={e => e.target.style.opacity = "0.85"}
                                 onMouseLeave={e => e.target.style.opacity = "1"}
-                                onClick={handlePlanClick}
+                                onClick={() => handlePlanClick(plan)}
+                                disabled={loadingPlan === plan.name}
                             >
-                                {plan.btn}
+                                {loadingPlan === plan.name ? "Processing..." : plan.btn}
                             </button>
                         </div>
                     ))}

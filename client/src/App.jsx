@@ -8,6 +8,7 @@ import DashboardLayout from './layouts/DashboardLayout'
 import ProjectsPage from './pages/ProjectsPage'
 import TemplatesPage from './pages/TemplatesPage'
 import AuthPage from './pages/AuthPage'
+import SuccessPage from './pages/SuccessPage'
 import SettingsPage from './pages/SettingsPage'
 import { Toaster } from 'react-hot-toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -56,6 +57,7 @@ function App() {
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/success" element={<ProtectedRoute><SuccessPage /></ProtectedRoute>} />
 
           {/* Dashboard routes */}
           <Route
