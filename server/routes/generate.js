@@ -7,6 +7,8 @@ require('../workers/aiWorker.js');
 
 const mongoose = require('mongoose');
 const Message = require('../models/Message');
+const Project = require('../models/Project');
+const WorkspaceMember = require('../models/WorkspaceMember');
 
 const express = require("express")
 const router = express.Router()
@@ -33,10 +35,27 @@ router.post("/", async (req, res, next) => {
             return res.status(400).json({ error: "projectId and prompt are required" })
         }
 
+        // RBAC: if this project belongs to a workspace, verify user has edit rights
+        const isValidObjectId = mongoose.Types.ObjectId.isValid(projectId) && projectId.length === 24;
+        if (isValidObjectId) {
+            const project = await Project.findById(projectId);
+            if (project && project.workspaceId) {
+                const userId = req.auth?.userId;
+                if (userId) {
+                    const member = await WorkspaceMember.findOne({ 
+                        workspaceId: project.workspaceId, userId, status: 'active' 
+                    });
+                    if (member && member.role === 'viewer') {
+                        return res.status(403).json({ error: "Viewers cannot generate code. Contact the workspace owner for edit access." });
+                    }
+                }
+            }
+        }
+
         let assistantMessageId = null;
 
         // Only create DB messages if projectId is a valid MongoDB ObjectId
-        const isValidObjectId = mongoose.Types.ObjectId.isValid(projectId) && projectId.length === 24;
+        // (isValidObjectId already declared above for RBAC check)
 
         if (isValidObjectId) {
             // Document the user's prompt in the DB

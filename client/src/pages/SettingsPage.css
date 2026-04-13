@@ -446,7 +446,7 @@
 .sp-search-bar { position: relative; width: 240px; }
 .sp-search-bar svg { position: absolute; left: 10px; top: 11px; color: #666; }
 .sp-search-bar input { padding-left: 32px; }
-.sp-table-wrapper { border: 1px solid var(--sp-border); border-radius: 10px; overflow: hidden; background: var(--sp-bg-card); }
+.sp-table-wrapper { border: 1px solid var(--sp-border); border-radius: 10px; overflow: visible; background: var(--sp-bg-card); position: relative; }
 .sp-table { width: 100%; border-collapse: collapse; text-align: left; }
 .sp-table th { font-size: 11px; text-transform: uppercase; color: #666; font-weight: 600; padding: 12px 16px; border-bottom: 1px solid var(--sp-border-divider); cursor: pointer; }
 .sp-table th:hover { color: #fff; }

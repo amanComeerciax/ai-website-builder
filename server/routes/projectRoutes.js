@@ -3,9 +3,30 @@ const router = express.Router()
 const Project = require("../models/Project")
 const Message = require("../models/Message")
 const Version = require("../models/Version")
+const WorkspaceMember = require("../models/WorkspaceMember")
 const { generateProjectName } = require('../utils/nameGenerator.js');
 
 const { requireAuth } = require('../middleware/requireAuth');
+
+// Helper: check if user can access a project (owner or workspace member)
+async function getProjectWithAccess(projectId, userId) {
+    // First try direct ownership
+    let project = await Project.findOne({ _id: projectId, userId });
+    if (project) return { project, role: 'owner', isCreator: true };
+
+    // Otherwise check if user is a workspace member for this project
+    project = await Project.findById(projectId);
+    if (!project || !project.workspaceId) return null;
+
+    const member = await WorkspaceMember.findOne({ 
+        workspaceId: project.workspaceId, 
+        userId, 
+        status: 'active' 
+    });
+    if (!member) return null;
+
+    return { project, role: member.role, isCreator: false };
+}
 
 // ── GET /api/projects — List user's projects ──
 router.get("/", requireAuth, async (req, res, next) => {
@@ -13,13 +34,24 @@ router.get("/", requireAuth, async (req, res, next) => {
         const userId = req.auth.userId;
         const workspaceId = req.query.workspaceId;
         
+        if (workspaceId) {
+            // Check if user is a member of this workspace
+            const member = await WorkspaceMember.findOne({ workspaceId, userId, status: 'active' });
+            if (member) {
+                // Return ALL projects in this workspace (not just user's own)
+                const projects = await Project.find({ workspaceId }).sort({ createdAt: -1 });
+                return res.json({ projects, memberRole: member.role });
+            }
+        }
+
+        // Fallback: return only user's own projects
         const query = { userId };
         if (workspaceId) {
             query.workspaceId = workspaceId;
         }
 
         const projects = await Project.find(query).sort({ createdAt: -1 });
-        res.json({ projects });
+        res.json({ projects, memberRole: 'owner' });
     } catch (error) {
         next(error);
     }
@@ -117,13 +149,12 @@ router.post("/", requireAuth, async (req, res, next) => {
 router.get("/:id/preview-html", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const project = await Project.findOne({ _id: req.params.id, userId })
-            .select('currentFileTree name');
-        if (!project) {
+        const access = await getProjectWithAccess(req.params.id, userId);
+        if (!access) {
             return res.status(404).json({ error: "Project not found" });
         }
-        const html = project.currentFileTree?.['index.html'] || null;
-        res.json({ html, name: project.name });
+        const html = access.project.currentFileTree?.['index.html'] || null;
+        res.json({ html, name: access.project.name });
     } catch (error) {
         next(error);
     }
@@ -133,15 +164,15 @@ router.get("/:id/preview-html", requireAuth, async (req, res, next) => {
 router.get("/:id", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
-        const project = await Project.findOne({ _id: req.params.id, userId })
-        if (!project) {
+        const access = await getProjectWithAccess(req.params.id, userId);
+        if (!access) {
             return res.status(404).json({ error: "Project not found" })
         }
         
         // Hydrate all messages for this project
-        const messages = await Message.find({ projectId: project._id }).sort('createdAt');
+        const messages = await Message.find({ projectId: access.project._id }).sort('createdAt');
         
-        res.json({ project, messages })
+        res.json({ project: access.project, messages, memberRole: access.role })
     } catch (error) {
         next(error)
     }
@@ -151,11 +182,16 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 router.post("/:id/deploy", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const project = await Project.findOne({ _id: req.params.id, userId });
+        const access = await getProjectWithAccess(req.params.id, userId);
         
-        if (!project) {
+        if (!access) {
             return res.status(404).json({ error: "Project not found" });
         }
+        // Viewers cannot deploy
+        if (access.role === 'viewer') {
+            return res.status(403).json({ error: "You don't have permission to deploy this project" });
+        }
+        const project = access.project;
 
         if (!project.currentFileTree || Object.keys(project.currentFileTree).length === 0) {
             return res.status(400).json({ error: "Project has no files to deploy yet." });
@@ -181,6 +217,13 @@ router.post("/:id/deploy", requireAuth, async (req, res, next) => {
 router.put("/:id", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
+        const access = await getProjectWithAccess(req.params.id, userId);
+        if (!access) return res.status(404).json({ error: "Project not found" });
+        // Only owner, admin, editor can update
+        if (access.role === 'viewer') {
+            return res.status(403).json({ error: "Viewers cannot update projects" });
+        }
+
         const { name, previewUrl, netlifySiteId, activeVersionId, folderId } = req.body
         
         const updateData = { name, previewUrl, netlifySiteId, activeVersionId }
@@ -189,7 +232,7 @@ router.put("/:id", requireAuth, async (req, res, next) => {
         }
  
         const project = await Project.findOneAndUpdate(
-            { _id: req.params.id, userId },
+            { _id: req.params.id },
             { $set: updateData },
             { new: true, runValidators: true }
         )
@@ -302,13 +345,19 @@ router.post("/:id/remix", requireAuth, async (req, res, next) => {
 router.delete("/:id", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
-        const project = await Project.findOneAndDelete({ _id: req.params.id, userId })
-        if (!project) return res.status(404).json({ error: "Project not found" })
+        const access = await getProjectWithAccess(req.params.id, userId);
+        if (!access) return res.status(404).json({ error: "Project not found" });
+        // Only owner and admin can delete
+        if (!['owner', 'admin'].includes(access.role)) {
+            return res.status(403).json({ error: "Only owners and admins can delete projects" });
+        }
+
+        await Project.findByIdAndDelete(req.params.id);
         
         // Cascade delete messages
-        await Message.deleteMany({ projectId: project._id });
+        await Message.deleteMany({ projectId: req.params.id });
         
-        res.json({ message: "Workspace deleted" })
+        res.json({ message: "Project deleted" })
     } catch (error) {
         next(error)
     }

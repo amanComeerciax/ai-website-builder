@@ -31,6 +31,9 @@ export const useChatStore = create(
             // Whether the current generation is an edit (vs fresh)
             isEditMode: false,
 
+            // RBAC: the user's role in the current workspace for this project
+            memberRole: 'owner',
+
             // Helper to automatically sync project-specific state to projectData
             _sync: (updater) => set((state) => {
                 const updates = typeof updater === 'function' ? updater(state) : updater;
@@ -110,7 +113,8 @@ export const useChatStore = create(
                             set({ 
                                 isConfigured: !!data.project.isConfigured,
                                 generationTheme: data.project.theme || '',
-                                generationSiteType: data.project.siteType || ''
+                                generationSiteType: data.project.siteType || '',
+                                memberRole: data.memberRole || 'owner'
                             });
                         }
                         if (data && data.messages && data.messages.length > 0) {

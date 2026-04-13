@@ -21,6 +21,16 @@ const workspaceSchema = new mongoose.Schema(
       type: String,
       enum: ['free', 'pro', 'business'],
       default: 'free'
+    },
+    avatar: {
+      type: String,
+      default: ''
+    },
+    handle: {
+      type: String,
+      default: '',
+      unique: true,
+      sparse: true
     }
   },
   { timestamps: true }
