@@ -262,6 +262,13 @@ class ApiClient {
         }, token)
     }
 
+    uploadWorkspaceAvatar(id, avatar, token) {
+        return this.request(`/workspaces/${id}/avatar`, {
+            method: 'POST',
+            body: JSON.stringify({ avatar }),
+        }, token)
+    }
+
     // ── Health ──
     healthCheck() {
         return this.request('/health')

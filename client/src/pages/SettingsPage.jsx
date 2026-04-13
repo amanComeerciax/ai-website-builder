@@ -328,23 +328,38 @@ const AccountSettingsPage = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 const WorkspacePage = () => {
   const { getToken } = useAuth();
+  const { activeWorkspaceId, workspaces, fetchWorkspaces } = useWorkspaceStore();
   const [workspace, setWorkspace] = useState(null);
   const [wsName, setWsName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showHandleModal, setShowHandleModal] = useState(false);
+  const [handleInput, setHandleInput] = useState('');
+  const [isSavingHandle, setIsSavingHandle] = useState(false);
+  const [callerRole, setCallerRole] = useState('viewer');
+  const avatarInputRef = React.useRef(null);
+
+  const canEdit = ['owner', 'admin'].includes(callerRole);
 
   useEffect(() => {
+    if (!activeWorkspaceId) return;
     const load = async () => {
       const token = await getToken();
-      const { workspaces } = await apiClient.getWorkspaces(token);
-      // Use the first workspace or active one
-      const ws = workspaces?.[0];
+      const { workspaces: wsList } = await apiClient.getWorkspaces(token);
+      // Use the active workspace, not the first one
+      const ws = wsList?.find(w => w._id === activeWorkspaceId) || wsList?.[0];
       if (ws) {
         setWorkspace(ws);
         setWsName(ws.name || '');
+        setHandleInput(ws.handle || '');
       }
+      // Fetch caller's role in this workspace
+      try {
+        const { callerRole: cr } = await apiClient.getWorkspaceMembers(activeWorkspaceId, token);
+        setCallerRole(cr || 'viewer');
+      } catch { setCallerRole('viewer'); }
     };
     load();
-  }, []);
+  }, [activeWorkspaceId]);
 
   const handleSave = async () => {
     if (!workspace || !wsName.trim()) return;
@@ -353,12 +368,68 @@ const WorkspacePage = () => {
       const token = await getToken();
       const { workspace: updated } = await apiClient.updateWorkspace(workspace._id, { name: wsName.trim() }, token);
       setWorkspace(updated);
+      // Refresh workspace store so sidebar updates
+      await fetchWorkspaces(token);
       toast.success('Workspace name updated');
     } catch (err) {
       toast.error(err.message || 'Failed to update');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be under 2MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const token = await getToken();
+        const { workspace: updated } = await apiClient.uploadWorkspaceAvatar(workspace._id, ev.target.result, token);
+        setWorkspace(updated);
+        toast.success('Avatar updated');
+      } catch (err) {
+        toast.error(err.message || 'Failed to upload avatar');
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleSaveHandle = async () => {
+    if (!workspace) return;
+    const clean = handleInput.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20);
+    if (!clean) { toast.error('Handle cannot be empty'); return; }
+    setIsSavingHandle(true);
+    try {
+      const token = await getToken();
+      const { workspace: updated } = await apiClient.updateWorkspace(workspace._id, { handle: clean }, token);
+      setWorkspace(updated);
+      setShowHandleModal(false);
+      toast.success('Handle updated');
+    } catch (err) {
+      toast.error(err.message || 'Handle already taken');
+    } finally {
+      setIsSavingHandle(false);
+    }
+  };
+
+  const generateSuggestions = () => {
+    const base = (wsName || 'workspace').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return [
+      `${base}_dev`,
+      `${base}_hq`,
+      `${base}_io`,
+      `the_${base}`
+    ].map(s => s.slice(0, 20));
   };
 
   const initial = wsName?.[0]?.toUpperCase() || 'W';
@@ -377,9 +448,27 @@ const WorkspacePage = () => {
         <div className="sp-row">
           <div className="sp-row-info">
             <h4 className="sp-row-title">Workspace Avatar</h4>
-            <p className="sp-row-desc">This is your workspace's avatar.</p>
+            <p className="sp-row-desc">This is your workspace's avatar. Click to change.</p>
           </div>
-          <div className="sp-avatar-orange">{initial}</div>
+          <div 
+            className="sp-avatar-orange" 
+            style={{ cursor: canEdit ? 'pointer' : 'default', overflow: 'hidden', position: 'relative', opacity: canEdit ? 1 : 0.7 }}
+            onClick={() => canEdit && avatarInputRef.current?.click()}
+            title={canEdit ? 'Click to change avatar' : 'You do not have permission to change the avatar'}
+          >
+            {workspace?.avatar ? (
+              <img src={workspace.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+            ) : initial}
+          </div>
+          {canEdit && (
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleAvatarChange}
+            />
+          )}
         </div>
         <div className="sp-row">
           <div className="sp-row-info">
@@ -391,18 +480,22 @@ const WorkspacePage = () => {
               type="text" 
               className="sp-input" 
               value={wsName} 
-              onChange={(e) => setWsName(e.target.value.slice(0, 50))} 
-              style={{width: '250px', marginBottom: '6px'}} 
+              onChange={(e) => canEdit && setWsName(e.target.value.slice(0, 50))} 
+              readOnly={!canEdit}
+              style={{width: '250px', marginBottom: '6px', opacity: canEdit ? 1 : 0.6, cursor: canEdit ? 'text' : 'not-allowed'}} 
             />
-            <div style={{fontSize: '11px', color: '#666'}}>{wsName.length} / 50 characters</div>
+            {canEdit && <div style={{fontSize: '11px', color: '#666'}}>{wsName.length} / 50 characters</div>}
           </div>
         </div>
-        <div className="sp-row">
+        <div className="sp-row" style={{ cursor: canEdit ? 'pointer' : 'default' }} onClick={() => canEdit && setShowHandleModal(true)}>
           <div className="sp-row-info">
             <h4 className="sp-row-title">Workspace Handle</h4>
             <p className="sp-row-desc">A unique URL for your workspace.</p>
           </div>
-          <div style={{fontSize: '13px', color: '#888'}}>{workspace?.slug || '—'}</div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <span style={{fontSize: '13px', color: '#888'}}>{workspace?.handle || workspace?.slug || (canEdit ? '— Set handle' : '— Not set')}</span>
+            {canEdit && <Pencil size={12} color="#666" />}
+          </div>
         </div>
         <div className="sp-row">
           <div className="sp-row-info">
@@ -413,11 +506,22 @@ const WorkspacePage = () => {
         </div>
       </div>
 
-      {wsName !== workspace?.name && (
+      {canEdit && wsName !== workspace?.name && (
         <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '16px'}}>
           <button className="sp-btn sp-btn-primary" onClick={handleSave} disabled={isSaving} style={{padding: '8px 20px'}}>
             {isSaving ? 'Saving...' : 'Save changes'}
           </button>
+        </div>
+      )}
+
+      {!canEdit && (
+        <div style={{
+          padding: '12px 16px', marginTop: '16px',
+          background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.2)',
+          borderRadius: '10px', fontSize: '13px', color: '#818cf8',
+          display: 'flex', alignItems: 'center', gap: '8px'
+        }}>
+          <Info size={14} /> You have <strong>{callerRole}</strong> access. Only owners and admins can edit workspace settings.
         </div>
       )}
 
@@ -426,6 +530,85 @@ const WorkspacePage = () => {
         <p className="sp-row-desc" style={{marginBottom: '16px'}}>Revoke your access to this workspace. Any resources you created will remain.</p>
         <button className="sp-btn sp-btn-danger-outline" disabled title="You cannot leave your last workspace">Leave workspace</button>
       </div>
+
+      {/* Handle Modal */}
+      {showHandleModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', 
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }} onClick={() => setShowHandleModal(false)}>
+          <div style={{
+            background: '#1a1a1a', borderRadius: '16px', width: '480px', maxWidth: '90vw',
+            overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.5)', border: '1px solid #2a2a2a'
+          }} onClick={e => e.stopPropagation()}>
+            {/* Gradient banner */}
+            <div style={{
+              height: '120px', 
+              background: 'linear-gradient(135deg, #ec4899, #8b5cf6, #6366f1, #3b82f6)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'
+            }}>
+              <span style={{ fontSize: '20px', fontWeight: 700, color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
+                stackforge.app/@{handleInput || 'yourusername'}
+              </span>
+              <button 
+                style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                onClick={() => setShowHandleModal(false)}
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div style={{ padding: '24px' }}>
+              <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: 600 }}>Set your workspace handle</h3>
+              <div style={{
+                display: 'flex', alignItems: 'center', background: '#111', border: '1px solid #333',
+                borderRadius: '8px', padding: '10px 14px', marginBottom: '8px'
+              }}>
+                <span style={{ color: '#666', marginRight: '4px' }}>@</span>
+                <input
+                  type="text"
+                  value={handleInput}
+                  onChange={(e) => setHandleInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20))}
+                  placeholder="username"
+                  style={{
+                    background: 'transparent', border: 'none', color: '#fff', fontSize: '14px',
+                    outline: 'none', flex: 1
+                  }}
+                  autoFocus
+                />
+              </div>
+              <p style={{ fontSize: '12px', color: '#666', margin: '0 0 20px 0' }}>Up to 20 characters (letters, numbers or _)</p>
+
+              <div style={{ marginBottom: '24px' }}>
+                <p style={{ fontSize: '13px', color: '#888', marginBottom: '8px' }}>Suggestions</p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {generateSuggestions().map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setHandleInput(s)}
+                      style={{
+                        background: '#222', border: '1px solid #333', borderRadius: '6px',
+                        color: '#ccc', fontSize: '12px', padding: '4px 12px', cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                      onMouseOver={(e) => { e.target.style.background = '#333'; e.target.style.color = '#fff'; }}
+                      onMouseOut={(e) => { e.target.style.background = '#222'; e.target.style.color = '#ccc'; }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button className="sp-btn sp-btn-outline" onClick={() => setShowHandleModal(false)}>Cancel</button>
+                <button className="sp-btn sp-btn-white" onClick={handleSaveHandle} disabled={isSavingHandle || !handleInput.trim()}>
+                  {isSavingHandle ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -435,47 +618,67 @@ const WorkspacePage = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 const PeoplePage = () => {
   const { getToken } = useAuth();
+  const { user: clerkUser } = useUser();
+  const { activeWorkspaceId } = useWorkspaceStore();
   const { setInviteModalOpen, isInviteLinkModalOpen, setInviteLinkModalOpen } = useUIStore();
+  const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [callerRole, setCallerRole] = useState('viewer');
+  const [callerUserId, setCallerUserId] = useState(null);
   const [pendingInvites, setPendingInvites] = useState([]);
   const [tab, setTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All roles');
   const [activeActionMenu, setActiveActionMenu] = useState(null);
-  const [workspaceId, setWorkspaceId] = useState(null);
+  const [roleSubmenu, setRoleSubmenu] = useState(null);
+  const menuRef = React.useRef(null);
 
   useEffect(() => {
+    if (!activeWorkspaceId) return;
     const load = async () => {
       const token = await getToken();
-      const { workspaces } = await apiClient.getWorkspaces(token);
-      const ws = workspaces?.[0];
-      if (!ws) return;
-      setWorkspaceId(ws._id);
-      const { members: m, callerRole: cr } = await apiClient.getWorkspaceMembers(ws._id, token);
+      const { members: m, callerRole: cr } = await apiClient.getWorkspaceMembers(activeWorkspaceId, token);
       setMembers(m || []);
       setCallerRole(cr || 'viewer');
-      const { invitations } = await apiClient.getWorkspaceInvitations(ws._id, token);
+      // Identify who the current user is
+      const currentUser = (m || []).find(mem => mem.email === clerkUser?.primaryEmailAddress?.emailAddress);
+      if (currentUser) setCallerUserId(currentUser.userId);
+      const { invitations } = await apiClient.getWorkspaceInvitations(activeWorkspaceId, token);
       setPendingInvites(invitations || []);
     };
     load();
-  }, []);
+  }, [activeWorkspaceId]);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!activeActionMenu) return;
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setActiveActionMenu(null);
+        setRoleSubmenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [activeActionMenu]);
 
   const handleRoleChange = async (memberId, newRole) => {
-    if (!workspaceId) return;
+    if (!activeWorkspaceId) return;
     try {
       const token = await getToken();
-      await apiClient.updateMemberRole(workspaceId, memberId, newRole, token);
+      await apiClient.updateMemberRole(activeWorkspaceId, memberId, newRole, token);
       setMembers(prev => prev.map(m => m._id === memberId ? { ...m, role: newRole } : m));
       toast.success('Role updated');
     } catch (err) { toast.error(err.message) }
+    setActiveActionMenu(null);
+    setRoleSubmenu(null);
   };
 
   const handleRemove = async (memberId) => {
-    if (!workspaceId) return;
+    if (!activeWorkspaceId) return;
     try {
       const token = await getToken();
-      await apiClient.removeMember(workspaceId, memberId, token);
+      await apiClient.removeMember(activeWorkspaceId, memberId, token);
       setMembers(prev => prev.filter(m => m._id !== memberId));
       toast.success('Member removed');
     } catch (err) { toast.error(err.message) }
@@ -483,10 +686,10 @@ const PeoplePage = () => {
   };
 
   const handleBlock = async (memberId) => {
-    if (!workspaceId) return;
+    if (!activeWorkspaceId) return;
     try {
       const token = await getToken();
-      const { member } = await apiClient.blockMember(workspaceId, memberId, token);
+      const { member } = await apiClient.blockMember(activeWorkspaceId, memberId, token);
       setMembers(prev => prev.map(m => m._id === memberId ? { ...m, status: member.status } : m));
       toast.success(member.status === 'blocked' ? 'Member blocked' : 'Member unblocked');
     } catch (err) { toast.error(err.message) }
@@ -525,6 +728,9 @@ const PeoplePage = () => {
 
   // Filter members
   let filtered = members;
+  if (tab === 'collaborators') {
+    filtered = filtered.filter(m => m.role !== 'owner');
+  }
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filtered = filtered.filter(m => (m.name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q));
@@ -532,6 +738,134 @@ const PeoplePage = () => {
   if (roleFilter !== 'All roles') {
     filtered = filtered.filter(m => m.role === roleFilter.toLowerCase());
   }
+
+  // Menu item component
+  const MenuItem = ({ onClick, icon, label, danger }) => (
+    <button
+      style={{
+        width: '100%', padding: '8px 14px', background: 'none', border: 'none',
+        color: danger ? '#ef4444' : '#ccc', fontSize: '13px', cursor: 'pointer',
+        textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px',
+        transition: 'background 0.1s'
+      }}
+      onMouseOver={(e) => e.currentTarget.style.background = '#2a2a2a'}
+      onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+      onClick={onClick}
+    >
+      {icon}{label}
+    </button>
+  );
+
+  const renderActionMenu = (member) => {
+    const isSelf = member.userId === callerUserId;
+    const isTargetOwner = member.role === 'owner';
+
+    return (
+      <div 
+        ref={menuRef}
+        style={{
+          position: 'absolute', left: '100%', top: '-8px', marginLeft: '8px', background: '#1e1e1e',
+          border: '1px solid #333', borderRadius: '10px', overflow: 'visible',
+          zIndex: 9999, minWidth: '200px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          padding: '4px 0'
+        }}
+      >
+        {/* View profile — always shown */}
+        <MenuItem
+          icon={<ExternalLink size={14} />}
+          label="View profile"
+          onClick={() => { setActiveActionMenu(null); navigate('/settings#profile'); }}
+        />
+
+        {isSelf ? (
+          <>
+            {/* Own row: Set credit limit, Leave workspace */}
+            <MenuItem
+              icon={<CreditCard size={14} />}
+              label="Set credit limit"
+              onClick={() => { setActiveActionMenu(null); toast('Credit limits coming soon'); }}
+            />
+            <div style={{ borderTop: '1px solid #2a2a2a', margin: '4px 0' }} />
+            <MenuItem
+              icon={<ArrowLeft size={14} />}
+              label="Leave workspace"
+              danger
+              onClick={() => { setActiveActionMenu(null); toast.error("Can't leave — this is your only workspace"); }}
+            />
+          </>
+        ) : !isTargetOwner ? (
+          <>
+            {/* Other member row */}
+            {isOwner && (
+              <>
+                {/* Change role sub-menu */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    style={{
+                      width: '100%', padding: '8px 14px', background: 'none', border: 'none',
+                      color: '#ccc', fontSize: '13px', cursor: 'pointer',
+                      textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between',
+                      transition: 'background 0.1s'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.background = '#2a2a2a'; setRoleSubmenu(member._id); }}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                    onClick={() => setRoleSubmenu(roleSubmenu === member._id ? null : member._id)}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Users size={14} /> Change role
+                    </span>
+                    <ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />
+                  </button>
+                  {roleSubmenu === member._id && (
+                    <div style={{
+                      position: 'absolute', right: '100%', top: 0, marginRight: '4px', background: '#1e1e1e',
+                      border: '1px solid #333', borderRadius: '8px', overflow: 'hidden',
+                      zIndex: 10000, minWidth: '130px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+                    }}>
+                      {['admin', 'editor', 'viewer'].map(r => (
+                        <button
+                          key={r}
+                          style={{
+                            width: '100%', padding: '8px 14px', background: member.role === r ? '#2a2a2a' : 'none',
+                            border: 'none', color: member.role === r ? '#818cf8' : '#ccc',
+                            fontSize: '13px', cursor: 'pointer', textAlign: 'left',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            transition: 'background 0.1s', textTransform: 'capitalize'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = '#2a2a2a'}
+                          onMouseOut={(e) => { if (member.role !== r) e.currentTarget.style.background = 'none'; }}
+                          onClick={() => handleRoleChange(member._id, r)}
+                        >
+                          {r}
+                          {member.role === r && <Check size={14} color="#818cf8" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+            <div style={{ borderTop: '1px solid #2a2a2a', margin: '4px 0' }} />
+            {isOwner && (
+              <MenuItem
+                icon={<span>⛔</span>}
+                label={member.status === 'blocked' ? 'Unban from workspace' : 'Ban from workspace'}
+                onClick={() => handleBlock(member._id)}
+              />
+            )}
+            {isOwnerOrAdmin && (
+              <MenuItem
+                icon={<span>🗑</span>}
+                label="Remove from workspace"
+                danger
+                onClick={() => handleRemove(member._id)}
+              />
+            )}
+          </>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <div className="sp-content">
@@ -602,73 +936,49 @@ const PeoplePage = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(member => (
-                <tr key={member._id} style={member.status === 'blocked' ? {opacity: 0.5} : {}}>
-                  <td>
-                    <div className="sp-table-user">
-                      <div className="sp-avatar-sm blue">{(member.name || member.email || '?')[0].toUpperCase()}</div>
-                      <div>
-                        <div style={{fontWeight: 600, color: '#fff'}}>{member.name || 'Unknown'}{member.role === callerRole && member.userId === members.find(m => m.role === callerRole)?.userId ? ' (you)' : ''}</div>
-                        <div style={{color: '#666', fontSize: '12px'}}>{member.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    {isOwner && member.role !== 'owner' ? (
-                      <select
-                        className="sp-select"
-                        value={member.role}
-                        onChange={(e) => handleRoleChange(member._id, e.target.value)}
-                        style={{background: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '4px 8px', color: '#ccc', fontSize: '13px'}}
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="editor">Editor</option>
-                        <option value="viewer">Viewer</option>
-                      </select>
-                    ) : (
-                      <span style={{textTransform: 'capitalize', color: member.role === 'owner' ? '#818cf8' : '#ccc'}}>{member.role}</span>
-                    )}
-                  </td>
-                  <td>
-                    <span style={{fontSize: '12px', color: member.status === 'blocked' ? '#ef4444' : '#22c55e'}}>
-                      {member.status === 'blocked' ? '⛔ Blocked' : '● Active'}
-                    </span>
-                  </td>
-                  <td>{formatDate(member.joinedAt)}</td>
-                  <td style={{position: 'relative'}}>
-                    {isOwnerOrAdmin && member.role !== 'owner' && (
-                      <>
-                        <MoreHorizontal
-                          size={16}
-                          color="#666"
-                          style={{cursor: 'pointer'}}
-                          onClick={() => setActiveActionMenu(activeActionMenu === member._id ? null : member._id)}
-                        />
-                        {activeActionMenu === member._id && (
-                          <div style={{position:'absolute',right:0,top:'100%',background:'#1e1e1e',border:'1px solid #333',borderRadius:'8px',overflow:'hidden',zIndex:10,minWidth:'140px',boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
-                            <button
-                              style={{width:'100%',padding:'8px 16px',background:'none',border:'none',color:'#ccc',fontSize:'13px',cursor:'pointer',textAlign:'left'}}
-                              onMouseOver={(e)=>e.target.style.background='#2a2a2a'}
-                              onMouseOut={(e)=>e.target.style.background='none'}
-                              onClick={() => handleBlock(member._id)}
-                            >
-                              {member.status === 'blocked' ? '✅ Unblock' : '⛔ Block'}
-                            </button>
-                            <button
-                              style={{width:'100%',padding:'8px 16px',background:'none',border:'none',color:'#ef4444',fontSize:'13px',cursor:'pointer',textAlign:'left'}}
-                              onMouseOver={(e)=>e.target.style.background='#2a2a2a'}
-                              onMouseOut={(e)=>e.target.style.background='none'}
-                              onClick={() => handleRemove(member._id)}
-                            >
-                              🗑 Remove
-                            </button>
-                          </div>
+              {filtered.map(member => {
+                const isSelf = member.userId === callerUserId;
+                return (
+                  <tr key={member._id} style={member.status === 'blocked' ? {opacity: 0.5} : {}}>
+                    <td>
+                      <div className="sp-table-user">
+                        {member.avatar ? (
+                          <img src={member.avatar} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                          <div className="sp-avatar-sm blue">{(member.name || member.email || '?')[0].toUpperCase()}</div>
                         )}
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                        <div>
+                          <div style={{fontWeight: 600, color: '#fff'}}>{member.name || 'Unknown'}{isSelf ? ' (you)' : ''}</div>
+                          <div style={{color: '#666', fontSize: '12px'}}>{member.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{textTransform: 'capitalize', color: member.role === 'owner' ? '#818cf8' : '#ccc'}}>
+                        {member.role}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{fontSize: '12px', color: member.status === 'blocked' ? '#ef4444' : '#22c55e'}}>
+                        {member.status === 'blocked' ? '⛔ Blocked' : '● Active'}
+                      </span>
+                    </td>
+                    <td>{formatDate(member.joinedAt)}</td>
+                    <td style={{position: 'relative'}}>
+                      <MoreHorizontal
+                        size={16}
+                        color="#666"
+                        style={{cursor: 'pointer'}}
+                        onClick={() => {
+                          setActiveActionMenu(activeActionMenu === member._id ? null : member._id);
+                          setRoleSubmenu(null);
+                        }}
+                      />
+                      {activeActionMenu === member._id && renderActionMenu(member)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           <div className="sp-table-footer">Showing {filtered.length} of {members.length} members</div>
@@ -678,7 +988,7 @@ const PeoplePage = () => {
       <InviteLinkModal 
         isOpen={isInviteLinkModalOpen} 
         onClose={() => setInviteLinkModalOpen(false)} 
-        workspaceId={workspaceId} 
+        workspaceId={activeWorkspaceId} 
       />
     </div>
   );

@@ -89,19 +89,72 @@ router.post("/", requireAuth, async (req, res, next) => {
     }
 });
 
-// ── PUT /api/workspaces/:id — Rename a workspace ──
+// ── PUT /api/workspaces/:id — Update workspace (name, handle, avatar) ──
 router.put("/:id", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const { name } = req.body;
+        const { name, handle, avatar } = req.body;
         
-        if (!name) {
-            return res.status(400).json({ error: "Workspace name is required" });
+        // Must be owner or admin
+        const member = await WorkspaceMember.findOne({ workspaceId: req.params.id, userId });
+        if (!member || !['owner', 'admin'].includes(member.role)) {
+            return res.status(403).json({ error: "Only owners and admins can update workspace settings" });
+        }
+
+        const updateData = {};
+        if (name && name.trim()) updateData.name = name.trim();
+        if (avatar !== undefined) updateData.avatar = avatar;
+        
+        // Handle update with uniqueness check
+        if (handle !== undefined) {
+            const cleanHandle = handle.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20);
+            if (cleanHandle) {
+                const existing = await Workspace.findOne({ handle: cleanHandle, _id: { $ne: req.params.id } });
+                if (existing) {
+                    return res.status(409).json({ error: "This handle is already taken" });
+                }
+                updateData.handle = cleanHandle;
+            }
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ error: "No fields to update" });
         }
 
         const workspace = await Workspace.findOneAndUpdate(
-            { _id: req.params.id, userId },
-            { name },
+            { _id: req.params.id },
+            updateData,
+            { new: true }
+        );
+
+        if (!workspace) {
+            return res.status(404).json({ error: "Workspace not found" });
+        }
+
+        res.json({ workspace });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ── POST /api/workspaces/:id/avatar — Upload workspace avatar (base64) ──
+router.post("/:id/avatar", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const { avatar } = req.body; // base64 string
+
+        const member = await WorkspaceMember.findOne({ workspaceId: req.params.id, userId });
+        if (!member || !['owner', 'admin'].includes(member.role)) {
+            return res.status(403).json({ error: "Only owners and admins can update the workspace avatar" });
+        }
+
+        if (!avatar) {
+            return res.status(400).json({ error: "Avatar data is required" });
+        }
+
+        const workspace = await Workspace.findByIdAndUpdate(
+            req.params.id,
+            { avatar },
             { new: true }
         );
 

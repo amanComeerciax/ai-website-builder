@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Workspace = require('../models/Workspace');
 const Project = require('../models/Project');
 const Folder = require('../models/Folder');
+const WorkspaceMember = require('../models/WorkspaceMember');
 
 const router = express.Router();
 
@@ -66,10 +67,25 @@ router.get('/me', requireAuth, async (req, res) => {
     const tier = user.tier || user.subscription?.tier || 'free';
 
     // MULTI-WORKSPACE MIGRATION LOGIC
-    let workspaces = await Workspace.find({ userId: req.user.clerkId }).sort({ createdAt: 1 });
+    let ownedWorkspaces = await Workspace.find({ userId: req.user.clerkId }).sort({ createdAt: 1 });
+    
+    // Also find workspaces where the user is an active member
+    const memberships = await WorkspaceMember.find({ userId: req.user.clerkId, status: 'active' });
+    const memberWorkspaceIds = memberships.map(m => m.workspaceId);
+    let memberWorkspaces = await Workspace.find({ _id: { $in: memberWorkspaceIds } });
+
+    // Combine them, ensuring no duplicates
+    const allWorkspaceIds = new Set(ownedWorkspaces.map(w => w._id.toString()));
+    const finalWorkspaces = [...ownedWorkspaces];
+    for (const mw of memberWorkspaces) {
+      if (!allWorkspaceIds.has(mw._id.toString())) {
+        finalWorkspaces.push(mw);
+      }
+    }
+
     let defaultWorkspaceId = null;
 
-    if (workspaces.length === 0) {
+    if (finalWorkspaces.length === 0) {
       // Auto-create default workspace
       const userName = user.name || user.email.split('@')[0];
       const defaultWorkspace = await Workspace.create({
@@ -77,11 +93,11 @@ router.get('/me', requireAuth, async (req, res) => {
         name: `${userName}'s StackForge`,
         plan: tier
       });
-      workspaces = [defaultWorkspace];
+      finalWorkspaces.push(defaultWorkspace);
       defaultWorkspaceId = defaultWorkspace._id;
       console.log(`[Auth] Auto-created default workspace for ${user.email}`);
     } else {
-      defaultWorkspaceId = workspaces[0]._id;
+      defaultWorkspaceId = ownedWorkspaces.length > 0 ? ownedWorkspaces[0]._id : finalWorkspaces[0]._id;
     }
 
     // Migrate old projects/folders that have no workspaceId
@@ -97,7 +113,7 @@ router.get('/me', requireAuth, async (req, res) => {
     // Determine active workspace: use lastActiveWorkspaceId if it's still valid, otherwise default
     let activeWorkspaceId = defaultWorkspaceId;
     if (user.lastActiveWorkspaceId) {
-      const isValid = workspaces.some(w => w._id.toString() === user.lastActiveWorkspaceId.toString());
+      const isValid = finalWorkspaces.some(w => w._id.toString() === user.lastActiveWorkspaceId.toString());
       if (isValid) {
         activeWorkspaceId = user.lastActiveWorkspaceId;
       } else {
@@ -115,7 +131,7 @@ router.get('/me', requireAuth, async (req, res) => {
       usage: user.usage || { generationsThisMonth: 0 },
       defaultWorkspaceId,
       activeWorkspaceId,
-      workspaces: workspaces.map(w => ({ _id: w._id, name: w.name, plan: w.plan, createdAt: w.createdAt }))
+      workspaces: finalWorkspaces.map(w => ({ _id: w._id, name: w.name, plan: w.plan, createdAt: w.createdAt }))
     });
   } catch (error) {
     console.error("Auth Fetch Error:", error);

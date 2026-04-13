@@ -25,7 +25,7 @@ export default function ChatPanel() {
         setIdeVisible, setSelectedModel, completeProjectConfig, setActiveView,
         isVisualEditMode, toggleVisualEditMode,
         selectedElements, removeSelectedElement, clearSelectedElements,
-        thinkingMessage, isEditMode
+        thinkingMessage, isEditMode, memberRole
     } = useChatStore()
     const { getToken } = useAuth()
     
@@ -672,12 +672,26 @@ export default function ChatPanel() {
                     </div>
                 )}
 
+                {/* Viewer RBAC banner */}
+                {memberRole === 'viewer' && (
+                    <div style={{
+                        padding: '8px 14px', margin: '0 0 8px 0',
+                        background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.2)',
+                        borderRadius: '8px', fontSize: '12px', color: '#818cf8',
+                        display: 'flex', alignItems: 'center', gap: '6px'
+                    }}>
+                        <Eye size={13} /> You have view-only access to this workspace.
+                    </div>
+                )}
+
                 <textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask Simple Task Hub..."
+                    placeholder={memberRole === 'viewer' ? 'View-only mode — editing disabled' : 'Ask Simple Task Hub...'}
                     className="cp-textarea"
                     rows={1}
+                    disabled={memberRole === 'viewer'}
+                    style={memberRole === 'viewer' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault()
@@ -694,6 +708,8 @@ export default function ChatPanel() {
                                 className="cp-tiny-btn" 
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onClick={() => setShowAttachMenu(!showAttachMenu)}
+                                disabled={memberRole === 'viewer'}
+                                style={memberRole === 'viewer' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                             >
                                 <Plus size={18} />
                             </button>
@@ -734,7 +750,8 @@ export default function ChatPanel() {
                                 value={selectedModel} 
                                 onChange={(e) => setSelectedModel(e.target.value)}
                                 className={`cp-model-dropdown ${isCompact ? 'compact' : ''}`}
-                                disabled={isGenerating}
+                                disabled={isGenerating || memberRole === 'viewer'}
+                                style={memberRole === 'viewer' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                             >
                                 {isCompact ? (
                                     <>
@@ -756,15 +773,24 @@ export default function ChatPanel() {
                         <button 
                             className={`cp-visual-edit-btn ${isVisualEditMode ? 'active' : ''}`}
                             onClick={toggleVisualEditMode}
-                            title="Visual edits"
+                            title={memberRole === 'viewer' ? "View-only mode — visual edits disabled" : "Visual edits"}
+                            disabled={memberRole === 'viewer'}
+                            style={memberRole === 'viewer' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                         >
                             <span>✏️</span>{!isCompact && <span className="cp-ve-label">Visual edits</span>}
                         </button>
-                        <button className="cp-tiny-btn" title="Mic"><Mic size={16} /></button>
                         <button 
-                            className={'cp-send-btn' + (canSend ? ' active' : '')}
+                            className="cp-tiny-btn" 
+                            title={memberRole === 'viewer' ? "Disabled" : "Mic"}
+                            disabled={memberRole === 'viewer'}
+                            style={memberRole === 'viewer' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                        >
+                            <Mic size={16} />
+                        </button>
+                        <button 
+                            className={'cp-send-btn' + (canSend && memberRole !== 'viewer' ? ' active' : '')}
                             onClick={handleSend}
-                            disabled={!canSend}
+                            disabled={!canSend || memberRole === 'viewer'}
                         >
                             <ArrowUp size={16} />
                         </button>
