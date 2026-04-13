@@ -44,8 +44,6 @@ export default function HistoryPanel({ projectId }) {
   }, [generationPhase, projectId]);
 
   const handleRestore = async (versionId) => {
-      if (!confirm("Are you sure you want to restore this version? Your current code will be overwritten.")) return;
-      
       setIsRestoring(true);
       try {
           const data = await apiClient.restoreVersion(projectId, versionId);
@@ -149,12 +147,13 @@ export default function HistoryPanel({ projectId }) {
                             {!isActive && (
                                 <button 
                                     className="hp-restore-btn"
-                                    onClick={() => handleRestore(version._id)}
+                                    onDoubleClick={() => handleRestore(version._id)}
+                                    title="Double-click to restore this version"
                                     disabled={isRestoring}
                                 >
                                     {isRestoring ? 'Restoring...' : (
                                         <>
-                                            <RotateCcw size={12} /> Restore this version
+                                            <RotateCcw size={12} /> Double-click to restore
                                         </>
                                     )}
                                 </button>

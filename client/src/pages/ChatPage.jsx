@@ -276,6 +276,7 @@ export default function ChatPage() {
                     <div className="ep-app-trigger-container">
                         <button 
                             className="ep-app-trigger"
+                            onMouseDown={(e) => e.stopPropagation()}
                             onClick={() => setIsPopoverOpen(!isPopoverOpen)}
                         >
                             <span className="ep-app-name">{projectName}</span>
@@ -414,9 +415,8 @@ export default function ChatPage() {
             {/* Workspace: centered chat-only OR 2-panel split */}
             <div className={`ep-workspace ${isDragging ? 'resizing' : ''} ${!showRightPanel ? 'ep-centered' : ''}`}>
                 {/* Left: Chat/Agent Panel (20%, draggable) */}
-                <div className="ep-panel ep-chat" style={showRightPanel ? { width: isChatVisible ? chatWidth : 0, minWidth: isChatVisible ? 200 : 0, overflow: isChatVisible ? undefined : 'hidden', transition: 'width 0.25s ease, min-width 0.25s ease' } : {}}>
-                    {isChatVisible && (
-                    <div className="ep-chat-container" style={{ position: 'relative' }}>
+                <div className="ep-panel ep-chat" style={showRightPanel ? { width: isChatVisible ? chatWidth : 0, minWidth: isChatVisible ? 200 : 0, overflow: 'hidden', transition: 'width 0.25s ease, min-width 0.25s ease' } : {}}>
+                    <div className="ep-chat-container" style={{ position: 'relative', width: showRightPanel ? chatWidth : '100%', opacity: isChatVisible ? 1 : 0, transition: 'opacity 0.2s ease', pointerEvents: isChatVisible ? 'auto' : 'none', visibility: isChatVisible ? 'visible' : 'hidden' }}>
                         <ChatPanel />
                         
                         {isHistoryOpen && (
@@ -445,7 +445,6 @@ export default function ChatPage() {
                             )}
                         </div>
                     </div>
-                    )}
                 </div>
 
                 {showRightPanel && (

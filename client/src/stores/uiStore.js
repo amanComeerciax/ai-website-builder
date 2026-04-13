@@ -13,4 +13,13 @@ export const useUIStore = create((set) => ({
     
     isCreateWorkspaceOpen: false,
     setCreateWorkspaceOpen: (isOpen) => set({ isCreateWorkspaceOpen: isOpen }),
+
+    isInviteModalOpen: false,
+    setInviteModalOpen: (isOpen) => set({ isInviteModalOpen: isOpen }),
+
+    isInboxOpen: false,
+    setInboxOpen: (isOpen) => set({ isInboxOpen: isOpen }),
+
+    isInviteLinkModalOpen: false,
+    setInviteLinkModalOpen: (isOpen) => set({ isInviteLinkModalOpen: isOpen }),
 }));

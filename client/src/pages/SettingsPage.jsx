@@ -5,10 +5,14 @@ import {
   Plug, Github, Search, ChevronDown, Check, MoreHorizontal, Settings,
   Pencil, Info, X, ExternalLink, Activity, FolderPlus
 } from 'lucide-react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { useAuthStore } from '../stores/authStore';
+import { useUIStore } from '../stores/uiStore';
+import { useWorkspaceStore } from '../stores/workspaceStore';
 import { apiClient } from '../lib/api';
 import { toast } from 'react-hot-toast';
+import InviteMembersModal from '../components/modals/InviteMembersModal';
+import InviteLinkModal from '../components/modals/InviteLinkModal';
 import './SettingsPage.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -35,7 +39,12 @@ const MutedDropdown = ({ options, value }) => (
 // ─────────────────────────────────────────────────────────────────────────────
 const ProfilePage = () => {
     const navigate = useNavigate();
+    const { user } = useUser();
     
+    const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User';
+    const userEmail = user?.primaryEmailAddress?.emailAddress || 'user@example.com';
+    const userInitial = userName.charAt(0).toUpperCase();
+
     return (
       <div className="sp-profile-container">
         <header className="sp-profile-nav">
@@ -45,13 +54,13 @@ const ProfilePage = () => {
         
         <main className="sp-profile-hero">
           <div className="sp-banner">
-            <div className="sp-banner-avatar">T</div>
+            <div className="sp-banner-avatar">{userInitial}</div>
           </div>
           
           <div className="sp-profile-name-row">
             <div>
-              <h1 className="sp-profile-name">tikku</h1>
-              <p className="sp-profile-handle">@tikku_vj</p>
+              <h1 className="sp-profile-name">{userName}</h1>
+              <p className="sp-profile-handle">{userEmail}</p>
               <div className="sp-profile-stats">
                 <span>0</span> followers · <span>0</span> following
               </div>
@@ -130,7 +139,11 @@ const ProfilePage = () => {
 // PAGE: ACCOUNT SETTINGS
 // ─────────────────────────────────────────────────────────────────────────────
 const AccountSettingsPage = () => {
-  const [toggles, setToggles] = useState({ chat: true, auto: true, push: true });
+  const { user } = useUser();
+  const userNameHandle = user?.username || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'username';
+  const userEmail = user?.primaryEmailAddress?.emailAddress || 'user@example.com';
+  
+  const [toggles, setToggles] = useState({ chat: true, auto: false, push: true });
   const [sound, setSound] = useState('first');
 
   const RadioOpt = ({ id, label }) => (
@@ -181,7 +194,7 @@ const AccountSettingsPage = () => {
             <p className="sp-row-desc">Change name, location, avatar, and banner on your profile.</p>
           </div>
           <a href="#" style={{color: '#888', fontSize: '12px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px'}}>
-            <span style={{borderBottom: '1px solid #444', paddingBottom: '1px'}}>Open profile on stackforge.app/@tikku_vj</span> ↗
+            <span style={{borderBottom: '1px solid #444', paddingBottom: '1px'}}>Open profile on stackforge.app/@{userNameHandle}</span> ↗
           </a>
         </div>
         <div className="sp-row" style={{alignItems: 'center'}}>
@@ -190,7 +203,7 @@ const AccountSettingsPage = () => {
             <p className="sp-row-desc">Your public identifier and profile URL.</p>
           </div>
           <div style={{display: 'flex', gap: '12px', flex: 1, maxWidth: '400px'}}>
-            <input type="text" className="sp-input" defaultValue="tikku_vj" style={{background: 'rgba(255,255,255,0.02)'}} />
+            <input type="text" className="sp-input" defaultValue={userNameHandle} style={{background: 'rgba(255,255,255,0.02)'}} />
             <button className="sp-btn sp-btn-outline">Update</button>
           </div>
         </div>
@@ -200,7 +213,7 @@ const AccountSettingsPage = () => {
             <p className="sp-row-desc">Your email address associated with your account.</p>
           </div>
           <div style={{flex: 1, maxWidth: '400px'}}>
-            <input type="text" className="sp-input" defaultValue="vajapiy628@hlkes.com" disabled style={{opacity: 0.5}} />
+            <input type="text" className="sp-input" value={userEmail} readOnly disabled style={{opacity: 0.5}} />
           </div>
         </div>
       </div>
@@ -259,7 +272,7 @@ const AccountSettingsPage = () => {
               </div>
               <div>
                 <div style={{fontSize: '13px', fontWeight: 600, color: '#fff'}}>Password <span className="sp-badge" style={{background: '#333', fontSize: '9px', marginLeft: '6px'}}>Primary</span></div>
-                <div style={{fontSize: '11px', color: '#666'}}>vajapiy628@hlkes.com</div>
+                <div style={{fontSize: '11px', color: '#666'}}>{userEmail}</div>
               </div>
             </div>
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '24px', borderBottom: '1px solid #222'}}>
@@ -313,126 +326,363 @@ const AccountSettingsPage = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: WORKSPACE
 // ─────────────────────────────────────────────────────────────────────────────
-const WorkspacePage = () => (
-  <div className="sp-content">
-    <div className="sp-page-header">
-      <div>
-        <h1 className="sp-page-title">Workspace Settings</h1>
-        <p className="sp-page-subtitle">Manage your workspace details and preferences.</p>
-      </div>
-      <a className="sp-docs-link">⊙ Docs</a>
-    </div>
+const WorkspacePage = () => {
+  const { getToken } = useAuth();
+  const [workspace, setWorkspace] = useState(null);
+  const [wsName, setWsName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-    <div className="sp-card-no-padding">
-      <div className="sp-row">
-        <div className="sp-row-info">
-          <h4 className="sp-row-title">Workspace Avatar</h4>
-          <p className="sp-row-desc">This is your workspace's avatar.</p>
-        </div>
-        <div className="sp-avatar-orange">T</div>
-      </div>
-      <div className="sp-row">
-        <div className="sp-row-info">
-          <h4 className="sp-row-title">Workspace Name</h4>
-          <p className="sp-row-desc">Used to identify your workspace on the dashboard.</p>
-        </div>
-        <div style={{textAlign: 'right'}}>
-          <input type="text" className="sp-input" defaultValue="tikku's StackForge" style={{width: '250px', marginBottom: '6px'}} />
-          <div style={{fontSize: '11px', color: '#666'}}>18 / 50 characters</div>
-        </div>
-      </div>
-      <div className="sp-row">
-        <div className="sp-row-info">
-          <h4 className="sp-row-title">Workspace Handle</h4>
-          <p className="sp-row-desc">A unique URL for your workspace.</p>
-        </div>
-        <button className="sp-btn sp-btn-outline">Set handle</button>
-      </div>
-      <div className="sp-row">
-        <div className="sp-row-info">
-          <h4 className="sp-row-title">Credit Limit</h4>
-          <p className="sp-row-desc">Set a soft limit for API credits.</p>
-        </div>
-        <input type="number" className="sp-input" placeholder="Optional" style={{width: '120px'}} />
-      </div>
-    </div>
+  useEffect(() => {
+    const load = async () => {
+      const token = await getToken();
+      const { workspaces } = await apiClient.getWorkspaces(token);
+      // Use the first workspace or active one
+      const ws = workspaces?.[0];
+      if (ws) {
+        setWorkspace(ws);
+        setWsName(ws.name || '');
+      }
+    };
+    load();
+  }, []);
 
-    <div className="sp-card sp-card-danger">
-      <h4 className="sp-row-title" style={{marginBottom: '8px'}}>Leave workspace</h4>
-      <p className="sp-row-desc" style={{marginBottom: '16px'}}>Revoke your access to this workspace. Any resources you created will remain.</p>
-      <button className="sp-btn sp-btn-danger-outline" disabled title="You cannot leave your last workspace">Leave workspace</button>
+  const handleSave = async () => {
+    if (!workspace || !wsName.trim()) return;
+    setIsSaving(true);
+    try {
+      const token = await getToken();
+      const { workspace: updated } = await apiClient.updateWorkspace(workspace._id, { name: wsName.trim() }, token);
+      setWorkspace(updated);
+      toast.success('Workspace name updated');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const initial = wsName?.[0]?.toUpperCase() || 'W';
+
+  return (
+    <div className="sp-content">
+      <div className="sp-page-header">
+        <div>
+          <h1 className="sp-page-title">Workspace Settings</h1>
+          <p className="sp-page-subtitle">Manage your workspace details and preferences.</p>
+        </div>
+        <a className="sp-docs-link">⊙ Docs</a>
+      </div>
+
+      <div className="sp-card-no-padding">
+        <div className="sp-row">
+          <div className="sp-row-info">
+            <h4 className="sp-row-title">Workspace Avatar</h4>
+            <p className="sp-row-desc">This is your workspace's avatar.</p>
+          </div>
+          <div className="sp-avatar-orange">{initial}</div>
+        </div>
+        <div className="sp-row">
+          <div className="sp-row-info">
+            <h4 className="sp-row-title">Workspace Name</h4>
+            <p className="sp-row-desc">Used to identify your workspace on the dashboard.</p>
+          </div>
+          <div style={{textAlign: 'right'}}>
+            <input 
+              type="text" 
+              className="sp-input" 
+              value={wsName} 
+              onChange={(e) => setWsName(e.target.value.slice(0, 50))} 
+              style={{width: '250px', marginBottom: '6px'}} 
+            />
+            <div style={{fontSize: '11px', color: '#666'}}>{wsName.length} / 50 characters</div>
+          </div>
+        </div>
+        <div className="sp-row">
+          <div className="sp-row-info">
+            <h4 className="sp-row-title">Workspace Handle</h4>
+            <p className="sp-row-desc">A unique URL for your workspace.</p>
+          </div>
+          <div style={{fontSize: '13px', color: '#888'}}>{workspace?.slug || '—'}</div>
+        </div>
+        <div className="sp-row">
+          <div className="sp-row-info">
+            <h4 className="sp-row-title">Plan</h4>
+            <p className="sp-row-desc">Current workspace plan.</p>
+          </div>
+          <span className="sp-badge" style={{background: '#252530', padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: '#818cf8'}}>{workspace?.plan || 'free'}</span>
+        </div>
+      </div>
+
+      {wsName !== workspace?.name && (
+        <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '16px'}}>
+          <button className="sp-btn sp-btn-primary" onClick={handleSave} disabled={isSaving} style={{padding: '8px 20px'}}>
+            {isSaving ? 'Saving...' : 'Save changes'}
+          </button>
+        </div>
+      )}
+
+      <div className="sp-card sp-card-danger">
+        <h4 className="sp-row-title" style={{marginBottom: '8px'}}>Leave workspace</h4>
+        <p className="sp-row-desc" style={{marginBottom: '16px'}}>Revoke your access to this workspace. Any resources you created will remain.</p>
+        <button className="sp-btn sp-btn-danger-outline" disabled title="You cannot leave your last workspace">Leave workspace</button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: PEOPLE
 // ─────────────────────────────────────────────────────────────────────────────
-const PeoplePage = () => (
-  <div className="sp-content">
-    <div className="sp-page-header">
-      <div>
-        <h1 className="sp-page-title">People</h1>
-        <p className="sp-page-subtitle">Manage members and their roles.</p>
+const PeoplePage = () => {
+  const { getToken } = useAuth();
+  const { setInviteModalOpen, isInviteLinkModalOpen, setInviteLinkModalOpen } = useUIStore();
+  const [members, setMembers] = useState([]);
+  const [callerRole, setCallerRole] = useState('viewer');
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [tab, setTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('All roles');
+  const [activeActionMenu, setActiveActionMenu] = useState(null);
+  const [workspaceId, setWorkspaceId] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      const token = await getToken();
+      const { workspaces } = await apiClient.getWorkspaces(token);
+      const ws = workspaces?.[0];
+      if (!ws) return;
+      setWorkspaceId(ws._id);
+      const { members: m, callerRole: cr } = await apiClient.getWorkspaceMembers(ws._id, token);
+      setMembers(m || []);
+      setCallerRole(cr || 'viewer');
+      const { invitations } = await apiClient.getWorkspaceInvitations(ws._id, token);
+      setPendingInvites(invitations || []);
+    };
+    load();
+  }, []);
+
+  const handleRoleChange = async (memberId, newRole) => {
+    if (!workspaceId) return;
+    try {
+      const token = await getToken();
+      await apiClient.updateMemberRole(workspaceId, memberId, newRole, token);
+      setMembers(prev => prev.map(m => m._id === memberId ? { ...m, role: newRole } : m));
+      toast.success('Role updated');
+    } catch (err) { toast.error(err.message) }
+  };
+
+  const handleRemove = async (memberId) => {
+    if (!workspaceId) return;
+    try {
+      const token = await getToken();
+      await apiClient.removeMember(workspaceId, memberId, token);
+      setMembers(prev => prev.filter(m => m._id !== memberId));
+      toast.success('Member removed');
+    } catch (err) { toast.error(err.message) }
+    setActiveActionMenu(null);
+  };
+
+  const handleBlock = async (memberId) => {
+    if (!workspaceId) return;
+    try {
+      const token = await getToken();
+      const { member } = await apiClient.blockMember(workspaceId, memberId, token);
+      setMembers(prev => prev.map(m => m._id === memberId ? { ...m, status: member.status } : m));
+      toast.success(member.status === 'blocked' ? 'Member blocked' : 'Member unblocked');
+    } catch (err) { toast.error(err.message) }
+    setActiveActionMenu(null);
+  };
+
+  const handleExport = () => {
+    if (!members.length) return;
+    const headers = ['Name', 'Email', 'Role', 'Status', 'Joined Date'];
+    const csvRows = [headers.join(',')];
+    members.forEach(m => {
+        csvRows.push([
+            `"${m.name || ''}"`,
+            `"${m.email || ''}"`,
+            `"${m.role || ''}"`,
+            `"${m.status || ''}"`,
+            `"${new Date(m.joinedAt || Date.now()).toISOString()}"`
+        ].join(','));
+    });
+    const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRows.join('\n'));
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', 'workspace-members.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const formatDate = (d) => {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const isOwnerOrAdmin = ['owner', 'admin'].includes(callerRole);
+  const isOwner = callerRole === 'owner';
+
+  // Filter members
+  let filtered = members;
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(m => (m.name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q));
+  }
+  if (roleFilter !== 'All roles') {
+    filtered = filtered.filter(m => m.role === roleFilter.toLowerCase());
+  }
+
+  return (
+    <div className="sp-content">
+      <div className="sp-page-header">
+        <div>
+          <h1 className="sp-page-title">People</h1>
+          <p className="sp-page-subtitle">Manage members and their roles.</p>
+        </div>
+        <a className="sp-docs-link">⊙ Docs</a>
       </div>
-      <a className="sp-docs-link">⊙ Docs</a>
-    </div>
 
-    <div className="sp-tabs">
-      <button className="sp-tab active">All</button>
-      <button className="sp-tab">Invitations</button>
-      <button className="sp-tab">Collaborators</button>
-    </div>
-
-    <div className="sp-filter-bar">
-      <div className="sp-search-bar">
-        <Search size={14} />
-        <input type="text" className="sp-input" placeholder="Search members..." />
+      <div className="sp-tabs">
+        <button className={`sp-tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>All</button>
+        <button className={`sp-tab ${tab === 'invitations' ? 'active' : ''}`} onClick={() => setTab('invitations')}>
+          Invitations {pendingInvites.length > 0 && <span style={{background:'#ef4444',color:'#fff',fontSize:'10px',padding:'1px 6px',borderRadius:'8px',marginLeft:'4px'}}>{pendingInvites.length}</span>}
+        </button>
+        <button className={`sp-tab ${tab === 'collaborators' ? 'active' : ''}`} onClick={() => setTab('collaborators')}>Collaborators</button>
       </div>
-      <MutedDropdown options={['All roles', 'Owner', 'Editor', 'Viewer']} value="All roles" />
-      <div style={{flex: 1}}></div>
-      <button className="sp-btn sp-btn-outline" style={{borderStyle: 'dashed'}}>Copy Invite Link</button>
-      <button className="sp-btn sp-btn-outline">Export</button>
-      <button className="sp-btn sp-btn-white">Invite members</button>
-    </div>
 
-    <div className="sp-table-wrapper">
-      <table className="sp-table">
-        <thead>
-          <tr>
-            <th>Name ⇅</th>
-            <th>Role ⇅</th>
-            <th>Joined date ⇅</th>
-            <th>Apr usage ⇅</th>
-            <th>Total usage ⇅</th>
-            <th>Credit limit ⇅</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>
-              <div className="sp-table-user">
-                <div className="sp-avatar-sm blue">T</div>
-                <div>
-                  <div style={{fontWeight: 600, color: '#fff'}}>tikku (you)</div>
-                  <div style={{color: '#666', fontSize: '12px'}}>varushytoffical@gmail.com</div>
-                </div>
-              </div>
-            </td>
-            <td><MutedDropdown options={['Owner', 'Editor']} value="Owner" /></td>
-            <td>Mar 12, 2026</td>
-            <td>2 credits</td>
-            <td>4 credits</td>
-            <td>∞</td>
-            <td><MoreHorizontal size={16} color="#666" style={{cursor: 'pointer'}} /></td>
-          </tr>
-        </tbody>
-      </table>
-      <div className="sp-table-footer">Showing 1-1 of 1</div>
+      <div className="sp-filter-bar">
+        <div className="sp-search-bar">
+          <Search size={14} />
+          <input type="text" className="sp-input" placeholder="Search members..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
+        <MutedDropdown options={['All roles', 'Owner', 'Admin', 'Editor', 'Viewer']} value={roleFilter} onChange={setRoleFilter} />
+        <div style={{flex: 1}}></div>
+        {isOwnerOrAdmin && (
+          <>
+            <button className="sp-btn sp-btn-outline" style={{borderStyle: 'dashed'}} onClick={() => setInviteLinkModalOpen(true)}>Copy Invite Link</button>
+            <button className="sp-btn sp-btn-outline" onClick={handleExport} title="Export members (CSV)" style={{padding: '0 8px'}}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            </button>
+            <button className="sp-btn sp-btn-white" onClick={() => setInviteModalOpen(true)}>Invite members</button>
+          </>
+        )}
+      </div>
+
+      {tab === 'invitations' ? (
+        <div className="sp-table-wrapper">
+          <table className="sp-table">
+            <thead><tr><th>Email</th><th>Role</th><th>Invited by</th><th>Sent</th><th>Status</th></tr></thead>
+            <tbody>
+              {pendingInvites.length === 0 ? (
+                <tr><td colSpan="5" style={{textAlign: 'center', color: '#666', padding: '32px'}}>No pending invitations</td></tr>
+              ) : pendingInvites.map(inv => (
+                <tr key={inv._id}>
+                  <td style={{color: '#fff'}}>{inv.invitedEmail}</td>
+                  <td><span style={{textTransform: 'capitalize'}}>{inv.role}</span></td>
+                  <td>{inv.invitedByName}</td>
+                  <td>{formatDate(inv.createdAt)}</td>
+                  <td><span style={{color: '#f59e0b', fontSize: '12px'}}>⏳ Pending</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="sp-table-footer">Showing {pendingInvites.length} pending invitation(s)</div>
+        </div>
+      ) : (
+        <div className="sp-table-wrapper">
+          <table className="sp-table">
+            <thead>
+              <tr>
+                <th>Name ⇅</th>
+                <th>Role ⇅</th>
+                <th>Status</th>
+                <th>Joined date ⇅</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(member => (
+                <tr key={member._id} style={member.status === 'blocked' ? {opacity: 0.5} : {}}>
+                  <td>
+                    <div className="sp-table-user">
+                      <div className="sp-avatar-sm blue">{(member.name || member.email || '?')[0].toUpperCase()}</div>
+                      <div>
+                        <div style={{fontWeight: 600, color: '#fff'}}>{member.name || 'Unknown'}{member.role === callerRole && member.userId === members.find(m => m.role === callerRole)?.userId ? ' (you)' : ''}</div>
+                        <div style={{color: '#666', fontSize: '12px'}}>{member.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    {isOwner && member.role !== 'owner' ? (
+                      <select
+                        className="sp-select"
+                        value={member.role}
+                        onChange={(e) => handleRoleChange(member._id, e.target.value)}
+                        style={{background: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '4px 8px', color: '#ccc', fontSize: '13px'}}
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="editor">Editor</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    ) : (
+                      <span style={{textTransform: 'capitalize', color: member.role === 'owner' ? '#818cf8' : '#ccc'}}>{member.role}</span>
+                    )}
+                  </td>
+                  <td>
+                    <span style={{fontSize: '12px', color: member.status === 'blocked' ? '#ef4444' : '#22c55e'}}>
+                      {member.status === 'blocked' ? '⛔ Blocked' : '● Active'}
+                    </span>
+                  </td>
+                  <td>{formatDate(member.joinedAt)}</td>
+                  <td style={{position: 'relative'}}>
+                    {isOwnerOrAdmin && member.role !== 'owner' && (
+                      <>
+                        <MoreHorizontal
+                          size={16}
+                          color="#666"
+                          style={{cursor: 'pointer'}}
+                          onClick={() => setActiveActionMenu(activeActionMenu === member._id ? null : member._id)}
+                        />
+                        {activeActionMenu === member._id && (
+                          <div style={{position:'absolute',right:0,top:'100%',background:'#1e1e1e',border:'1px solid #333',borderRadius:'8px',overflow:'hidden',zIndex:10,minWidth:'140px',boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
+                            <button
+                              style={{width:'100%',padding:'8px 16px',background:'none',border:'none',color:'#ccc',fontSize:'13px',cursor:'pointer',textAlign:'left'}}
+                              onMouseOver={(e)=>e.target.style.background='#2a2a2a'}
+                              onMouseOut={(e)=>e.target.style.background='none'}
+                              onClick={() => handleBlock(member._id)}
+                            >
+                              {member.status === 'blocked' ? '✅ Unblock' : '⛔ Block'}
+                            </button>
+                            <button
+                              style={{width:'100%',padding:'8px 16px',background:'none',border:'none',color:'#ef4444',fontSize:'13px',cursor:'pointer',textAlign:'left'}}
+                              onMouseOver={(e)=>e.target.style.background='#2a2a2a'}
+                              onMouseOut={(e)=>e.target.style.background='none'}
+                              onClick={() => handleRemove(member._id)}
+                            >
+                              🗑 Remove
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="sp-table-footer">Showing {filtered.length} of {members.length} members</div>
+        </div>
+      )}
+      
+      <InviteLinkModal 
+        isOpen={isInviteLinkModalOpen} 
+        onClose={() => setInviteLinkModalOpen(false)} 
+        workspaceId={workspaceId} 
+      />
     </div>
-  </div>
-);
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: PLANS
@@ -1195,6 +1445,14 @@ export default function SettingsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const hash = location.hash || '#workspace';
+  const { user } = useUser();
+  const { workspaces, activeWorkspaceId } = useWorkspaceStore();
+  
+  const activeWorkspace = workspaces?.find(w => w._id === activeWorkspaceId) || workspaces?.[0];
+  const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User';
+  const userInitial = userName.charAt(0).toUpperCase();
+  const workspaceName = activeWorkspace?.name || 'Workspace';
+  const workspaceInitial = workspaceName.charAt(0).toUpperCase();
 
   // Render Profile Page without sidebar
   if (hash === '#profile') {
@@ -1229,7 +1487,10 @@ export default function SettingsPage() {
     </button>
   );
 
+  const { isInviteModalOpen, setInviteModalOpen } = useUIStore();
+
   return (
+    <>
     <div className="sp-container">
       <aside className="sp-sidebar">
         <div className="sp-sidebar-header">
@@ -1249,7 +1510,7 @@ export default function SettingsPage() {
 
         <div className="sp-section-label">Workspace</div>
         <div className="sp-nav-group">
-          <NavItem to="#workspace" icon={() => <div className="sp-avatar-sm">T</div>} label="tikku's StackForge" />
+          <NavItem to="#workspace" icon={() => <div className="sp-avatar-sm">{workspaceInitial}</div>} label={workspaceName} />
           <NavItem to="#people" icon={Users} label="People" />
           <NavItem to="#plans" icon={CreditCard} label="Plans & credits" />
           <NavItem to="#cloud" icon={Cloud} label="Cloud & AI balance" />
@@ -1258,7 +1519,7 @@ export default function SettingsPage() {
 
         <div className="sp-section-label">Account</div>
         <div className="sp-nav-group">
-          <NavItem to="#account" icon={User} label="tikku" />
+          <NavItem to="#account" icon={User} label={userName} />
           <NavItem to="#labs" icon={Beaker} label="Labs" />
         </div>
 
@@ -1278,5 +1539,7 @@ export default function SettingsPage() {
         {renderContent()}
       </main>
     </div>
+    <InviteMembersModal isOpen={isInviteModalOpen} onClose={() => setInviteModalOpen(false)} />
+    </>
   );
 }

@@ -40,7 +40,6 @@ export default function HistorySidebar({ projectId, onClose }) {
   };
 
   const handleRestore = async (versionId) => {
-    if (!confirm("Restore this version? Current code will be overwritten.")) return;
     setIsRestoring(true);
     try {
       const data = await apiClient.restoreVersion(projectId, versionId);
@@ -122,7 +121,8 @@ export default function HistorySidebar({ projectId, onClose }) {
                 <div
                   key={version._id}
                   className={`hs-item ${isActive ? 'active' : ''}`}
-                  onClick={() => !isActive && handleRestore(version._id)}
+                  onDoubleClick={() => !isActive && handleRestore(version._id)}
+                  title={isActive ? "Current version" : "Double-click to restore this version"}
                 >
                   <div className="hs-item-name">{version.name || `Version ${versions.length - idx}`}</div>
                   <div className="hs-item-time">{formatTime(version.createdAt)}</div>

@@ -14,6 +14,8 @@ const authRoutes = require("./routes/auth") // Subtask 1.5, 1.6 Auth Routes
 const folderRoutes = require("./routes/folderRoutes")
 const templateRoutes = require("./routes/templateRoutes")
 const workspaceRoutes = require("./routes/workspaceRoutes")
+const invitationRoutes = require("./routes/invitationRoutes")
+const memberRoutes = require("./routes/memberRoutes")
 const mcpManager = require("./services/mcpManager")
 
 // Initialize MCP Tools
@@ -64,6 +66,8 @@ app.use("/api/generate", generateRoutes)
 app.use("/api/folders", folderRoutes)
 app.use("/api/templates", templateRoutes)
 app.use("/api/workspaces", workspaceRoutes)
+app.use("/api/workspaces", memberRoutes)  // sub-routes: /:id/members, /:id/invitations
+app.use("/api/invitations", invitationRoutes)
 app.use("/api/health", healthRoutes)
 
 // ── Global Error Handler ──

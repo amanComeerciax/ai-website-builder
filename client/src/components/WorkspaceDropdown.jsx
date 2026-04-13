@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useUIStore } from '../stores/uiStore'
 import { useAuthStore } from '../stores/authStore'
 import { useWorkspaceStore } from '../stores/workspaceStore'
@@ -6,7 +7,8 @@ import { Settings, UserPlus, Zap, Check, Plus, Globe } from 'lucide-react'
 import './WorkspaceDropdown.css'
 
 export default function WorkspaceDropdown() {
-  const { isWorkspaceDropdownOpen, setWorkspaceDropdownOpen, setCreateWorkspaceOpen } = useUIStore()
+  const navigate = useNavigate()
+  const { isWorkspaceDropdownOpen, setWorkspaceDropdownOpen, setCreateWorkspaceOpen, setInviteModalOpen } = useUIStore()
   const { userData } = useAuthStore()
   const { workspaces, activeWorkspaceId, switchWorkspace } = useWorkspaceStore()
   const { getToken } = useAuth()
@@ -31,8 +33,14 @@ export default function WorkspaceDropdown() {
         </div>
 
         <div className="lv-drop-actions-row">
-          <button className="lv-drop-btn"><Settings size={14} /> Settings</button>
-          <button className="lv-drop-btn"><UserPlus size={14} /> Invite members</button>
+          <button className="lv-drop-btn" onClick={() => {
+            setWorkspaceDropdownOpen(false)
+            navigate('/settings#workspace')
+          }}><Settings size={14} /> Settings</button>
+          <button className="lv-drop-btn" onClick={() => {
+            setWorkspaceDropdownOpen(false)
+            setInviteModalOpen(true)
+          }}><UserPlus size={14} /> Invite members</button>
         </div>
 
         <div className="lv-drop-pro-banner">
@@ -65,9 +73,9 @@ export default function WorkspaceDropdown() {
                     switchWorkspace(ws._id, token)
                 }}
             >
-               <div className="lv-drop-avatar small">{userInitial}</div>
+               <div className="lv-drop-avatar small">{ws.name?.[0]?.toUpperCase() || userInitial}</div>
                <span className="lv-ws-name">{ws.name}</span>
-               <span className="lv-badge-free">{ws.plan.toUpperCase()}</span>
+               <span className="lv-badge-free">{(ws.plan || 'free').toUpperCase()}</span>
                {ws._id === activeWorkspaceId && <Check size={16} className="lv-check-icon" />}
             </div>
           ))}
@@ -89,3 +97,4 @@ export default function WorkspaceDropdown() {
     </>
   )
 }
+

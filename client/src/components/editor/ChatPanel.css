@@ -614,6 +614,21 @@
     object-fit: cover;
     display: block;
 }
+.cp-attachment-preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.15s;
+    cursor: pointer;
+}
+.cp-attachment-thumb:hover .cp-attachment-preview-overlay {
+    opacity: 1;
+}
 .cp-attachment-file {
     display: flex;
     align-items: center;
