@@ -1,0 +1,265 @@
+/* ── Inbox Popup Panel (beside sidebar, like user profile dropdown) ── */
+.lv-inbox-popup {
+    position: absolute;
+    bottom: 0;
+    left: 100%;
+    margin-left: 8px;
+    width: 380px;
+    max-height: 520px;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: inboxPopIn 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes inboxPopIn {
+    from { opacity: 0; transform: translateX(-8px) scale(0.97); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* Tabs */
+.lv-inbox-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.lv-inbox-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 14px 0;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.15s;
+    text-align: center;
+}
+.lv-inbox-tab:hover { color: #ccc }
+.lv-inbox-tab.active { color: #fff; font-weight: 600 }
+.lv-inbox-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 30%;
+    right: 30%;
+    height: 2px;
+    background: #fff;
+    border-radius: 2px 2px 0 0;
+}
+
+/* Scrollable content */
+.lv-inbox-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 200px;
+}
+.lv-inbox-body::-webkit-scrollbar { width: 4px }
+.lv-inbox-body::-webkit-scrollbar-thumb { background: #333; border-radius: 2px }
+
+/* Empty state */
+.lv-inbox-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+}
+.lv-inbox-empty-icon { color: #444; margin-bottom: 14px }
+.lv-inbox-empty h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ccc;
+    margin: 0 0 6px 0;
+}
+.lv-inbox-empty p {
+    font-size: 12px;
+    color: #555;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Spinner */
+.lv-inbox-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #333;
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: inboxSpin 0.7s linear infinite;
+    margin-bottom: 10px;
+}
+@keyframes inboxSpin { 100% { transform: rotate(360deg) } }
+
+/* Invitation items */
+.lv-inbox-item {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.12s;
+}
+.lv-inbox-item:hover { background: rgba(255,255,255,0.02) }
+.lv-inbox-item:last-child { border-bottom: none }
+
+.lv-inbox-item-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.lv-inbox-item-body { flex: 1; min-width: 0 }
+
+.lv-inbox-item-text {
+    font-size: 12px;
+    color: #bbb;
+    margin: 0 0 4px 0;
+    line-height: 1.5;
+}
+.lv-inbox-item-text strong { color: #fff; font-weight: 600 }
+
+.lv-inbox-role-tag {
+    background: rgba(99,102,241,0.15);
+    color: #818cf8;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: capitalize;
+}
+
+.lv-inbox-item-time {
+    font-size: 10px;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-bottom: 8px;
+}
+
+.lv-inbox-item-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.lv-inbox-accept {
+    background: #22c55e;
+    border: none;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.15s;
+}
+.lv-inbox-accept:hover { background: #16a34a }
+
+.lv-inbox-decline {
+    background: transparent;
+    border: 1px solid #333;
+    color: #999;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.15s;
+}
+.lv-inbox-decline:hover { background: rgba(239,68,68,0.1); border-color: #ef4444; color: #ef4444 }
+
+/* What's new items */
+.lv-inbox-news-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.lv-inbox-news-item:last-child { border-bottom: none }
+
+.lv-inbox-news-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lv-inbox-news-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    flex-shrink: 0;
+}
+
+.lv-inbox-news-desc {
+    font-size: 12px;
+    color: #888;
+    margin: 0 0 6px 0;
+    line-height: 1.5;
+}
+
+.lv-inbox-news-time {
+    font-size: 10px;
+    color: #555;
+}
+
+/* Inbox button at bottom */
+.lv-inbox-trigger {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: none;
+    color: #888;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+.lv-inbox-trigger:hover { background: rgba(255,255,255,0.08); color: #fff }
+
+.lv-inbox-trigger-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: 2px solid #111;
+}
+
+/* Backdrop (transparent, just for catching clicks) */
+.lv-inbox-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 199;
+}

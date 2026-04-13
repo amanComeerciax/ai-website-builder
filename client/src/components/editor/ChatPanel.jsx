@@ -637,7 +637,12 @@ export default function ChatPanel() {
                         {attachments.map(att => (
                             <div key={att.id} className="cp-attachment-thumb">
                                 {att.preview ? (
-                                    <img src={att.preview} alt={att.name} />
+                                    <>
+                                        <img src={att.preview} alt={att.name} />
+                                        <div className="cp-attachment-preview-overlay" onClick={() => setLightboxSrc(att.preview)}>
+                                            <Eye size={16} />
+                                        </div>
+                                    </>
                                 ) : (
                                     <div className="cp-attachment-file">
                                         <Paperclip size={14} />
@@ -687,6 +692,7 @@ export default function ChatPanel() {
                         <div className="cp-attach-container" ref={attachMenuRef}>
                             <button 
                                 className="cp-tiny-btn" 
+                                onMouseDown={(e) => e.stopPropagation()}
                                 onClick={() => setShowAttachMenu(!showAttachMenu)}
                             >
                                 <Plus size={18} />

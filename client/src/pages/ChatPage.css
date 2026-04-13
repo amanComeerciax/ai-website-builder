@@ -19,7 +19,7 @@
     min-height: 48px;
     background: #111111;
     border-bottom: 1px solid #222222;
-    z-index: 10;
+    z-index: 900;
 }
 
 /* LEFT SIDE */

@@ -14,7 +14,12 @@ const authRoutes = require("./routes/auth") // Subtask 1.5, 1.6 Auth Routes
 const folderRoutes = require("./routes/folderRoutes")
 const templateRoutes = require("./routes/templateRoutes")
 const workspaceRoutes = require("./routes/workspaceRoutes")
+
 const paymentRoutes = require("./routes/payment")
+
+const invitationRoutes = require("./routes/invitationRoutes")
+const memberRoutes = require("./routes/memberRoutes")
+
 const mcpManager = require("./services/mcpManager")
 
 // Initialize MCP Tools
@@ -28,15 +33,15 @@ const PORT = process.env.PORT || 5000
 // ── Security Middleware ──
 app.use(helmet())
 app.use(cors({
-   origin: process.env.CLIENT_URL || "http://localhost:5173",
-   credentials: true,
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
 }))
 
 // ── Rate Limiting ──
 const apiLimiter = rateLimit({
-   windowMs: 15 * 60 * 1000, // 15 minutes
-   max: 500, // generous limit for development — tighten for production
-   message: { error: "Too many requests, please try again later." },
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 500, // generous limit for development — tighten for production
+    message: { error: "Too many requests, please try again later." },
 })
 app.use("/api/", apiLimiter)
 
@@ -113,30 +118,35 @@ app.use("/api/generate", generateRoutes)
 app.use("/api/folders", folderRoutes)
 app.use("/api/templates", templateRoutes)
 app.use("/api/workspaces", workspaceRoutes)
+
 app.use("/api/payment", paymentRoutes)
+
+app.use("/api/workspaces", memberRoutes)  // sub-routes: /:id/members, /:id/invitations
+app.use("/api/invitations", invitationRoutes)
+
 app.use("/api/health", healthRoutes)
 
 // ── Global Error Handler ──
 app.use((err, req, res, next) => {
-   console.error("❌ Server Error:", err.message)
-   res.status(err.status || 500).json({
-      error: err.message || "Internal server error",
-      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-   })
+    console.error("❌ Server Error:", err.message)
+    res.status(err.status || 500).json({
+        error: err.message || "Internal server error",
+        ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+    })
 })
 
 // ── Start Server ──
 async function startServer() {
-   try {
-      await connectDB()
-      app.listen(PORT, () => {
-         console.log(`\n🚀 StackForge AI Server running on port ${PORT}`)
-         console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}\n`)
-      })
-   } catch (error) {
-      console.error("Failed to start server:", error.message)
-      process.exit(1)
-   }
+    try {
+        await connectDB()
+        app.listen(PORT, () => {
+            console.log(`\n🚀 StackForge AI Server running on port ${PORT}`)
+            console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}\n`)
+        })
+    } catch (error) {
+        console.error("Failed to start server:", error.message)
+        process.exit(1)
+    }
 }
 
 startServer()

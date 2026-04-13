@@ -190,6 +190,78 @@ class ApiClient {
         return `${this.baseUrl}/generate/stream/${jobId}`
     }
 
+    // ── Invitations ──
+    sendInvitation(data, token) {
+        return this.request('/invitations', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, token)
+    }
+
+    getInbox(token) {
+        return this.request('/invitations/inbox', {}, token)
+    }
+
+    acceptInvitation(id, token) {
+        return this.request(`/invitations/${id}/accept`, {
+            method: 'PUT',
+        }, token)
+    }
+
+    declineInvitation(id, token) {
+        return this.request(`/invitations/${id}/decline`, {
+            method: 'PUT',
+        }, token)
+    }
+
+    generateInviteLink(data, token) {
+        return this.request('/invitations/link', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, token)
+    }
+
+    joinViaLink(linkToken, authToken) {
+        return this.request(`/invitations/join/${linkToken}`, {
+            method: 'POST',
+        }, authToken)
+    }
+
+    // ── Members ──
+    getWorkspaceMembers(workspaceId, token) {
+        return this.request(`/workspaces/${workspaceId}/members`, {}, token)
+    }
+
+    updateMemberRole(workspaceId, memberId, role, token) {
+        return this.request(`/workspaces/${workspaceId}/members/${memberId}/role`, {
+            method: 'PUT',
+            body: JSON.stringify({ role }),
+        }, token)
+    }
+
+    removeMember(workspaceId, memberId, token) {
+        return this.request(`/workspaces/${workspaceId}/members/${memberId}`, {
+            method: 'DELETE',
+        }, token)
+    }
+
+    blockMember(workspaceId, memberId, token) {
+        return this.request(`/workspaces/${workspaceId}/members/${memberId}/block`, {
+            method: 'PUT',
+        }, token)
+    }
+
+    getWorkspaceInvitations(workspaceId, token) {
+        return this.request(`/workspaces/${workspaceId}/invitations`, {}, token)
+    }
+
+    updateWorkspace(id, data, token) {
+        return this.request(`/workspaces/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }, token)
+    }
+
     // ── Health ──
     healthCheck() {
         return this.request('/health')

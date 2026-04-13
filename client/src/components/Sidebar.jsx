@@ -30,7 +30,8 @@ import {
     HelpCircle,
     FileText,
     Check,
-    Moon
+    Moon,
+    Mail
 } from 'lucide-react'
 import { useFolderStore } from '../stores/folderStore'
 import RenameModal from './modals/RenameModal'
@@ -39,7 +40,10 @@ import MoveToFolderModal from './modals/MoveToFolderModal'
 import WorkspaceDropdown from './WorkspaceDropdown'
 import ProjectHoverPreview from './ProjectHoverPreview'
 import CreateWorkspaceModal from './modals/CreateWorkspaceModal'
+import InviteMembersModal from './modals/InviteMembersModal'
+import InboxPanel from './InboxPanel'
 import { useWorkspaceStore } from '../stores/workspaceStore'
+import { useInvitationStore } from '../stores/invitationStore'
 import './Sidebar.css'
 
 export default function Sidebar() {
@@ -47,10 +51,11 @@ export default function Sidebar() {
     const { user: clerkUser } = useUser()
     const { signOut } = useClerk()
     const { userData, fetchUserData, syncUser } = useAuthStore()
-    const { toggleSidebar, toggleWorkspaceDropdown, setCreateFolderOpen, isWorkspaceDropdownOpen, isCreateWorkspaceOpen, setCreateWorkspaceOpen } = useUIStore()
+    const { toggleSidebar, toggleWorkspaceDropdown, setCreateFolderOpen, isWorkspaceDropdownOpen, isCreateWorkspaceOpen, setCreateWorkspaceOpen, isInviteModalOpen, setInviteModalOpen, isInboxOpen, setInboxOpen } = useUIStore()
     const { projects, fetchProjects, toggleStar, renameProject, deleteProject, moveToFolder } = useProjectStore()
     const { folders, fetchFolders } = useFolderStore()
     const { workspaces, activeWorkspaceId, fetchWorkspaces } = useWorkspaceStore()
+    const { inboxCount, fetchInbox } = useInvitationStore()
     
     const navigate = useNavigate()
     const [isProjectsExpanded, setIsProjectsExpanded] = useState(false)
@@ -107,6 +112,9 @@ export default function Sidebar() {
 
                 // 3. Fetch all workspaces for the dropdown list
                 await fetchWorkspaces(token);
+
+                // 4. Fetch inbox count for badge
+                fetchInbox(token);
             }
             sync()
         }
@@ -211,6 +219,7 @@ export default function Sidebar() {
 
                 <button 
                     className={`lv-three-dot ${isMenuOpen ? 'lv-three-dot-active' : ''}`}
+                    onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
@@ -428,95 +437,106 @@ export default function Sidebar() {
                     <span>Upgrade to Pro</span>
                 </button>
 
-                <div className="lv-user-row-container" ref={userProfileRef}>
-                    <button className="lv-user-row" onClick={() => setIsUserProfileOpen(!isUserProfileOpen)}>
-                        {userAvatar ? (
-                            <img src={userAvatar} alt="" className="lv-user-avatar" style={{ objectFit: 'cover' }} />
-                        ) : (
-                            <div className="lv-user-avatar">{userInitial}</div>
-                        )}
-                        <div className="lv-user-info">
-                            <span className="lv-user-name" title={userName}>{userName}</span>
-                        </div>
-                    </button>
-                    {isUserProfileOpen && (
-                        <div className="lv-user-dropdown">
-                            <div className="lv-user-dropdown-header">
-                                {userAvatar ? (
-                                    <img src={userAvatar} alt="" className="lv-user-avatar-large" style={{ objectFit: 'cover' }} />
-                                ) : (
-                                    <div className="lv-user-avatar-large">{userInitial}</div>
-                                )}
-                                <div className="lv-user-dropdown-info">
-                                    <span className="lv-user-dropdown-name" title={userName}>{userName}</span>
-                                    <span className="lv-user-dropdown-email" title={userEmail}>{userEmail}</span>
-                                </div>
+                <div className="lv-user-bottom-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 12px 12px', position: 'relative' }}>
+                    <div className="lv-user-row-container" ref={userProfileRef} style={{ flex: 1 }}>
+                        <button className="lv-user-row" onClick={() => setIsUserProfileOpen(!isUserProfileOpen)}>
+                            {userAvatar ? (
+                                <img src={userAvatar} alt="" className="lv-user-avatar" style={{ objectFit: 'cover' }} />
+                            ) : (
+                                <div className="lv-user-avatar">{userInitial}</div>
+                            )}
+                            <div className="lv-user-info">
+                                <span className="lv-user-name" title={userName}>{userName}</span>
                             </div>
-                            <div className="lv-dot-menu-divider" />
-                            <button className="lv-dot-menu-item" onClick={() => navigate('/settings#profile')}>
-                                <User size={14} /><span>Profile</span>
-                            </button>
-                            <button className="lv-dot-menu-item" onClick={() => navigate('/settings#account')}>
-                                <Settings size={14} /><span>Settings</span>
-                            </button>
-                            
-                            <div className="lv-dot-menu-item lv-appearance-item">
-                                <div className="lv-appearance-item-left">
-                                    <Moon size={14} /><span>Appearance</span>
-                                </div>
-                                <ChevronRight size={14} />
-                                <div className="lv-submenu">
-                                    <div className="lv-appearance-previews">
-                                        <div className={`lv-preview-box lv-preview-light ${appearanceTheme === 'light' ? 'active' : ''}`} onClick={() => setAppearanceTheme('light')} />
-                                        <div className={`lv-preview-box lv-preview-dark ${appearanceTheme === 'dark' ? 'active' : ''}`} onClick={() => setAppearanceTheme('dark')} />
-                                        <div className={`lv-preview-box lv-preview-system ${appearanceTheme === 'system' ? 'active' : ''}`} onClick={() => setAppearanceTheme('system')} />
+                        </button>
+                        {isUserProfileOpen && (
+                            <div className="lv-user-dropdown">
+                                <div className="lv-user-dropdown-header">
+                                    {userAvatar ? (
+                                        <img src={userAvatar} alt="" className="lv-user-avatar-large" style={{ objectFit: 'cover' }} />
+                                    ) : (
+                                        <div className="lv-user-avatar-large">{userInitial}</div>
+                                    )}
+                                    <div className="lv-user-dropdown-info">
+                                        <span className="lv-user-dropdown-name" title={userName}>{userName}</span>
+                                        <span className="lv-user-dropdown-email" title={userEmail}>{userEmail}</span>
                                     </div>
-                                    <button className="lv-dot-menu-item" style={{justifyContent: 'space-between'}} onClick={() => setAppearanceTheme('light')}>
-                                        <span>Light</span>{appearanceTheme === 'light' && <Check size={14} />}
-                                    </button>
-                                    <button className="lv-dot-menu-item" style={{justifyContent: 'space-between'}} onClick={() => setAppearanceTheme('dark')}>
-                                        <span>Dark</span>{appearanceTheme === 'dark' && <Check size={14} />}
-                                    </button>
-                                    <button className="lv-dot-menu-item" style={{justifyContent: 'space-between'}} onClick={() => setAppearanceTheme('system')}>
-                                        <span>System</span>{appearanceTheme === 'system' && <Check size={14} />}
-                                    </button>
                                 </div>
-                            </div>
+                                <div className="lv-dot-menu-divider" />
+                                <button className="lv-dot-menu-item" onClick={() => navigate('/settings#profile')}>
+                                    <User size={14} /><span>Profile</span>
+                                </button>
+                                <button className="lv-dot-menu-item" onClick={() => navigate('/settings#account')}>
+                                    <Settings size={14} /><span>Settings</span>
+                                </button>
+                                
+                                <div className="lv-dot-menu-item lv-appearance-item">
+                                    <div className="lv-appearance-item-left">
+                                        <Moon size={14} /><span>Appearance</span>
+                                    </div>
+                                    <ChevronRight size={14} />
+                                    <div className="lv-submenu">
+                                        <div className="lv-appearance-previews">
+                                            <div className={`lv-preview-box lv-preview-light ${appearanceTheme === 'light' ? 'active' : ''}`} onClick={() => setAppearanceTheme('light')} />
+                                            <div className={`lv-preview-box lv-preview-dark ${appearanceTheme === 'dark' ? 'active' : ''}`} onClick={() => setAppearanceTheme('dark')} />
+                                            <div className={`lv-preview-box lv-preview-system ${appearanceTheme === 'system' ? 'active' : ''}`} onClick={() => setAppearanceTheme('system')} />
+                                        </div>
+                                        <button className="lv-dot-menu-item" style={{justifyContent: 'space-between'}} onClick={() => setAppearanceTheme('light')}>
+                                            <span>Light</span>{appearanceTheme === 'light' && <Check size={14} />}
+                                        </button>
+                                        <button className="lv-dot-menu-item" style={{justifyContent: 'space-between'}} onClick={() => setAppearanceTheme('dark')}>
+                                            <span>Dark</span>{appearanceTheme === 'dark' && <Check size={14} />}
+                                        </button>
+                                        <button className="lv-dot-menu-item" style={{justifyContent: 'space-between'}} onClick={() => setAppearanceTheme('system')}>
+                                            <span>System</span>{appearanceTheme === 'system' && <Check size={14} />}
+                                        </button>
+                                    </div>
+                                </div>
 
-                            <div className="lv-dot-menu-item lv-appearance-item">
-                                <div className="lv-appearance-item-left">
-                                    <HelpCircle size={14} /><span>Support</span>
+                                <div className="lv-dot-menu-item lv-appearance-item">
+                                    <div className="lv-appearance-item-left">
+                                        <HelpCircle size={14} /><span>Support</span>
+                                    </div>
+                                    <ChevronRight size={14} />
+                                    <div className="lv-submenu">
+                                        <button className="lv-dot-menu-item">
+                                            <span>Help Center</span>
+                                        </button>
+                                        <button className="lv-dot-menu-item">
+                                            <span>Email Support</span>
+                                        </button>
+                                        <button className="lv-dot-menu-item">
+                                            <span>Join Discord</span>
+                                        </button>
+                                    </div>
                                 </div>
-                                <ChevronRight size={14} />
-                                <div className="lv-submenu">
-                                    <button className="lv-dot-menu-item">
-                                        <span>Help Center</span>
-                                    </button>
-                                    <button className="lv-dot-menu-item">
-                                        <span>Email Support</span>
-                                    </button>
-                                    <button className="lv-dot-menu-item">
-                                        <span>Join Discord</span>
-                                    </button>
-                                </div>
+                                <button className="lv-dot-menu-item">
+                                    <FileText size={14} /><span>Documentation</span>
+                                </button>
+                                <button className="lv-dot-menu-item">
+                                    <Users size={14} /><span>Community</span>
+                                </button>
+                                <button className="lv-dot-menu-item" onClick={() => navigate("/")}>
+                                    <Home size={14} /><span>Homepage</span>
+                                </button>
+                                
+                                <div className="lv-dot-menu-divider" />
+                                
+                                <button className="lv-dot-menu-item" onClick={() => signOut(() => navigate("/"))}>
+                                    <LogOut size={14} /><span>Sign out</span>
+                                </button>
                             </div>
-                            <button className="lv-dot-menu-item">
-                                <FileText size={14} /><span>Documentation</span>
-                            </button>
-                            <button className="lv-dot-menu-item">
-                                <Users size={14} /><span>Community</span>
-                            </button>
-                            <button className="lv-dot-menu-item" onClick={() => navigate("/")}>
-                                <Home size={14} /><span>Homepage</span>
-                            </button>
-                            
-                            <div className="lv-dot-menu-divider" />
-                            
-                            <button className="lv-dot-menu-item" onClick={() => signOut(() => navigate("/"))}>
-                                <LogOut size={14} /><span>Sign out</span>
-                            </button>
-                        </div>
-                    )}
+                        )}
+                    </div>
+
+                    {/* Inbox button — right side of user row */}
+                    <button className="lv-inbox-trigger" onClick={() => setInboxOpen(!isInboxOpen)} title="Inbox">
+                        <Mail size={16} />
+                        {inboxCount > 0 && <span className="lv-inbox-trigger-badge" />}
+                    </button>
+
+                    {/* Inbox popup — pops beside the sidebar */}
+                    <InboxPanel isOpen={isInboxOpen} onClose={() => setInboxOpen(false)} />
                 </div>
             </div>
         </aside>
@@ -553,6 +573,10 @@ export default function Sidebar() {
         <CreateWorkspaceModal 
             isOpen={isCreateWorkspaceOpen} 
             onClose={() => setCreateWorkspaceOpen(false)} 
+        />
+        <InviteMembersModal
+            isOpen={isInviteModalOpen}
+            onClose={() => setInviteModalOpen(false)}
         />
         </>
     )
