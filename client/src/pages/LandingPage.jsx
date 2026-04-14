@@ -32,6 +32,7 @@ import { motion } from 'framer-motion'
 import Lenis from 'lenis'
 import ThemePicker from '../components/ThemePicker'
 // import WebsiteStylePicker from '../components/editor/WebsiteStylePicker'
+import SeamlessVideoLayer from '../components/SeamlessVideoLayer'
 import './LandingPage.css'
 
 // ─── Premium scroll animation variants ───
@@ -223,96 +224,7 @@ const landingFeatures = [
     }
 ];
 
-// ─── Video Background with custom JS fade system ───
-function VideoBackground() {
-    const videoRef = useRef(null);
-    const fadeFrameRef = useRef(null);
-    const fadingOutRef = useRef(false);
-
-    const cancelFade = () => {
-        if (fadeFrameRef.current) {
-            cancelAnimationFrame(fadeFrameRef.current);
-            fadeFrameRef.current = null;
-        }
-    };
-
-    const fadeIn = (duration = 250) => {
-        cancelFade();
-        const video = videoRef.current;
-        if (!video) return;
-        const start = performance.now();
-        const from = parseFloat(video.style.opacity) || 0;
-        const step = (now) => {
-            const elapsed = now - start;
-            const progress = Math.min(elapsed / duration, 1);
-            video.style.opacity = from + (1 - from) * progress;
-            if (progress < 1) fadeFrameRef.current = requestAnimationFrame(step);
-        };
-        fadeFrameRef.current = requestAnimationFrame(step);
-    };
-
-    const fadeOut = (duration = 250) => {
-        cancelFade();
-        const video = videoRef.current;
-        if (!video) return;
-        const start = performance.now();
-        const from = parseFloat(video.style.opacity) || 1;
-        const step = (now) => {
-            const elapsed = now - start;
-            const progress = Math.min(elapsed / duration, 1);
-            video.style.opacity = from - from * progress;
-            if (progress < 1) fadeFrameRef.current = requestAnimationFrame(step);
-        };
-        fadeFrameRef.current = requestAnimationFrame(step);
-    };
-
-    useEffect(() => {
-        const video = videoRef.current;
-        if (!video) return;
-
-        video.style.opacity = '0';
-
-        const handleCanPlay = () => fadeIn(250);
-        const handleTimeUpdate = () => {
-            if (!video.duration) return;
-            const remaining = video.duration - video.currentTime;
-            if (remaining <= 0.55 && !fadingOutRef.current) {
-                fadingOutRef.current = true;
-                fadeOut(250);
-            }
-        };
-        const handleEnded = () => {
-            cancelFade();
-            fadingOutRef.current = false;
-            video.currentTime = 0;
-            video.play();
-            fadeIn(250);
-        };
-
-        video.addEventListener('canplay', handleCanPlay);
-        video.addEventListener('timeupdate', handleTimeUpdate);
-        video.addEventListener('ended', handleEnded);
-
-        return () => {
-            cancelFade();
-            video.removeEventListener('canplay', handleCanPlay);
-            video.removeEventListener('timeupdate', handleTimeUpdate);
-            video.removeEventListener('ended', handleEnded);
-        };
-    }, []);
-
-    return (
-        <video
-            ref={videoRef}
-            className="vhero-video"
-            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260329_050842_be71947f-f16e-4a14-810c-06e83d23ddb5.mp4"
-            autoPlay
-            muted
-            playsInline
-            style={{ opacity: 0 }}
-        />
-    );
-}
+// VideoBackground component removed in favor of SeamlessVideoLayer
 
 export default function LandingPage() {
     const [inputValue, setInputValue] = useState('')
@@ -428,7 +340,11 @@ export default function LandingPage() {
         <div className="landing">
             {/* ═══ Video Background Hero ═══ */}
             <section className="vhero">
-                <VideoBackground />
+                <SeamlessVideoLayer 
+                    src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260329_050842_be71947f-f16e-4a14-810c-06e83d23ddb5.mp4" 
+                    objectPosition="center top"
+                    style={{ opacity: 0.8 }}
+                />
 
                 {/* ═══ Navbar ═══ */}
                 <nav className={`lp-nav ${navScrolled ? 'lp-nav-scrolled' : ''}`}>
