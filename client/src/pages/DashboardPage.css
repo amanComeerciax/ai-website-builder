@@ -5,9 +5,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: #fff;
+  overflow-y: auto;
 }
 
 .lv-center-content {
@@ -17,6 +17,8 @@
   align-items: center;
   justify-content: center;
   padding: 0 1.5rem;
+  flex-shrink: 0;
+  margin-top: min(50vh, 300px);
 }
 
 .lv-hero-title {
@@ -42,7 +44,7 @@
   border: 1px solid #2a2a2a;
   border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .lv-prompt-textarea {
@@ -71,7 +73,8 @@
   border-top: 1px solid #2a2a2a;
 }
 
-.lv-toolbar-left, .lv-toolbar-right {
+.lv-toolbar-left,
+.lv-toolbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -117,35 +120,241 @@
   color: #000;
 }
 
-.lv-bottom-bar {
-  position: absolute;
-  bottom: 24px;
-  width: 90%;
-  max-width: 680px;
+/* ─── Tab Section ─── */
+.lv-tab-section {
+  width: 100%;
+  max-width: 960px;
+  margin: 270px auto 0;
+  padding: 20px 24px 24px;
+  flex-shrink: 0;
   background: #111111;
-  border-radius: 12px;
-  padding: 14px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  margin-bottom: 40px;
+}
+
+.lv-tabs-bar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  border: 1px solid rgba(255,255,255,0.05);
+  gap: 4px;
+  margin-bottom: 24px;
 }
 
-.lv-bottom-bar-left {
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.lv-bottom-bar-right {
+.lv-tab {
   background: none;
   border: none;
   color: #888;
   font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 7px 14px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.lv-bottom-bar-right:hover {
+.lv-tab:hover {
+  color: #ccc;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.lv-tab.active {
   color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.lv-tab-browse {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
+  padding: 7px 0;
+}
+
+.lv-tab-browse:hover {
+  color: #fff;
+}
+
+/* ─── Cards Grid ─── */
+.lv-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  animation: lv-fade-up 0.25s ease;
+}
+
+@keyframes lv-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Card ─── */
+.lv-project-card {
+  background: #141414;
+  border: 1px solid #222;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.lv-project-card:hover {
+  border-color: #444;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Thumbnail */
+.lv-card-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #0d0d0d;
+}
+
+.lv-card-thumb iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 400%;
+  height: 400%;
+  border: none;
+  transform: scale(0.25);
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.lv-card-thumb-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
+}
+
+.lv-card-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #555;
+  font-size: 28px;
+}
+
+/* Badge */
+.lv-card-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+
+/* Card Body */
+.lv-card-body {
+  padding: 12px 14px 14px;
+}
+
+.lv-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #eee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.lv-card-meta {
+  font-size: 12px;
+  color: #666;
+}
+
+.lv-card-desc {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Empty State ─── */
+.lv-empty-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  color: #555;
+  gap: 12px;
+  animation: lv-fade-up 0.25s ease;
+}
+
+.lv-empty-tab-icon {
+  opacity: 0.4;
+}
+
+.lv-empty-tab-text {
+  font-size: 14px;
+  color: #666;
+}
+
+.lv-empty-tab-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid #333;
+  color: #ccc;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  margin-top: 4px;
+}
+
+.lv-empty-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: #555;
+  color: #fff;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+  .lv-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .lv-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lv-hero-title {
+    font-size: 26px;
+  }
 }

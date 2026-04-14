@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Users, CreditCard, Cloud, Lock, User, Beaker, FileText, 
   Plug, Github, Search, ChevronDown, Check, MoreHorizontal, Settings,
-  Pencil, Info, X, ExternalLink, Activity, FolderPlus
+  Pencil, Info, X, ExternalLink, Activity, FolderPlus, ShieldAlert
 } from 'lucide-react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useAuthStore } from '../stores/authStore';
@@ -1845,10 +1845,25 @@ export default function SettingsPage() {
         </div>
 
         <div className="sp-section-label">Connectors</div>
-        <div className="sp-nav-group" style={{marginBottom: '24px'}}>
+        <div className="sp-nav-group" style={{marginBottom: user?.primaryEmailAddress?.emailAddress === 'kingamaan14@gmail.com' ? '0' : '24px'}}>
           <NavItem to="#connectors" icon={Plug} label="Connectors" />
           <NavItem to="#github" icon={Github} label="GitHub" />
         </div>
+
+        {user?.primaryEmailAddress?.emailAddress === 'kingamaan14@gmail.com' && (
+          <>
+            <div className="sp-section-label" style={{marginTop: '24px'}}>Admin</div>
+            <div className="sp-nav-group" style={{marginBottom: '24px'}}>
+              <button 
+                className="sp-nav-item" 
+                onClick={() => navigate('/admin/templates')}
+              >
+                <div className="sp-icon-wrap"><ShieldAlert size={16} /></div>
+                <div className="sp-nav-label-main">Template Admin</div>
+              </button>
+            </div>
+          </>
+        )}
       </aside>
       
       <main className="sp-main">

@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs/promises');
 const path = require('path');
+const { requireAuth } = require('../middleware/requireAuth');
+const User = require('../models/User');
+const Template = require('../models/Template');
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 
@@ -103,6 +106,98 @@ router.get('/preview/:categoryId/:templateId', async (req, res, next) => {
     } catch (error) {
         console.error('[TemplateRoute] Error reading template preview:', error);
         res.status(500).json({ error: 'Failed to retrieve template preview' });
+    }
+});
+
+// POST /api/templates (ADMIN ONLY)
+router.post('/', requireAuth, async (req, res, next) => {
+    try {
+        // 1. Security Check: Only specific admin email
+        const user = await User.findOne({ clerkId: req.auth.userId });
+        if (!user || user.email !== 'kingamaan14@gmail.com') {
+            return res.status(403).json({ error: 'Unauthorized: Admin access only.' });
+        }
+
+        const { title, description, category, htmlContent } = req.body;
+        if (!title || !category || !htmlContent) {
+            return res.status(400).json({ error: 'Missing required fields (title, category, htmlContent)' });
+        }
+
+        // 2. Format names
+        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const categorySlug = category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        
+        const categoryDir = path.join(TEMPLATES_DIR, categorySlug);
+        
+        // 3. Ensure category directory exists
+        try {
+            await fs.mkdir(categoryDir, { recursive: true });
+        } catch (err) {
+            if (err.code !== 'EEXIST') throw err;
+        }
+
+        // 4. Save HTML file
+        const htmlPath = path.join(categoryDir, `${slug}.html`);
+        await fs.writeFile(htmlPath, htmlContent, 'utf8');
+
+        // 5. Save JSON metadata file
+        const jsonPath = path.join(categoryDir, `${slug}.json`);
+        const metadata = {
+            name: title,
+            description: description || 'Premium stackforge template',
+            category: categorySlug
+        };
+        await fs.writeFile(jsonPath, JSON.stringify(metadata, null, 2), 'utf8');
+
+        // 6. Sync to MongoDB (for AI Selection Fallback)
+        await Template.findOneAndUpdate(
+            { name: title },
+            {
+                name: title,
+                description: description || 'Premium stackforge template',
+                htmlContent: htmlContent,
+                slug: slug,
+                sizeBytes: Buffer.byteLength(htmlContent, 'utf-8'),
+                isActive: true
+            },
+            { upsert: true, new: true, returnDocument: 'after' }
+        );
+
+        // 7. Analyze template structure for auto-chunking
+        const { shouldChunk, chunkTemplate } = require('../services/templateChunker');
+        const needsChunking = shouldChunk(htmlContent);
+        let chunkingInfo = { enabled: false, lineCount: htmlContent.split('\n').length, sizeKB: (Buffer.byteLength(htmlContent, 'utf-8') / 1024).toFixed(1) };
+        
+        if (needsChunking) {
+            const chunkResult = chunkTemplate(htmlContent);
+            chunkingInfo = {
+                enabled: true,
+                lineCount: chunkResult.stats.totalLines,
+                sizeKB: (chunkResult.stats.totalBytes / 1024).toFixed(1),
+                totalSections: chunkResult.stats.totalSections,
+                editableSections: chunkResult.stats.editableSections,
+                sections: chunkResult.sections.map(s => ({ 
+                    id: s.id, 
+                    tag: s.tag, 
+                    lines: s.lineCount, 
+                    editable: s.isEditable 
+                }))
+            };
+        }
+
+        res.status(201).json({ 
+            success: true, 
+            message: 'Template created successfully',
+            template: {
+                id: `${categorySlug}/${slug}`,
+                title: title
+            },
+            chunking: chunkingInfo
+        });
+
+    } catch (error) {
+        console.error('[TemplateRoute] Error creating template:', error);
+        res.status(500).json({ error: 'Failed to create template' });
     }
 });
 
