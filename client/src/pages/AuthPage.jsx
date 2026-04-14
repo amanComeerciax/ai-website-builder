@@ -2,10 +2,10 @@ import { SignUp, SignIn } from "@clerk/clerk-react";
 import { dark } from "@clerk/themes";
 import { Link } from "react-router-dom";
 import { Wind, ArrowUp } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const TYPING_SUGGESTIONS = [
-  "Ask IndiForge to build your blog.",
+  "Ask StackForge to build your blog.",
   "Create a portfolio with dark mode.",
   "Build a SaaS landing page.",
   "Design a restaurant website.",
@@ -91,13 +91,113 @@ const clerkAppearance = {
   },
 };
 
+// ─── Auth Video Background with fade system ───
+function AuthVideoBackground() {
+  const videoRef = useRef(null);
+  const fadeFrameRef = useRef(null);
+  const fadingOutRef = useRef(false);
+
+  const cancelFade = () => {
+    if (fadeFrameRef.current) {
+      cancelAnimationFrame(fadeFrameRef.current);
+      fadeFrameRef.current = null;
+    }
+  };
+
+  const fadeIn = (duration = 300) => {
+    cancelFade();
+    const video = videoRef.current;
+    if (!video) return;
+    const start = performance.now();
+    const from = parseFloat(video.style.opacity) || 0;
+    const step = (now) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      video.style.opacity = from + (1 - from) * progress;
+      if (progress < 1) fadeFrameRef.current = requestAnimationFrame(step);
+    };
+    fadeFrameRef.current = requestAnimationFrame(step);
+  };
+
+  const fadeOut = (duration = 300) => {
+    cancelFade();
+    const video = videoRef.current;
+    if (!video) return;
+    const start = performance.now();
+    const from = parseFloat(video.style.opacity) || 1;
+    const step = (now) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      video.style.opacity = from - from * progress;
+      if (progress < 1) fadeFrameRef.current = requestAnimationFrame(step);
+    };
+    fadeFrameRef.current = requestAnimationFrame(step);
+  };
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.style.opacity = '0';
+
+    const handleCanPlay = () => fadeIn(300);
+    const handleTimeUpdate = () => {
+      if (!video.duration) return;
+      const remaining = video.duration - video.currentTime;
+      if (remaining <= 0.55 && !fadingOutRef.current) {
+        fadingOutRef.current = true;
+        fadeOut(300);
+      }
+    };
+    const handleEnded = () => {
+      cancelFade();
+      fadingOutRef.current = false;
+      video.currentTime = 0;
+      video.play();
+      fadeIn(300);
+    };
+
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('ended', handleEnded);
+
+    return () => {
+      cancelFade();
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+
+  return (
+    <video
+      ref={videoRef}
+      src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260406_133058_0504132a-0cf3-4450-a370-8ea3b05c95d4.mp4"
+      autoPlay
+      muted
+      playsInline
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        objectPosition: 'center',
+        opacity: 0,
+        zIndex: 0,
+      }}
+    />
+  );
+}
+
 export default function AuthPage({ mode = "sign-up" }) {
   const [placeholder, setPlaceholder] = useState("");
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Typewriter effect ensures it never resets when switching between sign-in and sign-up!
+  // Typewriter effect
   useEffect(() => {
     const current = TYPING_SUGGESTIONS[suggestionIndex];
     let timeout;
@@ -129,13 +229,7 @@ export default function AuthPage({ mode = "sign-up" }) {
       {/* ─── LEFT PANEL: Dark Auth Form ─── */}
       <div style={styles.leftPanel}>
         <div style={styles.leftInner}>
-          {/* Logo */}
-          <Link to="/" style={styles.logo}>
-            <Wind size={24} />
-            <span>INDIFORGE AI</span>
-          </Link>
-
-          {/* Render Mode Dynamically -> FLIPS FLAWLESSLY ON THE SAME LAYOUT */}
+          {/* Clerk Auth Form */}
           <div style={{ minHeight: "600px" }}>
             {mode === "sign-up" ? (
               <SignUp
@@ -165,10 +259,17 @@ export default function AuthPage({ mode = "sign-up" }) {
             plans
           </p>
         </div>
+
+        {/* Logo at bottom-left */}
+        <Link to="/" style={styles.bottomLogo}>
+          <Wind size={20} />
+          <span>STACKFORGE</span>
+        </Link>
       </div>
 
-      {/* ─── RIGHT PANEL: Gradient visual with floating prompt ─── */}
+      {/* ─── RIGHT PANEL: Video background with floating prompt ─── */}
       <div style={styles.rightPanel}>
+        <AuthVideoBackground />
         <div style={styles.promptContainer}>
           <div style={styles.promptBar}>
             <span style={styles.promptText}>{placeholder}</span>
@@ -206,16 +307,19 @@ const styles = {
     flexDirection: "column",
     gap: "2rem",
   },
-  logo: {
+  bottomLogo: {
+    position: "absolute",
+    bottom: "2rem",
+    left: "2.5rem",
     display: "flex",
     alignItems: "center",
-    gap: "0.625rem",
+    gap: "0.5rem",
     fontWeight: "700",
-    fontSize: "1.125rem",
+    fontSize: "0.9375rem",
     letterSpacing: "-0.03em",
-    color: "#ffffff",
+    color: "rgba(255, 255, 255, 0.4)",
     textDecoration: "none",
-    marginBottom: "0.5rem",
+    transition: "color 0.3s",
   },
   ssoNote: {
     marginTop: "0.5rem",
@@ -231,8 +335,7 @@ const styles = {
   rightPanel: {
     flex: "0 0 50%",
     maxWidth: "50%",
-    background:
-      "radial-gradient(125% 125% at 50% 101%, rgba(245, 87, 2, 1) 10.5%, rgba(245, 120, 2, 1) 16%, rgba(245, 140, 2, 1) 17.5%, rgba(245, 170, 100, 1) 25%, rgba(238, 174, 202, 1) 40%, rgba(202, 179, 214, 1) 65%, rgba(148, 201, 233, 1) 100%)",
+    background: "#0a0a0a",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

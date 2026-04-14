@@ -1,5 +1,6 @@
 /* ═══ Typography ═══ */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&family=Fustat:wght@400;500;600;700&display=swap');
 
 /* ═══ Base ═══ */
 .landing {
@@ -437,6 +438,317 @@
     height: 2rem;
     background: var(--border-subtle);
     margin-right: 2rem;
+}
+
+/* ═══════════════════════════════════════
+   VIDEO HERO SECTION
+   ═══════════════════════════════════════ */
+.vhero {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #0a0a0a;
+}
+
+.vhero-video {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 115%;
+    height: 115%;
+    object-fit: cover;
+    object-position: center top;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Force nav links to black on video hero */
+.vhero .lp-nav .lp-nav-logo,
+.vhero .lp-nav .lp-nav-link {
+    color: #000;
+}
+.vhero .lp-nav .lp-nav-link:hover {
+    color: #333;
+    background: rgba(0,0,0,0.05);
+}
+.vhero .lp-nav .lp-nav-center {
+    position: static;
+    transform: none;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0,0,0,0.08);
+}
+.vhero .lp-nav-scrolled {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+/* Nav buttons */
+.vhero-nav-btn-ghost {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Schibsted Grotesk', sans-serif;
+    color: #000;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.vhero-nav-btn-ghost:hover {
+    background: rgba(0,0,0,0.06);
+}
+.vhero-nav-btn-solid {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Schibsted Grotesk', sans-serif;
+    color: #fff;
+    background: #000;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.vhero-nav-btn-solid:hover {
+    opacity: 0.85;
+}
+
+/* Hero content */
+.vhero-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 120px;
+    padding-top: 0;
+    gap: 0;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+/* Badge */
+.vhero-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 34px;
+}
+.vhero-badge-dark {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #0e1311;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 9999px 0 0 9999px;
+}
+.vhero-badge-light {
+    display: flex;
+    align-items: center;
+    padding: 6px 14px;
+    background: #fff;
+    color: #333;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    border-radius: 0 9999px 9999px 0;
+}
+
+/* Headline */
+.vhero-headline {
+    font-family: 'Fustat', sans-serif;
+    font-size: 80px;
+    font-weight: 700;
+    letter-spacing: -4.8px;
+    line-height: 1.05;
+    color: #000;
+    margin: 0;
+    text-align: center;
+    overflow: visible;
+}
+
+/* Subtitle */
+.vhero-subtitle {
+    font-family: 'Fustat', sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.4px;
+    color: #505050;
+    max-width: 736px;
+    width: 542px;
+    margin-top: 34px;
+    text-align: center;
+    line-height: 1.5;
+}
+
+/* Search box */
+.vhero-search-box {
+    max-width: 728px;
+    width: 100%;
+    background: rgba(0,0,0,0.24);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 18px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 44px;
+}
+
+/* Top credit row */
+.vhero-search-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+}
+.vhero-credits-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.vhero-credits-text {
+    font-family: 'Schibsted Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+}
+.vhero-upgrade-btn {
+    padding: 3px 10px;
+    font-family: 'Schibsted Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #000;
+    background: rgba(90,225,76,0.89);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.vhero-upgrade-btn:hover { opacity: 0.85; }
+.vhero-powered-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Schibsted Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+}
+.vhero-powered-right svg {
+    stroke: rgba(255,255,255,0.6);
+}
+
+/* Main input row */
+.vhero-search-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 8px 10px 8px 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+.vhero-search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 16px;
+    color: #000;
+    font-family: 'Inter', sans-serif;
+}
+.vhero-search-input::placeholder {
+    color: rgba(0,0,0,0.6);
+}
+.vhero-send-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #000;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    color: #fff;
+}
+.vhero-send-btn:hover:not(:disabled) {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+.vhero-send-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Bottom action row */
+.vhero-search-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+}
+.vhero-action-btns {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.vhero-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    font-family: 'Schibsted Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.vhero-action-btn:hover {
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+}
+.vhero-action-btn svg {
+    stroke: rgba(255,255,255,0.75);
+}
+.vhero-char-count {
+    font-family: 'Schibsted Grotesk', sans-serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .vhero-content { padding: 0 24px; }
+    .vhero-headline { font-size: 48px; letter-spacing: -2.4px; }
+    .vhero-subtitle { font-size: 16px; width: 100%; max-width: 100%; }
+    .vhero-search-box { max-width: 100%; }
+    .vhero .lp-nav-inner { padding: 16px 24px !important; }
+    .vhero .lp-nav-center { position: static; transform: none; }
 }
 
 /* ═══════════════════════════════════════

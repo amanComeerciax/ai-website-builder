@@ -79,11 +79,11 @@ const staggerParentFast = {
 
 // Rotating placeholder suggestions
 const PLACEHOLDER_SUGGESTIONS = [
-    "Ask IndiForge to create an internal tool, a landing page, or a custom app...",
-    "Ask IndiForge to build a SaaS dashboard with real-time charts...",
-    "Ask IndiForge to design a portfolio for a freelance developer...",
-    "Ask IndiForge to create a fitness app with nutrition tracking...",
-    "Ask IndiForge to build an e-commerce platform for artisan coffee...",
+    "Ask StackForge to create an internal tool, a landing page, or a custom app...",
+    "Ask StackForge to build a SaaS dashboard with real-time charts...",
+    "Ask StackForge to design a portfolio for a freelance developer...",
+    "Ask StackForge to create a fitness app with nutrition tracking...",
+    "Ask StackForge to build an e-commerce platform for artisan coffee...",
 ]
 
 // How it works steps
@@ -223,6 +223,97 @@ const landingFeatures = [
     }
 ];
 
+// ─── Video Background with custom JS fade system ───
+function VideoBackground() {
+    const videoRef = useRef(null);
+    const fadeFrameRef = useRef(null);
+    const fadingOutRef = useRef(false);
+
+    const cancelFade = () => {
+        if (fadeFrameRef.current) {
+            cancelAnimationFrame(fadeFrameRef.current);
+            fadeFrameRef.current = null;
+        }
+    };
+
+    const fadeIn = (duration = 250) => {
+        cancelFade();
+        const video = videoRef.current;
+        if (!video) return;
+        const start = performance.now();
+        const from = parseFloat(video.style.opacity) || 0;
+        const step = (now) => {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            video.style.opacity = from + (1 - from) * progress;
+            if (progress < 1) fadeFrameRef.current = requestAnimationFrame(step);
+        };
+        fadeFrameRef.current = requestAnimationFrame(step);
+    };
+
+    const fadeOut = (duration = 250) => {
+        cancelFade();
+        const video = videoRef.current;
+        if (!video) return;
+        const start = performance.now();
+        const from = parseFloat(video.style.opacity) || 1;
+        const step = (now) => {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            video.style.opacity = from - from * progress;
+            if (progress < 1) fadeFrameRef.current = requestAnimationFrame(step);
+        };
+        fadeFrameRef.current = requestAnimationFrame(step);
+    };
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        video.style.opacity = '0';
+
+        const handleCanPlay = () => fadeIn(250);
+        const handleTimeUpdate = () => {
+            if (!video.duration) return;
+            const remaining = video.duration - video.currentTime;
+            if (remaining <= 0.55 && !fadingOutRef.current) {
+                fadingOutRef.current = true;
+                fadeOut(250);
+            }
+        };
+        const handleEnded = () => {
+            cancelFade();
+            fadingOutRef.current = false;
+            video.currentTime = 0;
+            video.play();
+            fadeIn(250);
+        };
+
+        video.addEventListener('canplay', handleCanPlay);
+        video.addEventListener('timeupdate', handleTimeUpdate);
+        video.addEventListener('ended', handleEnded);
+
+        return () => {
+            cancelFade();
+            video.removeEventListener('canplay', handleCanPlay);
+            video.removeEventListener('timeupdate', handleTimeUpdate);
+            video.removeEventListener('ended', handleEnded);
+        };
+    }, []);
+
+    return (
+        <video
+            ref={videoRef}
+            className="vhero-video"
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260329_050842_be71947f-f16e-4a14-810c-06e83d23ddb5.mp4"
+            autoPlay
+            muted
+            playsInline
+            style={{ opacity: 0 }}
+        />
+    );
+}
+
 export default function LandingPage() {
     const [inputValue, setInputValue] = useState('')
     const [placeholder, setPlaceholder] = useState(PLACEHOLDER_SUGGESTIONS[0])
@@ -335,99 +426,114 @@ export default function LandingPage() {
 
     return (
         <div className="landing">
-            {/* ═══ Navbar ═══ */}
-            <nav className={`lp-nav ${navScrolled ? 'lp-nav-scrolled' : ''}`}>
-                <div className="lp-nav-inner">
-                    <Link to="/" className="lp-nav-logo">
-                        <Wind size={22} />
-                        <span>INDIFORGE AI</span>
-                    </Link>
+            {/* ═══ Video Background Hero ═══ */}
+            <section className="vhero">
+                <VideoBackground />
 
-                    <div className="lp-nav-center">
-                        <Link to="/" className="lp-nav-link lp-nav-link-active">Home</Link>
-                        <Link to="/pricing" className="lp-nav-link">Pricing</Link>
-                        <a href="#features" className="lp-nav-link">Features</a>
-                        <a href="#how-it-works" className="lp-nav-link">How it Works</a>
+                {/* ═══ Navbar ═══ */}
+                <nav className={`lp-nav ${navScrolled ? 'lp-nav-scrolled' : ''}`}>
+                    <div className="lp-nav-inner" style={{ padding: '16px ' }}>
+                        <Link to="/" className="lp-nav-logo" style={{ fontFamily: "'Schibsted Grotesk', sans-serif", fontWeight: 600, fontSize: '22px', letterSpacing: '-1.2px', gap: '6px' }}>
+                            <Wind size={22} />
+                            <span>STACKFORGE</span>
+                        </Link>
+
+                        <div className="lp-nav-center" style={{ gap: '32px' }}>
+                            <Link to="/" className="lp-nav-link" style={{ fontFamily: "'Schibsted Grotesk', sans-serif", fontWeight: 500, fontSize: '15px', letterSpacing: '-0.2px' }}>Home</Link>
+                            <a href="#features" className="lp-nav-link" style={{ fontFamily: "'Schibsted Grotesk', sans-serif", fontWeight: 500, fontSize: '15px', letterSpacing: '-0.2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                Features
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </a>
+                            <Link to="/pricing" className="lp-nav-link" style={{ fontFamily: "'Schibsted Grotesk', sans-serif", fontWeight: 500, fontSize: '15px', letterSpacing: '-0.2px' }}>Pricing</Link>
+                            <Link to="/templates" className="lp-nav-link" style={{ fontFamily: "'Schibsted Grotesk', sans-serif", fontWeight: 500, fontSize: '15px', letterSpacing: '-0.2px' }}>Templates</Link>
+                            <a href="#how-it-works" className="lp-nav-link" style={{ fontFamily: "'Schibsted Grotesk', sans-serif", fontWeight: 500, fontSize: '15px', letterSpacing: '-0.2px', whiteSpace: 'nowrap' }}>How it Works</a>
+                        </div>
+
+                        <div className="lp-nav-right" style={{ gap: '12px' }}>
+                            <SignedOut>
+                                <SignUpButton mode="modal" fallbackRedirectUrl="/dashboard">
+                                    <button className="vhero-nav-btn-ghost" style={{ width: '82px' }}>Sign Up</button>
+                                </SignUpButton>
+                                <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
+                                    <button className="vhero-nav-btn-solid" style={{ width: '101px' }}>Log In</button>
+                                </SignInButton>
+                            </SignedOut>
+                            <SignedIn>
+                                <Link to="/dashboard" className="vhero-nav-btn-solid" style={{ width: '120px', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                    Dashboard
+                                    <ArrowRight size={14} />
+                                </Link>
+                            </SignedIn>
+                        </div>
                     </div>
+                </nav>
 
-                    <div className="lp-nav-right">
-                        <ThemePicker />
-                        <SignedOut>
-                            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
-                                <button className="lp-nav-link mb-0" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Sign in</button>
-                            </SignInButton>
-                            <Link to="/signup" className="lp-nav-cta" style={{ textDecoration: 'none' }}>
-                                Get Started
-                                <ArrowRight size={14} />
-                            </Link>
-                        </SignedOut>
-                        <SignedIn>
-                            <Link to="/dashboard" className="lp-nav-cta">
-                                Dashboard
-                                <ArrowRight size={14} />
-                            </Link>
-                        </SignedIn>
-                    </div>
-                </div>
-            </nav>
-
-            {/* ═══ Hero ═══ */}
-            <section className="hero">
-                <div className="hero-content lp-reveal">
+                {/* ═══ Hero Content ═══ */}
+                <div className="vhero-content">
                     {/* Badge */}
-                    <div className="hero-badge">
-                        <span className="hero-badge-dot" />
-                        <span>Now in Public Beta</span>
-                    </div>
+                    <motion.div
+                        className="vhero-badge"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                        <span className="vhero-badge-dark">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.09 6.26L20.58 9l-5 4.27L17.18 20 12 16.77 6.82 20l1.6-6.73L3.42 9l6.49-.74L12 2z" /></svg>
+                            New
+                        </span>
+                        <span className="vhero-badge-light">Now in Public Beta</span>
+                    </motion.div>
 
-                    {/* Title */}
+                    {/* Headline */}
                     <motion.h1
-                        className="hero-title"
+                        className="vhero-headline"
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        transition={{ duration: 0.7, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
                     >
                         Build something
+                        <br />
+                        <span style={{ fontStyle: 'italic', background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', paddingRight: '8px' }}>Powerful</span>
                     </motion.h1>
-                    <motion.div
-                        className="hero-gooey-wrapper"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.7, delay: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                    >
-                        <GooeyText
-                            texts={["Incredible", "Beautiful", "Powerful", "Stunning", "Amazing"]}
-                            morphTime={1.5}
-                            cooldownTime={0.5}
-                            className="hero-gooey-container"
-                            textClassName="hero-gooey-text"
-                        />
-                    </motion.div>
+
+                    {/* Subtitle */}
                     <motion.p
-                        className="hero-description"
+                        className="vhero-subtitle"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        transition={{ duration: 0.6, delay: 0.45 }}
                     >
-                        Create apps and websites by chatting with AI. Describe your idea in plain English — IndiForge AI generates production-ready code and deploys it in under 2 minutes.
+                        Describe your idea in plain English — StackForge AI generates
+                        production-ready code and deploys it in under 2 minutes.
                     </motion.p>
 
-                    {/* Prompt Input */}
+                    {/* Search Input Box */}
                     <motion.div
-                        className="hero-prompt-wrapper"
+                        className="vhero-search-box"
                         initial={{ opacity: 0, y: 30, scale: 0.97 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 0.7, delay: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        transition={{ duration: 0.7, delay: 0.55 }}
                     >
-                        {/* 5-STEP PIPELINE: Style Intake - DEPRECATED here, moved to Dashboard */}
+                        {/* Credit info row */}
+                        <div className="vhero-search-top">
+                            <div className="vhero-credits-left">
+                                <span className="vhero-credits-text">60/450 credits</span>
+                                <button className="vhero-upgrade-btn">Upgrade</button>
+                            </div>
+                            <div className="vhero-powered-right">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v2m0 14v2M5.63 5.63l1.42 1.42m9.9 9.9l1.42 1.42M3 12h2m14 0h2M5.63 18.37l1.42-1.42m9.9-9.9l1.42-1.42" /><circle cx="12" cy="12" r="4" /></svg>
+                                <span>Powered by StackForge AI</span>
+                            </div>
+                        </div>
 
-                        <div className="hero-prompt-box">
-                            <textarea
+                        {/* Main input */}
+                        <div className="vhero-search-input-row">
+                            <input
+                                type="text"
+                                className="vhero-search-input"
+                                placeholder={placeholder}
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                placeholder={placeholder}
-                                className="hero-prompt-textarea"
-                                rows={2}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault()
@@ -435,114 +541,37 @@ export default function LandingPage() {
                                     }
                                 }}
                             />
-                            <div className="hero-prompt-footer">
-                                <div className="hero-prompt-left relative">
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        className="hidden"
-                                        style={{ display: 'none' }}
-                                        onChange={handleFileChange}
-                                    />
-                                    <button
-                                        className="hero-prompt-icon"
-                                        title="Attach file"
-                                        onClick={() => fileInputRef.current?.click()}
-                                    >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-                                    </button>
-                                    <div className="hero-prompt-separator" />
+                            <button className="vhero-send-btn" onClick={handleSend} disabled={!inputValue.trim()}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                            </button>
+                        </div>
 
-                                    <div className="relative" ref={dropdownRef}>
-                                        <button
-                                            className="hero-prompt-model"
-                                            onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                                        >
-                                            <span className="hero-prompt-model-dot" />
-                                            {selectedModel}
-                                            <ChevronUp size={14} className={`transition-transform duration-200 ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
-                                        </button>
-
-                                        {isModelDropdownOpen && (
-                                            <div className="absolute top-full left-0 mt-3 w-64 rounded-2xl border border-white/10 bg-[#1c1c1f] p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                                                <div className="px-3 py-2 text-[10px] font-semibold tracking-widest text-[#71717a] uppercase font-sans">
-                                                    Best for web pages
-                                                </div>
-                                                {['Gemini 3 Flash', 'Gemini 3.1 Pro', 'Kimi K2.5'].map(model => (
-                                                    <button
-                                                        key={model}
-                                                        onClick={() => {
-                                                            setSelectedModel(model);
-                                                            setIsModelDropdownOpen(false);
-                                                        }}
-                                                        className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-[13px] text-left text-gray-300 hover:bg-white/5 hover:text-white transition-colors group"
-                                                    >
-                                                        <div className="flex items-center gap-2.5">
-                                                            {model.includes('Gemini') ? (
-                                                                <div className="flex -space-x-1">
-                                                                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                                                                    <div className="w-2.5 h-2.5 rounded-full bg-red-400 mix-blend-screen" />
-                                                                </div>
-                                                            ) : (
-                                                                <div className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300 transition-colors"><Sparkles size={14} /></div>
-                                                            )}
-                                                            <span className="font-medium">{model}</span>
-                                                        </div>
-                                                        {selectedModel === model && <Check size={14} className="text-white" />}
-                                                    </button>
-                                                ))}
-
-                                                <div className="mt-2 px-3 py-2 text-[10px] font-semibold tracking-widest text-[#71717a] uppercase font-sans">
-                                                    Best for UI design
-                                                </div>
-                                                {['GPT-5.2', 'Claude 4.5 Haiku', 'Claude 4.5 Sonnet', 'Claude 4.5 Opus', 'Claude 4.6 Opus', 'GPT-5.2 Thinking', 'GPT-5 Mini'].map(model => (
-                                                    <button
-                                                        key={model}
-                                                        onClick={() => {
-                                                            setSelectedModel(model);
-                                                            setIsModelDropdownOpen(false);
-                                                        }}
-                                                        className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-[13px] text-left text-[#d4d4d8] hover:bg-white/5 hover:text-white transition-colors group"
-                                                    >
-                                                        <div className="flex items-center gap-2.5">
-                                                            {model.includes('Claude') ? (
-                                                                <div className="w-3.5 h-3.5 text-amber-500/90 group-hover:text-amber-400 transition-colors">A</div>
-                                                            ) : (
-                                                                <div className="w-3.5 h-3.5 text-emerald-500/90 group-hover:text-emerald-400 transition-colors"><Wind size={14} /></div>
-                                                            )}
-                                                            <span className="font-medium">{model}</span>
-                                                        </div>
-                                                        {selectedModel === model && <Check size={14} className="text-white" />}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <button className="hero-prompt-send" onClick={handleSend} disabled={!inputValue.trim()}>
-                                    Build site
-                                    <ArrowRight size={14} />
+                        {/* Bottom action row */}
+                        <div className="vhero-search-bottom">
+                            <div className="vhero-action-btns">
+                                <button className="vhero-action-btn" onClick={() => fileInputRef.current?.click()}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                                    Attach
+                                </button>
+                                <button className="vhero-action-btn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /></svg>
+                                    Voice
+                                </button>
+                                <button className="vhero-action-btn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                                    Prompts
                                 </button>
                             </div>
+                            <span className="vhero-char-count">{inputValue.length}/3,000</span>
                         </div>
-                    </motion.div>
 
-                    {/* Stats Row */}
-                    <motion.div
-                        className="hero-stats"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                    >
-                        {STATS.map((stat, i) => (
-                            <div key={i} className="hero-stat-group">
-                                {i > 0 && <div className="hero-stat-sep" />}
-                                <div className="hero-stat">
-                                    <span className="hero-stat-value">{stat.value}</span>
-                                    <span className="hero-stat-label">{stat.label}</span>
-                                </div>
-                            </div>
-                        ))}
+                        {/* Hidden file input */}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            style={{ display: 'none' }}
+                            onChange={handleFileChange}
+                        />
                     </motion.div>
                 </div>
             </section>

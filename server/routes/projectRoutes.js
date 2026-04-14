@@ -250,8 +250,12 @@ router.patch("/:id/config", requireAuth, async (req, res, next) => {
         const userId = req.auth.userId
         const { theme, websiteName, description, logoUrl, brandColors, isConfigured } = req.body
 
+        const access = await getProjectWithAccess(req.params.id, userId);
+        if (!access) return res.status(404).json({ error: "Project not found" });
+        if (access.role === 'viewer') return res.status(403).json({ error: "Viewers cannot config projects" });
+
         const project = await Project.findOneAndUpdate(
-            { _id: req.params.id, userId },
+            { _id: req.params.id },
             { 
                 $set: { 
                     theme, 
@@ -276,10 +280,11 @@ router.patch("/:id/config", requireAuth, async (req, res, next) => {
 router.put("/:id/star", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const project = await Project.findOne({ _id: req.params.id, userId });
+        const access = await getProjectWithAccess(req.params.id, userId);
         
-        if (!project) return res.status(404).json({ error: "Project not found" });
+        if (!access) return res.status(404).json({ error: "Project not found" });
 
+        const project = access.project;
         project.isStarred = !project.isStarred;
         await project.save();
         
@@ -293,8 +298,12 @@ router.put("/:id/star", requireAuth, async (req, res, next) => {
 router.post("/:id/unpublish", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const project = await Project.findOne({ _id: req.params.id, userId });
-        if (!project) return res.status(404).json({ error: "Project not found" });
+        const access = await getProjectWithAccess(req.params.id, userId);
+        if (!access) return res.status(404).json({ error: "Project not found" });
+        if (access.role !== 'owner' && access.role !== 'admin') {
+            return res.status(403).json({ error: "Only admins or owners can unpublish projects" });
+        }
+        const project = access.project;
 
         if (!project.publishedUrl) {
             return res.status(400).json({ error: "Project is not published" });
@@ -314,8 +323,9 @@ router.post("/:id/unpublish", requireAuth, async (req, res, next) => {
 router.post("/:id/remix", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const original = await Project.findOne({ _id: req.params.id, userId });
-        if (!original) return res.status(404).json({ error: "Project not found" });
+        const access = await getProjectWithAccess(req.params.id, userId);
+        if (!access) return res.status(404).json({ error: "Project not found" });
+        const original = access.project;;
 
         const remixed = await Project.create({
             userId,
@@ -385,9 +395,10 @@ router.post("/:id/messages", requireAuth, async (req, res, next) => {
 router.get("/:id/versions", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const project = await Project.findOne({ _id: req.params.id, userId });
+        const access = await getProjectWithAccess(req.params.id, userId);
         
-        if (!project) return res.status(404).json({ error: "Project not found" });
+        if (!access) return res.status(404).json({ error: "Project not found" });
+        const project = access.project;
         
         // Exclude the heavy fileTree field for the list view
         const versions = await Version.find({ projectId: project._id })
@@ -404,9 +415,11 @@ router.get("/:id/versions", requireAuth, async (req, res, next) => {
 router.post("/:id/versions/:versionId/restore", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const project = await Project.findOne({ _id: req.params.id, userId });
+        const access = await getProjectWithAccess(req.params.id, userId);
         
-        if (!project) return res.status(404).json({ error: "Project not found" });
+        if (!access) return res.status(404).json({ error: "Project not found" });
+        if (access.role === 'viewer') return res.status(403).json({ error: "Viewers cannot restore versions" });
+        const project = access.project;
         
         const version = await Version.findOne({ _id: req.params.versionId, projectId: project._id });
         if (!version) return res.status(404).json({ error: "Version not found" });

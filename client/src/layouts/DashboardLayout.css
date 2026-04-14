@@ -4,7 +4,7 @@
     height: 100vh;
     width: 100vw;
     overflow: hidden;
-    background: #000;
+    background: transparent;
     font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
     transition: grid-template-columns 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -19,15 +19,9 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: radial-gradient(125% 125% at 50% 101%, rgba(245, 87, 2, 1) 10.5%, rgba(245, 120, 2, 1) 16%, rgba(245, 140, 2, 1) 17.5%, rgba(245, 170, 100, 1) 25%, rgba(238, 174, 202, 1) 40%, rgba(202, 179, 214, 1) 65%, rgba(148, 201, 233, 1) 100%);
-    background-size: 150% 150%;
-    animation: lv-mesh-shift 8s ease-in-out infinite alternate;
+    /* Overlay to make content readable while video plays underneath */
+    background: linear-gradient(to top, rgba(0,0,0,0.4), rgba(0,0,0,0.0));
     overflow: hidden;
-}
-
-@keyframes lv-mesh-shift {
-    0% { background-position: 50% 100%; }
-    100% { background-position: 50% 90%; }
 }
 
 .lv-sidebar-floater {

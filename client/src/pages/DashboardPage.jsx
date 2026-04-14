@@ -17,6 +17,42 @@ const PROMPTS = [
   "A restaurant site with online ordering...",
 ]
 
+// Shared prompt quality check
+function isNonActionablePrompt(text) {
+    const cleaned = text.replace(/[^a-zA-Z\s]/g, '').toLowerCase().trim()
+    const words = cleaned.split(/\s+/).filter(w => w.length > 0)
+    if (cleaned.length < 2) return true
+    if (/^(.)\1+$/.test(cleaned.replace(/\s/g, ''))) return true
+    const noSpaces = cleaned.replace(/\s/g, '')
+    const vowelCount = (noSpaces.match(/[aeiou]/gi) || []).length
+    const vowelRatio = noSpaces.length > 0 ? vowelCount / noSpaces.length : 0
+    if (noSpaces.length > 4 && vowelRatio < 0.12) return true
+    const throwawayWords = new Set([
+        'this', 'that', 'what', 'yes', 'no', 'ok', 'okay', 'sure', 'test',
+        'testing', 'junky', 'junk', 'stuff', 'thing', 'things', 'idk', 'hmm',
+        'um', 'uh', 'huh', 'nah', 'nope', 'yep', 'yeah', 'yea', 'lol', 'lmao',
+        'haha', 'bruh', 'bro', 'dude', 'cool', 'nice', 'wow', 'meh', 'blah',
+        'asdf', 'qwer', 'zxcv', 'sdfg', 'hjkl', 'nothing', 'something',
+        'whatever', 'random', 'check', 'see', 'try', 'done', 'thanks', 'thank',
+        'bye', 'stop', 'wait', 'go', 'help', 'why', 'how', 'who', 'when',
+        'where', 'the', 'a', 'an', 'it', 'is', 'was', 'are', 'do', 'does',
+        'can', 'will', 'just', 'only', 'here', 'there', 'now', 'then',
+        'please', 'plz', 'pls', 'aaa', 'bbb', 'xxx', 'zzz', 'abc'
+    ])
+    if (words.length <= 2 && words.every(w => throwawayWords.has(w))) return true
+    const actionKeywords = new Set([
+        'add', 'create', 'build', 'make', 'change', 'update', 'fix', 'remove',
+        'delete', 'move', 'style', 'color', 'font', 'resize', 'align', 'center',
+        'navbar', 'footer', 'header', 'hero', 'section', 'page', 'button',
+        'form', 'image', 'text', 'link', 'menu', 'sidebar', 'card', 'grid',
+        'responsive', 'mobile', 'dark', 'light', 'animate', 'animation',
+        'deploy', 'publish', 'portfolio', 'blog', 'ecommerce', 'landing',
+        'redesign', 'improve', 'refactor', 'optimize'
+    ])
+    if (words.length === 1 && !actionKeywords.has(words[0])) return true
+    return false
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -29,6 +65,7 @@ export default function DashboardPage() {
   const [charIdx, setCharIdx] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
   const [styleOptions, setStyleOptions] = useState(null)
+  const [warningMsg, setWarningMsg] = useState('')
   const textareaRef = useRef(null)
   
   const { createProject } = useProjectStore()
@@ -77,16 +114,23 @@ export default function DashboardPage() {
 
     const handleSend = async () => {
         const trimmed = promptValue.trim()
-        if (trimmed) {
-            const token = await getToken();
-            const folderId = searchParams.get('folder');
-            const { activeWorkspaceId } = useWorkspaceStore.getState();
-            const newProjectId = await createProject(trimmed, token, folderId || null, null, activeWorkspaceId);
-            
-            // Redirect to the real project URL — no more style params here!
-            const url = `/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`;
-            navigate(url);
+        if (!trimmed) return
+
+        // Check for gibberish/vague prompts BEFORE creating a project
+        if (isNonActionablePrompt(trimmed)) {
+            setWarningMsg("That doesn't look like a website description. Try something like: \"A portfolio website with dark mode\" or \"An e-commerce store for shoes\"")
+            setTimeout(() => setWarningMsg(''), 5000)
+            return
         }
+
+        const token = await getToken();
+        const folderId = searchParams.get('folder');
+        const { activeWorkspaceId } = useWorkspaceStore.getState();
+        const newProjectId = await createProject(trimmed, token, folderId || null, null, activeWorkspaceId);
+        
+        // Redirect to the real project URL — no more style params here!
+        const url = `/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`;
+        navigate(url);
     }
 
   if (!isLoaded) {
@@ -97,6 +141,19 @@ export default function DashboardPage() {
     <div className="lv-dashboard-page">
       <div className="lv-center-content">
         <h1 className="lv-hero-title">Ready to build, {userName}?</h1>
+        
+        {warningMsg && (
+          <div style={{
+            maxWidth: '680px', width: '100%', marginBottom: '16px',
+            padding: '12px 16px', borderRadius: '12px',
+            background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#fca5a5', fontSize: '13px', lineHeight: '1.5',
+            animation: 'slideUpFade 0.2s ease-out',
+            textAlign: 'center'
+          }}>
+            {warningMsg}
+          </div>
+        )}
         
         <div className="lv-prompt-box">
           <textarea

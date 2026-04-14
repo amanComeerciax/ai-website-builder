@@ -8,7 +8,7 @@ import {
     Mic, ArrowUp, ArrowRight, ChevronRight, ChevronDown,
     Palette, ExternalLink, Sparkles, Camera, Paperclip, X,
     Eye, Upload, Monitor, ImagePlus, Zap, Copy, Check,
-    Undo2, ThumbsUp, ThumbsDown, MoreHorizontal
+    Undo2, ThumbsUp, ThumbsDown, MoreHorizontal, Square
 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import WebsiteStylePicker from './WebsiteStylePicker'
@@ -25,7 +25,8 @@ export default function ChatPanel() {
         setIdeVisible, setSelectedModel, completeProjectConfig, setActiveView,
         isVisualEditMode, toggleVisualEditMode,
         selectedElements, removeSelectedElement, clearSelectedElements,
-        thinkingMessage, isEditMode, memberRole
+        thinkingMessage, isEditMode, memberRole,
+        cancelGeneration
     } = useChatStore()
     const { getToken } = useAuth()
     
@@ -46,6 +47,8 @@ export default function ChatPanel() {
     const [isCompact, setIsCompact] = useState(false)
     const [copiedId, setCopiedId] = useState(null)
     const [lightboxSrc, setLightboxSrc] = useState(null)
+    const [fileSnapshot, setFileSnapshot] = useState(null) // For undo: snapshot of files before generation
+    const [lastUserPrompt, setLastUserPrompt] = useState('') // For undo: re-fill input
     
     const messagesEndRef = useRef(null)
     const fileInputRef = useRef(null)
@@ -235,6 +238,66 @@ export default function ChatPanel() {
             return
         }
 
+        // Improved prompt quality check: detect gibberish, vague, and non-actionable prompts
+        const isNonActionablePrompt = (text) => {
+            const cleaned = text.replace(/[^a-zA-Z\s]/g, '').toLowerCase().trim()
+            const words = cleaned.split(/\s+/).filter(w => w.length > 0)
+            
+            // Single character or empty
+            if (cleaned.length < 2) return true
+            
+            // All same character repeated
+            if (/^(.)\1+$/.test(cleaned.replace(/\s/g, ''))) return true
+            
+            // Keyboard mash: high consonant ratio with no real words
+            const noSpaces = cleaned.replace(/\s/g, '')
+            const vowelCount = (noSpaces.match(/[aeiou]/gi) || []).length
+            const vowelRatio = noSpaces.length > 0 ? vowelCount / noSpaces.length : 0
+            if (noSpaces.length > 4 && vowelRatio < 0.12) return true
+            
+            // Common throwaway / vague single words that aren't website instructions
+            const throwawayWords = new Set([
+                'this', 'that', 'what', 'yes', 'no', 'ok', 'okay', 'sure', 'test',
+                'testing', 'junky', 'junk', 'stuff', 'thing', 'things', 'idk', 'hmm',
+                'um', 'uh', 'huh', 'nah', 'nope', 'yep', 'yeah', 'yea', 'lol', 'lmao',
+                'haha', 'bruh', 'bro', 'dude', 'cool', 'nice', 'wow', 'meh', 'blah',
+                'asdf', 'qwer', 'zxcv', 'sdfg', 'hjkl', 'nothing', 'something',
+                'whatever', 'random', 'check', 'see', 'try', 'done', 'thanks', 'thank',
+                'bye', 'stop', 'wait', 'go', 'help', 'why', 'how', 'who', 'when',
+                'where', 'the', 'a', 'an', 'it', 'is', 'was', 'are', 'do', 'does',
+                'can', 'will', 'just', 'only', 'here', 'there', 'now', 'then',
+                'please', 'plz', 'pls', 'aaa', 'bbb', 'xxx', 'zzz', 'abc'
+            ])
+            
+            // If it's just 1-2 throwaway words, it's not actionable
+            if (words.length <= 2 && words.every(w => throwawayWords.has(w))) return true
+            
+            // If it's a single word and not a clear website action keyword, reject
+            const actionKeywords = new Set([
+                'add', 'create', 'build', 'make', 'change', 'update', 'fix', 'remove',
+                'delete', 'move', 'style', 'color', 'font', 'resize', 'align', 'center',
+                'navbar', 'footer', 'header', 'hero', 'section', 'page', 'button',
+                'form', 'image', 'text', 'link', 'menu', 'sidebar', 'card', 'grid',
+                'responsive', 'mobile', 'dark', 'light', 'animate', 'animation',
+                'deploy', 'publish', 'portfolio', 'blog', 'ecommerce', 'landing',
+                'redesign', 'improve', 'refactor', 'optimize'
+            ])
+            if (words.length === 1 && !actionKeywords.has(words[0])) return true
+            
+            return false
+        }
+
+        if (isNonActionablePrompt(trimmed) && !(selectedElements && selectedElements.length > 0)) {
+            addMessage({ role: 'user', content: messageContent, images: msgImages.length > 0 ? msgImages : undefined })
+            setTimeout(() => {
+                addMessage({ 
+                    role: 'assistant', 
+                    content: `It looks like that message might have been accidental or doesn't have enough context for me to work with! Could you describe what you'd like me to do more specifically? Here are some ideas:\n\n• "Add a contact form with email and phone fields"\n• "Change the color scheme to dark mode"\n• "Make the hero section text bigger and bolder"\n• "Add a testimonials section with real user reviews"\n• "Create a responsive navbar with a logo"` 
+                })
+            }, 600)
+            return
+        }
+
         // If visual edit elements are selected, build context for backend but DON'T pollute the user message
         let backendPrompt = messageContent
         let visualEditElements = null
@@ -261,6 +324,13 @@ export default function ChatPanel() {
         // Collect actual attachment data for the AI
         const imageData = attachments.filter(a => a.type === 'image').map(a => a.preview)
         const fileData = attachments.filter(a => a.type === 'file').map(a => ({ name: a.name, content: a.content }))
+
+        // Snapshot current files for undo before generation replaces them
+        const { useEditorStore } = require('../../stores/editorStore')
+        const currentFiles = useEditorStore.getState().files
+        const currentHtml = useEditorStore.getState().htmlContent
+        setFileSnapshot({ files: { ...currentFiles }, htmlContent: currentHtml })
+        setLastUserPrompt(trimmed)
 
         // Show clean message to user (store visual edit elements separately for rendering tag chips)
         addMessage({ 
@@ -294,7 +364,11 @@ export default function ChatPanel() {
 
     // Strip [Attached image: ...] from displayed content
     const cleanMessageContent = (content) => {
-        return content.replace(/\n?\[Attached (?:image|file): [^\]]+\]/g, '').trim()
+        return content
+            .replace(/\[Visual Edit on[^\]]*\]\n?/g, '')  // Strip [Visual Edit on element: ...] prefix
+            .replace(/\[Visual Edit on \d+ element\(s\):[^\]]*\]\n?/g, '') // Strip multi-element version
+            .replace(/\n?\[Attached (?:image|file): [^\]]+\]/g, '')
+            .trim()
     }
 
     const getLogIcon = (type) => {
@@ -347,6 +421,38 @@ export default function ChatPanel() {
     }
 
     const canSend = (input.trim().length > 0 || attachments.length > 0) && !isGenerating
+
+    const handleStop = () => {
+        cancelGeneration()
+        addMessage({ 
+            role: 'assistant', 
+            content: 'Generation stopped. Feel free to try a different prompt!' 
+        })
+    }
+
+    const handleUndo = () => {
+        if (!fileSnapshot) return
+        const { useEditorStore } = require('../../stores/editorStore')
+        const editorStore = useEditorStore.getState()
+        // Restore the previous snapshot
+        editorStore.setFiles(fileSnapshot.files)
+        editorStore.setPreview('srcdoc', fileSnapshot.htmlContent)
+        // Reset generation UI state
+        const store = useChatStore.getState()
+        store._sync({ 
+            generationPhase: 'idle', 
+            generationLogs: [], 
+            generationSummary: '', 
+            generationTaskName: '' 
+        })
+        // Pre-fill the input with the last user prompt so they can edit and re-send
+        setInput(lastUserPrompt)
+        setFileSnapshot(null)
+        addMessage({ 
+            role: 'assistant', 
+            content: '↩️ Changes undone. Your previous version has been restored. Edit your prompt and try again!' 
+        })
+    }
 
     return (
         <div 
@@ -474,7 +580,7 @@ export default function ChatPanel() {
                                     <p>{generationSummary}</p>
                                 </div>
                                 <div className="cp-action-bar">
-                                    <button className="cp-action-icon" title="Undo"><Undo2 size={16} /></button>
+                                    <button className="cp-action-icon" title="Undo" onClick={handleUndo} disabled={!fileSnapshot}><Undo2 size={16} /></button>
                                     <button className="cp-action-icon" title="Good response"><ThumbsUp size={16} /></button>
                                     <button className="cp-action-icon" title="Bad response"><ThumbsDown size={16} /></button>
                                     <button 
@@ -498,7 +604,7 @@ export default function ChatPanel() {
                                     </div>
                                 )}
                                 <div className="cp-action-bar">
-                                    <button className="cp-action-icon" title="Undo"><Undo2 size={16} /></button>
+                                    <button className="cp-action-icon" title="Undo" onClick={handleUndo} disabled={!fileSnapshot}><Undo2 size={16} /></button>
                                     <button className="cp-action-icon" title="Good response"><ThumbsUp size={16} /></button>
                                     <button className="cp-action-icon" title="Bad response"><ThumbsDown size={16} /></button>
                                     <button 
@@ -787,13 +893,23 @@ export default function ChatPanel() {
                         >
                             <Mic size={16} />
                         </button>
-                        <button 
-                            className={'cp-send-btn' + (canSend && memberRole !== 'viewer' ? ' active' : '')}
-                            onClick={handleSend}
-                            disabled={!canSend || memberRole === 'viewer'}
-                        >
-                            <ArrowUp size={16} />
-                        </button>
+                        {isGenerating ? (
+                            <button 
+                                className='cp-send-btn active cp-stop-btn'
+                                onClick={handleStop}
+                                title="Stop generation"
+                            >
+                                <Square size={14} fill="currentColor" />
+                            </button>
+                        ) : (
+                            <button 
+                                className={'cp-send-btn' + (canSend && memberRole !== 'viewer' ? ' active' : '')}
+                                onClick={handleSend}
+                                disabled={!canSend || memberRole === 'viewer'}
+                            >
+                                <ArrowUp size={16} />
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

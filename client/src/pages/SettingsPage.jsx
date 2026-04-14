@@ -1321,6 +1321,7 @@ const ProjectSettingsPage = () => {
 
   const [project, setProject] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [memberRole, setMemberRole] = useState('viewer');
   const [isLoading, setIsLoading] = useState(true);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
@@ -1346,6 +1347,7 @@ const ProjectSettingsPage = () => {
         setProject(data.project);
         setMessages(data.messages || []);
         setRenameValue(data.project.name || '');
+        setMemberRole(data.memberRole || 'viewer');
       } catch (err) {
         console.error('[ProjectSettings] Failed to load:', err);
         toast.error('Failed to load project');
@@ -1471,6 +1473,7 @@ const ProjectSettingsPage = () => {
   const createdAt = project.createdAt ? new Date(project.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
   const messageCount = messages.length;
   const slug = project.publishedUrl ? new URL(project.publishedUrl).hostname : `${(project.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 20)}.stackforge.app`;
+  const canModifySettings = ['owner', 'admin'].includes(memberRole);
 
   return (
     <div className="sp-content">
@@ -1504,7 +1507,7 @@ const ProjectSettingsPage = () => {
                   <button className="sp-btn sp-btn-outline" onClick={() => { setIsRenaming(false); setRenameValue(project.name); }} style={{padding: '4px 10px', fontSize: '12px'}}>✕</button>
                 </div>
               ) : (
-                <>{project.name} <Pencil size={12} color="#666" style={{cursor: 'pointer', marginLeft: '6px'}} onClick={() => setIsRenaming(true)} /></>
+                <>{project.name} {canModifySettings && <Pencil size={12} color="#666" style={{cursor: 'pointer', marginLeft: '6px'}} onClick={() => setIsRenaming(true)} />}</>
               )}
             </div>
           </div>
@@ -1555,7 +1558,7 @@ const ProjectSettingsPage = () => {
         </div>
         <div className="sp-row">
           <div className="sp-row-info"><h4 className="sp-row-title">Transfer ownership</h4><p className="sp-row-desc">Transfer to another workspace member.</p></div>
-          <button className="sp-btn sp-btn-outline">Transfer</button>
+          <button className="sp-btn sp-btn-outline" disabled={!canModifySettings}>Transfer</button>
         </div>
         <div className="sp-row">
           <div className="sp-row-info"><h4 className="sp-row-title">Remix this project</h4><p className="sp-row-desc">Create a duplicate with all files and settings.</p></div>
@@ -1568,7 +1571,7 @@ const ProjectSettingsPage = () => {
           <button
             className="sp-btn sp-btn-outline"
             onClick={handleUnpublish}
-            disabled={!project.publishedUrl || isUnpublishing}
+            disabled={!project.publishedUrl || isUnpublishing || !canModifySettings}
           >
             {isUnpublishing ? 'Unpublishing...' : project.publishedUrl ? 'Unpublish' : 'Not published'}
           </button>
@@ -1580,7 +1583,7 @@ const ProjectSettingsPage = () => {
         <h4 className="sp-row-title" style={{marginBottom: '8px'}}>Delete project</h4>
         <p className="sp-row-desc" style={{marginBottom: '16px'}}>Permanently delete this project and all its assets. This action is irreversible.</p>
         {!confirmDelete ? (
-          <button className="sp-btn sp-btn-danger" onClick={() => setConfirmDelete(true)}>Delete</button>
+          <button className="sp-btn sp-btn-danger" onClick={() => setConfirmDelete(true)} disabled={!canModifySettings}>Delete</button>
         ) : (
           <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
             <span style={{color: '#ef4444', fontSize: '13px', fontWeight: 500}}>Are you sure?</span>
@@ -1763,6 +1766,9 @@ export default function SettingsPage() {
   const userInitial = userName.charAt(0).toUpperCase();
   const workspaceName = activeWorkspace?.name || 'Workspace';
   const workspaceInitial = workspaceName.charAt(0).toUpperCase();
+  
+  const searchParams = new URLSearchParams(location.search);
+  const projectId = searchParams.get('id');
 
   // Render Profile Page without sidebar
   if (hash === '#profile') {
@@ -1790,7 +1796,7 @@ export default function SettingsPage() {
   const NavItem = ({ to, icon: Icon, label }) => (
     <button 
       className={`sp-nav-item ${hash === to ? 'active' : ''}`} 
-      onClick={() => navigate(`/settings${to}`)}
+      onClick={() => navigate(`/settings${location.search}${to}`)}
     >
       <div className="sp-icon-wrap"><Icon size={16} /></div>
       <span>{label}</span>
@@ -1807,8 +1813,8 @@ export default function SettingsPage() {
           <a className="sp-back-link" onClick={() => navigate('/dashboard')}><ArrowLeft size={16} /> Go back</a>
         </div>
         
-        {/* If viewing project settings, show Project section injected at the top */}
-        {(hash === '#project' || hash === '#domains') && (
+        {/* If viewing project settings or we have a context ID, show Project section injected at the top */}
+        {(!!projectId || hash === '#project' || hash === '#domains') && (
           <>
             <div className="sp-section-label">Project</div>
             <div className="sp-nav-group">
