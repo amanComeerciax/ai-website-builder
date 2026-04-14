@@ -3,6 +3,7 @@ const path = require('path');
 const { callModel } = require('./modelRouter');
 const Template = require('../models/Template');
 const { resolveImages } = require('./imageResolver');
+const { shouldChunk, chunkTemplate, reassembleTemplate, extractStyleContext } = require('./templateChunker');
 
 async function ensureDirectoryExists(dir) {
   try {
@@ -197,7 +198,11 @@ Reply with ONLY the exact template name (e.g. template3). No explanation.`;
 
 /**
  * Apply an array of {find, replace} patches to the original HTML.
- * Falls back gracefully if a patch doesn't match (logs a warning).
+ * Uses multiple matching strategies for robustness:
+ *  1. Exact match
+ *  2. Trimmed match
+ *  3. Whitespace-normalized match
+ *  4. Key-content substring match (for short content like phone numbers, emails)
  */
 function applyPatches(originalHtml, patches) {
   let result = originalHtml;
@@ -209,19 +214,83 @@ function applyPatches(originalHtml, patches) {
       continue;
     }
 
-    // Try exact match first
+    let applied = false;
+
+    // Strategy 1: Exact match
     if (result.includes(patch.find)) {
       result = result.replace(patch.find, patch.replace);
+      applied = true;
+    }
+
+    // Strategy 2: Trimmed match
+    if (!applied) {
+      const trimmedFind = patch.find.trim();
+      if (trimmedFind && result.includes(trimmedFind)) {
+        result = result.replace(trimmedFind, patch.replace.trim());
+        applied = true;
+      }
+    }
+
+    // Strategy 3: Whitespace-normalized match
+    // Collapse all whitespace sequences to single spaces for comparison
+    if (!applied) {
+      const normalizeWS = (s) => s.replace(/\s+/g, ' ').trim();
+      const normalizedFind = normalizeWS(patch.find);
+      
+      if (normalizedFind.length > 10) {
+        // Find the matching region in the original HTML
+        const lines = result.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          // Check a window of lines around this position
+          for (let windowSize = 1; windowSize <= 5 && (i + windowSize) <= lines.length; windowSize++) {
+            const chunk = lines.slice(i, i + windowSize).join('\n');
+            if (normalizeWS(chunk) === normalizedFind) {
+              result = result.replace(chunk, patch.replace);
+              applied = true;
+              break;
+            }
+          }
+          if (applied) break;
+        }
+      }
+    }
+
+    // Strategy 4: Key-content extraction match
+    // For simple text changes (phone, email, etc.), extract the inner text content
+    // and find the element containing it
+    if (!applied) {
+      // Extract text content from HTML snippet (strip tags)
+      const extractText = (html) => html.replace(/<[^>]+>/g, '').trim();
+      const findText = extractText(patch.find);
+      
+      if (findText.length > 3 && findText.length < 200) {
+        // Look for this text in the result
+        const textIndex = result.indexOf(findText);
+        if (textIndex !== -1) {
+          // Found the text — now find the surrounding tag context
+          // Replace just the text content within a reasonable window
+          const before = result.lastIndexOf('<', textIndex);
+          const after = result.indexOf('>', result.indexOf('</', textIndex));
+          
+          if (before !== -1 && after !== -1 && (after - before) < 500) {
+            const originalSnippet = result.substring(before, after + 1);
+            const replaceText = extractText(patch.replace);
+            const newSnippet = originalSnippet.replace(findText, replaceText);
+            
+            if (newSnippet !== originalSnippet) {
+              result = result.replace(originalSnippet, newSnippet);
+              applied = true;
+              console.log(`[Patcher] 🎯 Text-match applied: "${findText.substring(0, 40)}" → "${replaceText.substring(0, 40)}"`);
+            }
+          }
+        }
+      }
+    }
+
+    if (applied) {
       appliedCount++;
     } else {
-      // Try trimmed match (AI sometimes adds/removes whitespace)
-      const trimmedFind = patch.find.trim();
-      if (result.includes(trimmedFind)) {
-        result = result.replace(trimmedFind, patch.replace);
-        appliedCount++;
-      } else {
-        console.warn(`[Patcher] ⚠️ Could not find patch target (${patch.find.substring(0, 80)}...)`);
-      }
+      console.warn(`[Patcher] ⚠️ Could not find patch target (${patch.find.substring(0, 80)}...)`);
     }
   }
 
@@ -493,20 +562,16 @@ ${existingHtml}`;
 // ─────────────────────────────────────────────────────────
 // MODE 1: FRESH GENERATION — Pick a design blueprint, adapt content
 // ─────────────────────────────────────────────────────────
-async function generateFreshHtml(enrichedSpec, onProgress, requestModel) {
-  onProgress({ event: 'thinking', message: 'Selecting the best design for your project...' });
-  
-  const template = await getRawTemplate(enrichedSpec, requestModel);
-  
-  if (!template) {
-    throw new Error('No design styles found. Please add HTML files to /server/templates/raw/');
-  }
 
-  // IMPORTANT: Do NOT expose template name to user — use generic label
-  onProgress({ event: 'log', type: 'Reading', file: 'design style', message: 'Found the perfect design match' });
-  onProgress({ event: 'thinking', message: 'Customizing the design for your brand...' });
+/**
+ * Build the system prompt for content customization (shared by single-shot and chunked modes)
+ */
+function getContentCustomizationPrompt(isChunkMode = false) {
+  const extraRule = isChunkMode
+    ? `\n6. You are receiving ONE SECTION of a larger website. Customize ONLY this section's content. Do NOT add <html>, <head>, <body>, or <style> tags. Return ONLY the section HTML.`
+    : `\n5. Return ONLY the final valid HTML code. No markdown wrapping. No explanations.`;
 
-  const systemPrompt = `You are an expert web developer and copywriter.
+  return `You are an expert web developer and copywriter.
 You will be provided with a design blueprint and a target business specification.
 Your job is to rewrite ONLY the text content, images, and brand names to match the new business.
 
@@ -531,8 +596,126 @@ CRITICAL RULES:
    - Descriptions must be relevant to the business. A chai shop = chai, tea, Indian snacks images. A gym = weights, yoga, fitness images.
    - NEVER repeat the same URL on the page.
    - NEVER use source.unsplash.com (DEAD), placehold.co, or leave src="" empty.
-4. If ANY image src is empty, broken, or uses source.unsplash.com, replace it with a Pollinations URL matching the business.
-5. Return ONLY the final valid HTML code. No markdown wrapping. No explanations.`;
+4. If ANY image src is empty, broken, or uses source.unsplash.com, replace it with a Pollinations URL matching the business.${extraRule}`;
+}
+
+/**
+ * MODE 1-B: CHUNKED FRESH GENERATION — For large templates exceeding AI token limits.
+ * Splits template into sections, processes each independently, reassembles.
+ */
+async function generateChunkedHtml(template, enrichedSpec, onProgress, requestModel) {
+  console.log(`[Generator] 🔪 CHUNKED MODE — template "${template.name}" exceeds safe threshold`);
+  onProgress({ event: 'thinking', message: 'Large template detected — using smart section-by-section processing...' });
+
+  const chunkResult = chunkTemplate(template.content);
+  const editableSections = chunkResult.sections.filter(s => s.isEditable);
+  const totalSections = editableSections.length;
+
+  onProgress({ event: 'log', type: 'Analyzing', file: 'design style', message: `Detected ${totalSections} sections to customize` });
+
+  // Get CSS context for the AI (design tokens, colors, fonts — NOT the full CSS)
+  const styleContext = extractStyleContext(chunkResult.head);
+
+  const systemPrompt = getContentCustomizationPrompt(true);
+
+  const businessContext = `=== TARGET SPECIFICATION ===
+Business Name: ${enrichedSpec.businessName}
+Target Audience: ${enrichedSpec.targetAudience}
+Tone: ${enrichedSpec.tone}
+Description: ${enrichedSpec.description}
+========================`;
+
+  // Process each section sequentially
+  const customizedSections = [];
+
+  for (let i = 0; i < editableSections.length; i++) {
+    const section = editableSections[i];
+    const sectionLabel = section.id.replace(/[-_]/g, ' ').replace(/\d+$/, '').trim() || section.tag;
+
+    onProgress({ 
+      event: 'thinking', 
+      message: `Customizing section ${i + 1}/${totalSections}: ${sectionLabel}...` 
+    });
+    onProgress({ 
+      event: 'log', 
+      type: 'Creating', 
+      file: `section ${i + 1}/${totalSections}`, 
+      message: `Processing: ${sectionLabel} (${section.lineCount} lines)` 
+    });
+
+    const userMessage = `${businessContext}
+
+=== DESIGN SYSTEM (CSS context — do NOT include in output) ===
+${styleContext}
+
+=== SECTION TO CUSTOMIZE (return ONLY this section's HTML) ===
+${section.html}`;
+
+    try {
+      const response = await callModel('generate_html', userMessage, systemPrompt, { forceModel: requestModel });
+      let sectionHtml = response.content.trim();
+
+      // Clean markdown wrapping
+      if (sectionHtml.startsWith('```html')) {
+        sectionHtml = sectionHtml.replace(/^```html/, '').replace(/```$/, '').trim();
+      } else if (sectionHtml.startsWith('```')) {
+        sectionHtml = sectionHtml.replace(/^```/, '').replace(/```$/, '').trim();
+      }
+
+      // Strip any accidentally added <html>/<head>/<body> wrappers
+      sectionHtml = sectionHtml
+        .replace(/^<!DOCTYPE[^>]*>\s*/i, '')
+        .replace(/^<html[^>]*>\s*/i, '')
+        .replace(/<\/html>\s*$/i, '')
+        .replace(/^<head>[\s\S]*?<\/head>\s*/i, '')
+        .replace(/^<body[^>]*>\s*/i, '')
+        .replace(/<\/body>\s*$/i, '')
+        .trim();
+
+      customizedSections.push(sectionHtml);
+      console.log(`[Generator] ✅ Section ${i + 1}/${totalSections} (${sectionLabel}) — ${sectionHtml.length} chars`);
+    } catch (err) {
+      // On failure, keep original section content
+      console.warn(`[Generator] ⚠️ Section ${i + 1} (${sectionLabel}) failed: ${err.message} — using original`);
+      customizedSections.push(section.html);
+    }
+  }
+
+  onProgress({ event: 'thinking', message: 'Assembling all sections into final website...' });
+
+  // Reassemble into complete HTML
+  let finalHtml = reassembleTemplate(chunkResult, customizedSections);
+
+  onProgress({ event: 'log', type: 'Creating', file: 'index.html', message: `Website assembled from ${totalSections} sections` });
+
+  // Post-process: resolve images
+  onProgress({ event: 'log', type: 'Resolving', file: 'images', message: 'Finding matching stock photos...' });
+  finalHtml = await resolveImages(finalHtml, enrichedSpec.businessName || enrichedSpec.description || '');
+
+  return { html: finalHtml, templateName: template.name };
+}
+
+async function generateFreshHtml(enrichedSpec, onProgress, requestModel) {
+  onProgress({ event: 'thinking', message: 'Selecting the best design for your project...' });
+  
+  const template = await getRawTemplate(enrichedSpec, requestModel);
+  
+  if (!template) {
+    throw new Error('No design styles found. Please add HTML files to /server/templates/raw/');
+  }
+
+  // IMPORTANT: Do NOT expose template name to user — use generic label
+  onProgress({ event: 'log', type: 'Reading', file: 'design style', message: 'Found the perfect design match' });
+
+  // ── AUTO-CHUNKER: Route large templates to section-by-section processing ──
+  if (shouldChunk(template.content)) {
+    return await generateChunkedHtml(template, enrichedSpec, onProgress, requestModel);
+  }
+
+  // ── STANDARD: Small templates — single-shot processing ──
+  onProgress({ event: 'thinking', message: 'Customizing the design for your brand...' });
+
+  const systemPrompt = getContentCustomizationPrompt(false);
 
   const userMessage = `=== TARGET SPECIFICATION ===
 Business Name: ${enrichedSpec.businessName}

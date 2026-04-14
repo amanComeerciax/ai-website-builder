@@ -25,6 +25,7 @@ import { useEditorStore } from '../stores/editorStore'
 import { useFolderStore } from '../stores/folderStore'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import { useAuthStore } from '../stores/authStore'
+import { useRecentlyViewedStore } from '../stores/recentlyViewedStore'
 import { useUser } from '@clerk/clerk-react'
 import './ChatPage.css'
 
@@ -129,6 +130,10 @@ export default function ChatPage() {
                 await useProjectStore.getState().fetchProjects(token, activeWorkspaceId)
             }
             fetchProject()
+        }
+        // Track recently viewed
+        if (projectId && projectId !== 'new') {
+            useRecentlyViewedStore.getState().addRecentlyViewed(projectId)
         }
     }, [projectId, project, isAuthLoaded, getToken])
 

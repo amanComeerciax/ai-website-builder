@@ -10,6 +10,7 @@ import TemplatesPage from './pages/TemplatesPage'
 import AuthPage from './pages/AuthPage'
 import SuccessPage from './pages/SuccessPage'
 import SettingsPage from './pages/SettingsPage'
+import AdminTemplatesPage from './pages/AdminTemplatesPage'
 import { Toaster } from 'react-hot-toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -93,6 +94,12 @@ function App() {
           <Route
             path="/settings"
             element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
+          />
+
+          {/* Admin route */}
+          <Route
+            path="/admin/templates"
+            element={<ProtectedRoute><AdminTemplatesPage /></ProtectedRoute>}
           />
 
           {/* Editor route */}
