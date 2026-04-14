@@ -512,3 +512,88 @@ input:checked + .lv-slider:before {
 .lv-btn-remix:hover {
   opacity: 0.9;
 }
+
+/* ── Skeleton Loading Shimmer ── */
+@keyframes lv-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.lv-skeleton-placeholder {
+  position: absolute;
+  inset: 0;
+  background: #111113;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.lv-skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.lv-skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 60%,
+    transparent 100%
+  );
+  animation: lv-shimmer 1.8s ease-in-out infinite;
+}
+
+.lv-skel-block {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.lv-skel-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  margin-bottom: 8px;
+}
+
+.lv-skel-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 10px 0;
+}
+
+.lv-skel-cards {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+.lv-skel-card {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 5px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  min-height: 50px;
+}
