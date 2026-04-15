@@ -11,6 +11,10 @@ const redisUrl = process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || 'redi
 
 const connection = new IORedis(redisUrl, {
   maxRetriesPerRequest: null,
+  // CRITICAL for Upstash: Enable TLS if the URL starts with rediss:// or if on Render/Production
+  tls: (redisUrl.startsWith('rediss://') || process.env.NODE_ENV === 'production') ? {
+    rejectUnauthorized: false
+  } : undefined
 });
 
 connection.on('error', (err) => {
