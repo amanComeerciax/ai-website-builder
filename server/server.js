@@ -126,6 +126,9 @@ app.use("/api/invitations", invitationRoutes)
         
 app.use("/api/health", healthRoutes)
 
+const adminRoutes = require("./routes/adminRoutes")
+app.use("/api/admin", adminRoutes)
+
 // ── Global Error Handler ──
 app.use((err, req, res, next) => {
     console.error("❌ Server Error:", err.message)

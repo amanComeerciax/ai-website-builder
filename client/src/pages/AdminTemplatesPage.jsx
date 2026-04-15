@@ -1,12 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { LayoutTemplate, PlusCircle, Check, AlertCircle, Loader2, Layers, Zap, FileCode } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
 import './AdminTemplatesPage.css';
+
 
 export default function AdminTemplatesPage() {
     const { isLoaded, isSignedIn, getToken } = useAuth();
     const { user } = useUser();
+    const { userData, fetchUserData } = useAuthStore();
     
+    useEffect(() => {
+        if (isLoaded && isSignedIn && !userData) {
+            fetchUserData(getToken);
+        }
+    }, [isLoaded, isSignedIn, userData, fetchUserData, getToken]);
+
     const [formData, setFormData] = useState({
         title: '',
         category: 'saas',
@@ -66,11 +75,14 @@ export default function AdminTemplatesPage() {
         }
     };
 
-    if (!isLoaded) return <div className="admin-loading"><Loader2 className="spinning" /> Loading...</div>;
-
+    if (!isLoaded || (isSignedIn && !userData)) return <div className="admin-loading"><Loader2 className="spinning" /> Loading...</div>;
+    
     // Security block on frontend
+    const userRole = userData?.role || 'user';
     const userEmail = user?.primaryEmailAddress?.emailAddress;
-    if (!isSignedIn || userEmail !== 'kingamaan14@gmail.com') {
+    const isAdmin = userRole === 'admin' || userEmail === 'kingamaan14@gmail.com';
+
+    if (!isSignedIn || !isAdmin) {
         return (
             <div className="admin-unauthorized">
                 <AlertCircle size={48} color="#ef4444" />
@@ -79,6 +91,7 @@ export default function AdminTemplatesPage() {
             </div>
         );
     }
+
 
     return (
         <div className="admin-templates-page">
