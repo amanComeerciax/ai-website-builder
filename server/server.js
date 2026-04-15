@@ -149,12 +149,4 @@ async function startServer() {
     }
 }
 
-// Connect to Database
-connectDB().catch(err => console.error("Database connection failed:", err));
-
-// Export the app for Vercel
-module.exports = app;
-
-if (require.main === module) {
-    startServer()
-}
+startServer()
