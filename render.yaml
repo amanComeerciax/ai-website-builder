@@ -1,0 +1,69 @@
+services:
+  # 1. Main API Service (Express)
+  - type: web
+    name: stackforge-api
+    env: node
+    plan: starter
+    region: singapore # Change to your preferred region
+    buildCommand: npm install
+    startCommand: npm start
+    rootDir: server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL # Recommended: Upstash or Render Managed Redis
+        sync: false
+      - key: UPSTASH_REDIS_URL # BullMQ fallback in your code
+        fromContext: REDIS_URL
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: PEXELS_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: CLIENT_URL
+        value: https://your-frontend.vercel.app # Update this after frontend deploy
+      - key: RESEND_API_KEY
+        sync: false
+
+  # 2. Background AI Worker (BullMQ)
+  - type: worker
+    name: stackforge-ai-worker
+    env: node
+    plan: starter
+    region: singapore
+    buildCommand: npm install
+    startCommand: npm run start:worker
+    rootDir: server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: UPSTASH_REDIS_URL
+        fromContext: REDIS_URL
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: PEXELS_API_KEY
+        sync: false
