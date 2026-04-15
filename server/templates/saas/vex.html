@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VEX — Shaping Tomorrow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #000;
+    color: #fff;
+    overflow-x: hidden;
+  }
+
+  /* ── LIQUID GLASS ── */
+  .liquid-glass {
+    background: rgba(0,0,0,0.4);
+    background-blend-mode: luminosity;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: none;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+    position: relative;
+    overflow: hidden;
+  }
+  .liquid-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.4px;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 20%,
+      rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%,
+      rgba(255,255,255,0.1) 80%, rgba(255,255,255,0.3) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ── HERO ── */
+  #hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #hero-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0 1.5rem;
+  }
+  @media(min-width:768px)  { .hero-inner { padding: 0 3rem; } }
+  @media(min-width:1024px) { .hero-inner { padding: 0 4rem; } }
+
+  /* NAVBAR */
+  .navbar { padding-top: 1.5rem; }
+  .navbar-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 12px;
+    padding: .5rem 1rem;
+  }
+  .logo { font-size: 1.5rem; font-weight: 600; letter-spacing: -.04em; color: #fff; }
+  .nav-links { display: none; gap: 2rem; align-items: center; }
+  @media(min-width:768px) { .nav-links { display: flex; } }
+  .nav-links a { color: rgba(255,255,255,.8); text-decoration: none; font-size: .875rem; transition: color .2s; }
+  .nav-links a:hover { color: #d1d5db; }
+  .btn-white {
+    background: #fff; color: #000; padding: .5rem 1.5rem;
+    border-radius: .5rem; font-size: .875rem; font-weight: 500;
+    border: none; cursor: pointer; transition: background .2s; font-family: inherit;
+  }
+  .btn-white:hover { background: #f3f4f6; }
+
+  /* HERO CONTENT */
+  .hero-content { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 3rem; }
+  @media(min-width:1024px) { .hero-content { padding-bottom: 4rem; } }
+  .hero-grid { display: flex; flex-direction: column; gap: 2rem; }
+  @media(min-width:1024px) { .hero-grid { display: grid; grid-template-columns: 1fr 1fr; align-items: end; } }
+
+  .hero-heading {
+    font-size: 2.5rem; font-weight: 400; letter-spacing: -.04em;
+    margin-bottom: 1rem; line-height: 1.1;
+  }
+  @media(min-width:768px)  { .hero-heading { font-size: 3rem; } }
+  @media(min-width:1024px) { .hero-heading { font-size: 3.75rem; } }
+  @media(min-width:1280px) { .hero-heading { font-size: 4.5rem; } }
+
+  .hero-sub { font-size: 1rem; color: #d1d5db; margin-bottom: 1.25rem; }
+  @media(min-width:768px) { .hero-sub { font-size: 1.125rem; } }
+
+  .hero-btns { display: flex; flex-wrap: wrap; gap: 1rem; }
+  .btn-hero-cta {
+    background: #fff; color: #000; padding: .75rem 2rem; border-radius: .5rem;
+    font-size: .875rem; font-weight: 500; border: none; cursor: pointer;
+    transition: background .2s; font-family: inherit;
+  }
+  .btn-hero-cta:hover { background: #f3f4f6; }
+  .btn-explore {
+    background: transparent; border: 1px solid rgba(255,255,255,.2); color: #fff;
+    padding: .75rem 2rem; border-radius: .5rem; font-size: .875rem; font-weight: 500;
+    cursor: pointer; transition: background .2s, color .2s; font-family: inherit;
+  }
+  .btn-explore:hover { background: #fff; color: #000; }
+
+  .hero-tag { display: flex; align-items: flex-end; justify-content: flex-start; }
+  @media(min-width:1024px) { .hero-tag { justify-content: flex-end; } }
+  .tag-card { border: 1px solid rgba(255,255,255,.2); padding: .75rem 1.5rem; border-radius: 12px; }
+  .tag-text { font-size: 1.125rem; font-weight: 300; }
+  @media(min-width:768px)  { .tag-text { font-size: 1.25rem; } }
+  @media(min-width:1024px) { .tag-text { font-size: 1.5rem; } }
+
+  /* ── CHAR ANIMATION ── */
+  .char { display: inline-block; opacity: 0; transform: translateX(-18px); transition: opacity .5s, transform .5s; }
+  .char.visible { opacity: 1; transform: translateX(0); }
+
+  /* ── FADE IN ── */
+  .fade-in { opacity: 0; transition: opacity 1s; }
+  .fade-in.visible { opacity: 1; }
+
+  /* ── SECTIONS COMMON ── */
+  section { padding: 6rem 1.5rem; }
+  @media(min-width:768px)  { section { padding: 6rem 3rem; } }
+  @media(min-width:1024px) { section { padding: 6rem 4rem; } }
+  .section-label {
+    font-size: .75rem; letter-spacing: .15em; text-transform: uppercase;
+    color: #9ca3af; margin-bottom: 1rem;
+  }
+  .section-title { font-size: 2rem; font-weight: 400; letter-spacing: -.03em; margin-bottom: 1.5rem; line-height: 1.2; }
+  @media(min-width:768px) { .section-title { font-size: 2.75rem; } }
+  .section-body { color: #9ca3af; font-size: 1rem; line-height: 1.75; max-width: 60ch; }
+
+  /* ── ABOUT ── */
+  #about { background: #000; border-top: 1px solid rgba(255,255,255,.08); }
+  .about-grid { display: grid; gap: 4rem; }
+  @media(min-width:1024px) { .about-grid { grid-template-columns: 1fr 1fr; align-items: start; } }
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 3rem; }
+  .stat-num { font-size: 3rem; font-weight: 300; letter-spacing: -.04em; line-height: 1; }
+  .stat-label { font-size: .875rem; color: #6b7280; margin-top: .25rem; }
+  .about-right-text { color: #6b7280; font-size: .9375rem; line-height: 1.8; }
+  .about-right-text + .about-right-text { margin-top: 1.25rem; }
+  .values-list { list-style: none; margin-top: 2rem; display: flex; flex-direction: column; gap: .75rem; }
+  .values-list li {
+    font-size: .875rem; color: #9ca3af; padding: .75rem 1rem;
+    border: 1px solid rgba(255,255,255,.07); border-radius: 8px;
+    display: flex; align-items: center; gap: .75rem;
+  }
+  .values-list li::before { content: '→'; color: #fff; font-size: .75rem; }
+
+  /* ── SERVICES ── */
+  #services { background: #050505; border-top: 1px solid rgba(255,255,255,.08); }
+  .services-header { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 4rem; }
+  .services-grid {
+    display: grid; gap: 1px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  @media(min-width:768px) { .services-grid { grid-template-columns: 1fr 1fr 1fr; } }
+  .service-card { background: #050505; padding: 2.5rem 2rem; transition: background .3s; }
+  .service-card:hover { background: #0c0c0c; }
+  .service-num { font-size: .75rem; color: #4b5563; margin-bottom: 1.5rem; letter-spacing: .1em; font-family: monospace; }
+  .service-name { font-size: 1.25rem; font-weight: 400; margin-bottom: 1rem; letter-spacing: -.02em; }
+  .service-desc { font-size: .875rem; color: #6b7280; line-height: 1.7; }
+  .service-arrow {
+    display: inline-flex; align-items: center; gap: .4rem;
+    margin-top: 1.5rem; font-size: .8rem; color: #6b7280; cursor: pointer; transition: color .2s;
+  }
+  .service-card:hover .service-arrow { color: #fff; }
+
+  /* ── PORTFOLIO ── */
+  #portfolio { background: #000; border-top: 1px solid rgba(255,255,255,.08); }
+  .portfolio-top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 3rem; }
+  .portfolio-grid { display: grid; gap: 1.5rem; }
+  @media(min-width:768px)  { .portfolio-grid { grid-template-columns: 1fr 1fr; } }
+  @media(min-width:1024px) { .portfolio-grid { grid-template-columns: repeat(3, 1fr); } }
+  .portfolio-card {
+    border: 1px solid rgba(255,255,255,.08); border-radius: 12px; overflow: hidden;
+    transition: border-color .3s, transform .3s;
+  }
+  .portfolio-card:hover { border-color: rgba(255,255,255,.2); transform: translateY(-4px); }
+  .portfolio-img {
+    width: 100%; aspect-ratio: 4/3;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; font-weight: 300; letter-spacing: -.04em; color: rgba(255,255,255,.15);
+    position: relative; overflow: hidden;
+  }
+  .portfolio-img.g1 { background: linear-gradient(135deg, #0a0a0a 0%, #111 100%); }
+  .portfolio-img.g2 { background: linear-gradient(135deg, #0d0d0d 0%, #0a1a0f 100%); }
+  .portfolio-img.g3 { background: linear-gradient(135deg, #0d0d0d 0%, #1a0d0a 100%); }
+  .portfolio-img.g4 { background: linear-gradient(135deg, #0d0a1a 0%, #0d0d0d 100%); }
+  .portfolio-img.g5 { background: linear-gradient(135deg, #0a1a1a 0%, #0d0d0d 100%); }
+  .portfolio-img.g6 { background: linear-gradient(135deg, #1a1a0a 0%, #0d0d0d 100%); }
+  .portfolio-info { padding: 1.25rem; }
+  .portfolio-name { font-size: 1rem; font-weight: 500; margin-bottom: .35rem; }
+  .portfolio-type { font-size: .75rem; color: #6b7280; letter-spacing: .08em; text-transform: uppercase; }
+  .portfolio-stage {
+    display: inline-block; margin-top: .5rem; font-size: .7rem; padding: .2rem .6rem;
+    border: 1px solid rgba(255,255,255,.1); border-radius: 99px; color: #9ca3af; letter-spacing: .06em;
+  }
+
+  /* ── TEAM ── */
+  #team { background: #050505; border-top: 1px solid rgba(255,255,255,.08); }
+  .team-grid { display: grid; gap: 1.5rem; margin-top: 3rem; }
+  @media(min-width:768px)  { .team-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media(min-width:1024px) { .team-grid { grid-template-columns: repeat(4, 1fr); } }
+  .team-card {
+    border: 1px solid rgba(255,255,255,.06); border-radius: 12px; padding: 2rem;
+    transition: border-color .3s;
+  }
+  .team-card:hover { border-color: rgba(255,255,255,.15); }
+  .team-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; font-weight: 500; margin-bottom: 1.25rem; color: rgba(255,255,255,.5);
+  }
+  .team-name { font-size: 1rem; font-weight: 500; margin-bottom: .25rem; }
+  .team-role { font-size: .8rem; color: #6b7280; }
+  .team-bio { font-size: .8rem; color: #4b5563; margin-top: .75rem; line-height: 1.65; }
+  .team-social { display: flex; gap: .75rem; margin-top: 1.25rem; }
+  .team-social a { font-size: .75rem; color: #4b5563; text-decoration: none; transition: color .2s; }
+  .team-social a:hover { color: #fff; }
+
+  /* ── PROCESS ── */
+  #process { background: #000; border-top: 1px solid rgba(255,255,255,.08); }
+  .process-steps { display: grid; gap: 0; margin-top: 4rem; }
+  @media(min-width:768px) { .process-steps { grid-template-columns: repeat(4, 1fr); } }
+  .process-step { padding: 2.5rem 2rem; border-left: 1px solid rgba(255,255,255,.08); }
+  @media(max-width:767px) { .process-step { border-left: none; border-top: 1px solid rgba(255,255,255,.08); } }
+  .process-step:first-child { border-left: none; }
+  @media(max-width:767px) { .process-step:first-child { border-top: 1px solid rgba(255,255,255,.08); } }
+  .step-num { font-size: .7rem; color: #4b5563; letter-spacing: .15em; margin-bottom: 1.5rem; font-family: monospace; }
+  .step-title { font-size: 1.125rem; font-weight: 400; margin-bottom: .75rem; }
+  .step-desc { font-size: .825rem; color: #6b7280; line-height: 1.7; }
+
+  /* ── TESTIMONIALS ── */
+  #testimonials { background: #050505; border-top: 1px solid rgba(255,255,255,.08); }
+  .testimonials-grid { display: grid; gap: 1.5rem; margin-top: 3rem; }
+  @media(min-width:768px) { .testimonials-grid { grid-template-columns: 1fr 1fr; } }
+  .testimonial-card { border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 2.5rem; }
+  .testimonial-quote-mark { font-size: 3rem; color: rgba(255,255,255,.1); line-height: 1; margin-bottom: .5rem; font-weight: 300; }
+  .testimonial-quote { font-size: .9375rem; color: #d1d5db; line-height: 1.8; margin-bottom: 1.5rem; }
+  .testimonial-divider { width: 2rem; height: 1px; background: rgba(255,255,255,.15); margin-bottom: 1rem; }
+  .testimonial-name { font-size: .875rem; font-weight: 500; }
+  .testimonial-co { font-size: .775rem; color: #6b7280; margin-top: .2rem; }
+
+  /* ── CTA ── */
+  #cta { background: #000; border-top: 1px solid rgba(255,255,255,.08); text-align: center; }
+  #cta .section-title { max-width: 22ch; margin: 0 auto 1.5rem; }
+  #cta .section-body { text-align: center; max-width: 52ch; margin: 0 auto 2.5rem; }
+  .cta-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .btn-cta-primary {
+    background: #fff; color: #000; padding: .875rem 2.5rem; border-radius: .5rem;
+    font-size: .9375rem; font-weight: 500; border: none; cursor: pointer;
+    transition: background .2s; font-family: inherit;
+  }
+  .btn-cta-primary:hover { background: #f3f4f6; }
+  .btn-cta-secondary {
+    background: transparent; border: 1px solid rgba(255,255,255,.2); color: #fff;
+    padding: .875rem 2.5rem; border-radius: .5rem; font-size: .9375rem; font-weight: 500;
+    cursor: pointer; transition: background .2s, color .2s; font-family: inherit;
+  }
+  .btn-cta-secondary:hover { background: rgba(255,255,255,.05); }
+
+  /* ── CONTACT ── */
+  #contact { background: #050505; border-top: 1px solid rgba(255,255,255,.08); }
+  .contact-grid { display: grid; gap: 4rem; }
+  @media(min-width:1024px) { .contact-grid { grid-template-columns: 1fr 1fr; } }
+  .contact-form { display: flex; flex-direction: column; gap: 1rem; }
+  .form-row { display: grid; gap: 1rem; }
+  @media(min-width:600px) { .form-row { grid-template-columns: 1fr 1fr; } }
+  .form-group { display: flex; flex-direction: column; gap: .4rem; }
+  .form-label { font-size: .75rem; color: #6b7280; letter-spacing: .08em; text-transform: uppercase; }
+  .form-input, .form-textarea {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px; padding: .75rem 1rem; color: #fff; font-size: .9rem;
+    font-family: inherit; outline: none; transition: border-color .2s;
+    resize: vertical;
+  }
+  .form-input:focus, .form-textarea:focus { border-color: rgba(255,255,255,.3); }
+  .form-input::placeholder, .form-textarea::placeholder { color: #4b5563; }
+  .form-textarea { min-height: 120px; }
+  .btn-submit {
+    background: #fff; color: #000; padding: .875rem 2rem; border-radius: .5rem;
+    font-size: .9375rem; font-weight: 500; border: none; cursor: pointer;
+    transition: background .2s; font-family: inherit; align-self: flex-start;
+  }
+  .btn-submit:hover { background: #f3f4f6; }
+  .contact-info { display: flex; flex-direction: column; gap: 2rem; }
+  .contact-info-item { border-bottom: 1px solid rgba(255,255,255,.06); padding-bottom: 1.5rem; }
+  .contact-info-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: #4b5563; margin-bottom: .5rem; }
+  .contact-info-value { font-size: .9375rem; color: #d1d5db; }
+
+  /* ── FOOTER ── */
+  footer { background: #000; border-top: 1px solid rgba(255,255,255,.08); padding: 4rem 1.5rem 2rem; }
+  @media(min-width:768px)  { footer { padding: 4rem 3rem 2rem; } }
+  @media(min-width:1024px) { footer { padding: 4rem 4rem 2rem; } }
+  .footer-grid { display: grid; gap: 3rem; }
+  @media(min-width:768px) { .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+  .footer-brand { font-size: 1.5rem; font-weight: 600; letter-spacing: -.04em; margin-bottom: .75rem; }
+  .footer-tagline { font-size: .875rem; color: #4b5563; line-height: 1.7; max-width: 28ch; margin-bottom: 1.5rem; }
+  .footer-social { display: flex; gap: 1rem; }
+  .footer-social a {
+    width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: .75rem;
+    color: #9ca3af; text-decoration: none; transition: border-color .2s, color .2s;
+  }
+  .footer-social a:hover { border-color: rgba(255,255,255,.3); color: #fff; }
+  .footer-col-title { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: #4b5563; margin-bottom: 1.25rem; }
+  .footer-links { display: flex; flex-direction: column; gap: .6rem; }
+  .footer-links a { font-size: .875rem; color: #6b7280; text-decoration: none; transition: color .2s; }
+  .footer-links a:hover { color: #fff; }
+  .footer-bottom {
+    margin-top: 4rem; padding-top: 2rem;
+    border-top: 1px solid rgba(255,255,255,.06);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 1rem;
+  }
+  .footer-copy { font-size: .8rem; color: #374151; }
+  .footer-legal { display: flex; gap: 1.5rem; }
+  .footer-legal a { font-size: .8rem; color: #374151; text-decoration: none; transition: color .2s; }
+  .footer-legal a:hover { color: #9ca3af; }
+
+  /* ── SCROLL FADE ── */
+  .scroll-reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+  .scroll-reveal.revealed { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     HERO SECTION
+════════════════════════════════════════ -->
+<section id="hero">
+  <video id="hero-video" autoplay loop muted playsinline>
+    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260403_050628_c4e32401-fab4-4a27-b7a8-6e9291cd5959.mp4" type="video/mp4">
+  </video>
+
+  <div class="hero-inner">
+    <!-- NAVBAR -->
+    <nav class="navbar">
+      <div class="navbar-bar liquid-glass">
+        <span class="logo">VEX</span>
+        <div class="nav-links">
+          <a href="#about">Story</a>
+          <a href="#services">Investing</a>
+          <a href="#portfolio">Building</a>
+          <a href="#team">Advisory</a>
+        </div>
+        <button class="btn-white">Start a Chat</button>
+      </div>
+    </nav>
+
+    <!-- HERO CONTENT -->
+    <div class="hero-content">
+      <div class="hero-grid">
+        <!-- LEFT -->
+        <div>
+          <h1 class="hero-heading" id="hero-heading"></h1>
+          <p class="hero-sub fade-in" id="hero-sub">
+            We back visionaries and craft ventures that define what comes next.
+          </p>
+          <div class="hero-btns fade-in" id="hero-btns">
+            <button class="btn-hero-cta">Start a Chat</button>
+            <button class="btn-explore liquid-glass">Explore Now</button>
+          </div>
+        </div>
+        <!-- RIGHT -->
+        <div class="hero-tag">
+          <div class="tag-card liquid-glass fade-in" id="hero-tag">
+            <span class="tag-text">Investing. Building. Advisory.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     ABOUT / STORY
+════════════════════════════════════════ -->
+<section id="about">
+  <div class="about-grid">
+    <div class="scroll-reveal">
+      <p class="section-label">Our Story</p>
+      <h2 class="section-title">Built at the intersection of vision and execution.</h2>
+      <p class="section-body">VEX was founded on a single conviction — the best futures aren't predicted, they are constructed. We partner with founders and operators who refuse to accept the world as it is and relentlessly pursue what it could become.</p>
+      <div class="stat-row">
+        <div>
+          <div class="stat-num">$2.4B</div>
+          <div class="stat-label">Assets under influence</div>
+        </div>
+        <div>
+          <div class="stat-num">140+</div>
+          <div class="stat-label">Portfolio companies</div>
+        </div>
+        <div>
+          <div class="stat-num">12yr</div>
+          <div class="stat-label">Track record</div>
+        </div>
+        <div>
+          <div class="stat-num">34</div>
+          <div class="stat-label">Exits to date</div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-reveal" style="transition-delay:.15s">
+      <p class="about-right-text">We believe the most transformative companies are born at the crossroads of deep conviction and relentless curiosity. Our edge isn't capital — it's clarity.</p>
+      <p class="about-right-text" style="margin-top:1.25rem">Every engagement begins with a question: what does the world look like if this succeeds? We invest only when the answer changes something fundamental.</p>
+      <ul class="values-list">
+        <li>Long-term orientation over short-term gains</li>
+        <li>Founder-first philosophy in every engagement</li>
+        <li>Operational depth beyond the boardroom</li>
+        <li>Radical transparency with our partners</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SERVICES
+════════════════════════════════════════ -->
+<section id="services">
+  <div class="services-header scroll-reveal">
+    <div>
+      <p class="section-label">What We Do</p>
+      <h2 class="section-title" style="margin-bottom:0">Three ways we create impact.</h2>
+    </div>
+    <p class="section-body" style="max-width:36ch">Each practice is distinct, yet they reinforce one another across every stage of a company's lifecycle.</p>
+  </div>
+
+  <div class="services-grid scroll-reveal" style="transition-delay:.1s">
+    <div class="service-card">
+      <div class="service-num">01</div>
+      <div class="service-name">Investing</div>
+      <p class="service-desc">Seed to Series B. We lead rounds in category-defining companies across deep tech, fintech, climate, and consumer. We bring conviction capital — not just a check.</p>
+      <span class="service-arrow">Learn more →</span>
+    </div>
+    <div class="service-card">
+      <div class="service-num">02</div>
+      <div class="service-name">Building</div>
+      <p class="service-desc">We co-found and incubate ventures from scratch. When we see a gap the market hasn't addressed, we assemble the team, write the first code, and build alongside founders from day zero.</p>
+      <span class="service-arrow">Learn more →</span>
+    </div>
+    <div class="service-card">
+      <div class="service-num">03</div>
+      <div class="service-name">Advisory</div>
+      <p class="service-desc">Strategic counsel for founders navigating inflection points — fundraising, M&A, go-to-market, and board composition. Our partners have lived every stage you're about to face.</p>
+      <span class="service-arrow">Learn more →</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     PORTFOLIO
+════════════════════════════════════════ -->
+<section id="portfolio">
+  <div class="portfolio-top scroll-reveal">
+    <div>
+      <p class="section-label">Portfolio</p>
+      <h2 class="section-title" style="margin-bottom:0">Companies we believe in.</h2>
+    </div>
+    <button class="btn-explore" style="align-self:flex-end">View all →</button>
+  </div>
+
+  <div class="portfolio-grid scroll-reveal" style="transition-delay:.1s">
+    <div class="portfolio-card">
+      <div class="portfolio-img g1">ARC</div>
+      <div class="portfolio-info">
+        <div class="portfolio-name">Arc Systems</div>
+        <div class="portfolio-type">Deep Tech · Series A</div>
+        <span class="portfolio-stage">Active</span>
+      </div>
+    </div>
+    <div class="portfolio-card">
+      <div class="portfolio-img g2">NOVA</div>
+      <div class="portfolio-info">
+        <div class="portfolio-name">Nova Finance</div>
+        <div class="portfolio-type">Fintech · Series B</div>
+        <span class="portfolio-stage">Active</span>
+      </div>
+    </div>
+    <div class="portfolio-card">
+      <div class="portfolio-img g3">CRUST</div>
+      <div class="portfolio-info">
+        <div class="portfolio-name">Crust Energy</div>
+        <div class="portfolio-type">Climate · Seed</div>
+        <span class="portfolio-stage">Active</span>
+      </div>
+    </div>
+    <div class="portfolio-card">
+      <div class="portfolio-img g4">MESH</div>
+      <div class="portfolio-info">
+        <div class="portfolio-name">Mesh Protocol</div>
+        <div class="portfolio-type">Web3 · Series A</div>
+        <span class="portfolio-stage">Exited</span>
+      </div>
+    </div>
+    <div class="portfolio-card">
+      <div class="portfolio-img g5">LUME</div>
+      <div class="portfolio-info">
+        <div class="portfolio-name">Lume Health</div>
+        <div class="portfolio-type">HealthTech · Series B</div>
+        <span class="portfolio-stage">Active</span>
+      </div>
+    </div>
+    <div class="portfolio-card">
+      <div class="portfolio-img g6">FORM</div>
+      <div class="portfolio-info">
+        <div class="portfolio-name">Form Studios</div>
+        <div class="portfolio-type">Consumer · Seed</div>
+        <span class="portfolio-stage">Active</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     TEAM
+════════════════════════════════════════ -->
+<section id="team">
+  <div class="scroll-reveal">
+    <p class="section-label">The Team</p>
+    <h2 class="section-title">People who've been in your shoes.</h2>
+    <p class="section-body">Every partner at VEX has founded, scaled, or exited a company. We don't advise from the sidelines.</p>
+  </div>
+
+  <div class="team-grid">
+    <div class="team-card scroll-reveal" style="transition-delay:.05s">
+      <div class="team-avatar">JR</div>
+      <div class="team-name">James Reid</div>
+      <div class="team-role">General Partner</div>
+      <p class="team-bio">Former CTO of Veritas, 3× founder. Focuses on deep tech and infrastructure investments across EMEA and North America.</p>
+      <div class="team-social">
+        <a href="#">LI</a>
+        <a href="#">TW</a>
+      </div>
+    </div>
+    <div class="team-card scroll-reveal" style="transition-delay:.1s">
+      <div class="team-avatar">SK</div>
+      <div class="team-name">Sofia Kramer</div>
+      <div class="team-role">Managing Partner</div>
+      <p class="team-bio">Previously VP Strategy at Sequoia. Leads advisory practice and Series B+ investments in consumer and marketplace businesses.</p>
+      <div class="team-social">
+        <a href="#">LI</a>
+        <a href="#">TW</a>
+      </div>
+    </div>
+    <div class="team-card scroll-reveal" style="transition-delay:.15s">
+      <div class="team-avatar">OM</div>
+      <div class="team-name">Omar Malik</div>
+      <div class="team-role">Partner, Fintech</div>
+      <p class="team-bio">Built and sold two fintech companies. Deep expertise in payments, lending, and cross-border finance infrastructure.</p>
+      <div class="team-social">
+        <a href="#">LI</a>
+        <a href="#">TW</a>
+      </div>
+    </div>
+    <div class="team-card scroll-reveal" style="transition-delay:.2s">
+      <div class="team-avatar">AL</div>
+      <div class="team-name">Aisha Levy</div>
+      <div class="team-role">Partner, Climate</div>
+      <p class="team-bio">PhD in Materials Science. Previously founded CleanGrid, acquired 2021. Leads all climate and energy transition investments.</p>
+      <div class="team-social">
+        <a href="#">LI</a>
+        <a href="#">TW</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     PROCESS
+════════════════════════════════════════ -->
+<section id="process">
+  <div class="scroll-reveal">
+    <p class="section-label">How We Work</p>
+    <h2 class="section-title">From first call to long-term partnership.</h2>
+  </div>
+  <div class="process-steps">
+    <div class="process-step scroll-reveal" style="transition-delay:.05s">
+      <div class="step-num">STEP 01</div>
+      <div class="step-title">Discovery</div>
+      <p class="step-desc">We begin with a single conversation — no deck required. We want to understand the founder's conviction before we evaluate the market.</p>
+    </div>
+    <div class="process-step scroll-reveal" style="transition-delay:.1s">
+      <div class="step-num">STEP 02</div>
+      <div class="step-title">Deep Dive</div>
+      <p class="step-desc">Intensive two-week diligence focused on team, tech, and timing. We run proprietary market analysis and tap our network for signal.</p>
+    </div>
+    <div class="process-step scroll-reveal" style="transition-delay:.15s">
+      <div class="step-num">STEP 03</div>
+      <div class="step-title">Partnership</div>
+      <p class="step-desc">Once aligned, we move fast. Term sheet within 5 business days of committee approval. We don't create deal fatigue.</p>
+    </div>
+    <div class="process-step scroll-reveal" style="transition-delay:.2s">
+      <div class="step-num">STEP 04</div>
+      <div class="step-title">Value Creation</div>
+      <p class="step-desc">Ongoing strategic support — hiring, introductions, follow-on capital, and honest counsel at every milestone that matters.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     TESTIMONIALS
+════════════════════════════════════════ -->
+<section id="testimonials">
+  <div class="scroll-reveal">
+    <p class="section-label">Founders on VEX</p>
+    <h2 class="section-title">What it means to have us in your corner.</h2>
+  </div>
+  <div class="testimonials-grid">
+    <div class="testimonial-card scroll-reveal" style="transition-delay:.05s">
+      <div class="testimonial-quote-mark">"</div>
+      <p class="testimonial-quote">VEX didn't just write a check — they helped us reframe the entire market opportunity. That shift was worth more than any round we raised.</p>
+      <div class="testimonial-divider"></div>
+      <div class="testimonial-name">Marcus Chen</div>
+      <div class="testimonial-co">CEO, Arc Systems</div>
+    </div>
+    <div class="testimonial-card scroll-reveal" style="transition-delay:.1s">
+      <div class="testimonial-quote-mark">"</div>
+      <p class="testimonial-quote">When we hit our Series A wall, the VEX team was in the trenches with us. They made three intros that changed our trajectory in a single week.</p>
+      <div class="testimonial-divider"></div>
+      <div class="testimonial-name">Priya Nair</div>
+      <div class="testimonial-co">Founder, Lume Health</div>
+    </div>
+    <div class="testimonial-card scroll-reveal" style="transition-delay:.15s">
+      <div class="testimonial-quote-mark">"</div>
+      <p class="testimonial-quote">I've worked with five venture firms. VEX is the only one where I genuinely feel they've bet on me, not just the business model.</p>
+      <div class="testimonial-divider"></div>
+      <div class="testimonial-name">Daniel Osei</div>
+      <div class="testimonial-co">CEO, Nova Finance</div>
+    </div>
+    <div class="testimonial-card scroll-reveal" style="transition-delay:.2s">
+      <div class="testimonial-quote-mark">"</div>
+      <p class="testimonial-quote">The advisory relationship with VEX helped us navigate an acquisition offer that could have killed the company. Their clarity under pressure is unmatched.</p>
+      <div class="testimonial-divider"></div>
+      <div class="testimonial-name">Yuki Tanaka</div>
+      <div class="testimonial-co">Founder, Mesh Protocol</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     CTA BAND
+════════════════════════════════════════ -->
+<section id="cta">
+  <div class="scroll-reveal">
+    <p class="section-label" style="text-align:center">Ready to Begin</p>
+    <h2 class="section-title">Let's shape what comes next — together.</h2>
+    <p class="section-body">Whether you're raising your first round or navigating a critical inflection point, we want to hear what you're building.</p>
+    <div class="cta-btns">
+      <button class="btn-cta-primary">Start a Chat</button>
+      <button class="btn-cta-secondary">View Portfolio</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     CONTACT
+════════════════════════════════════════ -->
+<section id="contact">
+  <div class="contact-grid">
+    <div class="scroll-reveal">
+      <p class="section-label">Get in Touch</p>
+      <h2 class="section-title">We respond to every founder.</h2>
+      <p class="section-body" style="margin-bottom:2.5rem">No pitch deck required for a first conversation. Tell us what you're working on and why it matters.</p>
+      <div class="contact-info">
+        <div class="contact-info-item">
+          <div class="contact-info-label">Email</div>
+          <div class="contact-info-value">hello@vex.vc</div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-info-label">Office</div>
+          <div class="contact-info-value">London · New York · Singapore</div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-info-label">Response time</div>
+          <div class="contact-info-value">Within 48 hours, always.</div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-reveal" style="transition-delay:.15s">
+      <form class="contact-form" onsubmit="return false">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">First name</label>
+            <input class="form-input" type="text" placeholder="Alex">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last name</label>
+            <input class="form-input" type="text" placeholder="Morgan">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" placeholder="alex@yourcompany.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Company</label>
+          <input class="form-input" type="text" placeholder="Your company name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">What are you building?</label>
+          <textarea class="form-textarea" placeholder="Tell us about your vision and current stage..."></textarea>
+        </div>
+        <button class="btn-submit" type="submit">Send Message →</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     FOOTER
+════════════════════════════════════════ -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">VEX</div>
+      <p class="footer-tagline">Shaping tomorrow with vision and action. Backed by the best. Building what's next.</p>
+      <div class="footer-social">
+        <a href="#">Li</a>
+        <a href="#">Tw</a>
+        <a href="#">Gh</a>
+        <a href="#">Em</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Company</div>
+      <div class="footer-links">
+        <a href="#about">Our Story</a>
+        <a href="#team">Team</a>
+        <a href="#process">How We Work</a>
+        <a href="#">Careers</a>
+        <a href="#">Press</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Services</div>
+      <div class="footer-links">
+        <a href="#services">Investing</a>
+        <a href="#services">Building</a>
+        <a href="#services">Advisory</a>
+        <a href="#portfolio">Portfolio</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Connect</div>
+      <div class="footer-links">
+        <a href="#contact">Contact</a>
+        <a href="#">Newsletter</a>
+        <a href="#">Pitch Us</a>
+        <a href="#">Events</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span class="footer-copy">© 2026 VEX Ventures. All rights reserved.</span>
+    <div class="footer-legal">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Use</a>
+      <a href="#">Cookie Policy</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ── HERO HEADING CHAR ANIMATION ── */
+(function(){
+  const lines = ['Shaping tomorrow', 'with vision and action.'];
+  const heading = document.getElementById('hero-heading');
+  const charDelay = 30;
+  const initialDelay = 200;
+  let allChars = [];
+
+  lines.forEach((line, li) => {
+    const lineDiv = document.createElement('div');
+    const chars = line.split('');
+    chars.forEach((ch, ci) => {
+      const span = document.createElement('span');
+      span.className = 'char';
+      span.textContent = ch === ' ' ? '\u00A0' : ch;
+      const delay = initialDelay + (li * lines[0].length * charDelay) + (ci * charDelay);
+      span.style.transitionDelay = delay + 'ms';
+      lineDiv.appendChild(span);
+      allChars.push(span);
+    });
+    heading.appendChild(lineDiv);
+  });
+
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      allChars.forEach(s => s.classList.add('visible'));
+    }, 50);
+  });
+
+  /* SUB + BTNS + TAG fade in */
+  const fadeEls = [
+    { el: document.getElementById('hero-sub'),  delay: 800  },
+    { el: document.getElementById('hero-btns'), delay: 1200 },
+    { el: document.getElementById('hero-tag'),  delay: 1400 },
+  ];
+  fadeEls.forEach(({ el, delay }) => {
+    el.style.transitionDelay = '0ms';
+    setTimeout(() => el.classList.add('visible'), delay);
+  });
+})();
+
+/* ── SCROLL REVEAL ── */
+(function(){
+  const els = document.querySelectorAll('.scroll-reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('revealed');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  els.forEach(el => io.observe(el));
+})();
+</script>
+</body>
+</html>
