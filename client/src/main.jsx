@@ -12,14 +12,10 @@ const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 ReactDOM.createRoot(document.getElementById("root")).render(
   <ClerkProvider
     publishableKey={clerkPubKey}
-    // signInUrl="/login"
-    // signUpUrl="/signup"
-    // signInFallbackRedirectUrl="/dashboard"
-    // signUpFallbackRedirectUrl="/dashboard"
     signInUrl="/login"
     signUpUrl="/signup"
-    afterSignInUrl="/dashboard"
-    afterSignUpUrl="/dashboard"
+    signInFallbackRedirectUrl="/dashboard"
+    signUpFallbackRedirectUrl="/dashboard"
     appearance={{
       baseTheme: dark,
       variables: {
