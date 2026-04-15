@@ -283,11 +283,8 @@ export default function DashboardPage() {
 
   const textareaRef = useRef(null);
 
-  const { projects, createProject, fetchProjects } = useProjectStore();
+  const { projects, createProject } = useProjectStore();
   const { recentItems } = useRecentlyViewedStore();
-
-  const { isSidebarCollapsed, toggleSidebar } = useUIStore();
-  const { activeWorkspaceId } = useWorkspaceStore();
 
   // Tab state
   const [activeTab, setActiveTab] = useState("projects");
@@ -296,22 +293,10 @@ export default function DashboardPage() {
   const [templates, setTemplates] = useState([]);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      if (!userData) {
-        fetchUserData(getToken);
-      }
-      // CRITICAL: Fetch projects on mount to ensure they show up after refresh
-      const tokenPromise = getToken();
-      tokenPromise.then(token => fetchProjects(token, activeWorkspaceId));
+    if (isLoaded && isSignedIn && !userData) {
+      fetchUserData(getToken);
     }
   }, [isLoaded, isSignedIn, fetchUserData, getToken, userData]);
-
-  // Re-fetch when workspace changes
-  useEffect(() => {
-    if (isLoaded && isSignedIn && activeWorkspaceId) {
-      getToken().then(token => fetchProjects(token, activeWorkspaceId));
-    }
-  }, [activeWorkspaceId, isLoaded, isSignedIn, getToken, fetchProjects]);
 
   // Fetch templates on mount
   useEffect(() => {
@@ -380,6 +365,7 @@ export default function DashboardPage() {
 
     const token = await getToken();
     const folderId = searchParams.get("folder");
+    const { activeWorkspaceId } = useWorkspaceStore.getState();
     const newProjectId = await createProject(
       trimmed,
       token,
