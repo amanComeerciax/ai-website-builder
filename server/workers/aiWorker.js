@@ -7,8 +7,14 @@ const { generateRawHtml } = require('../services/rawHtmlGenerator.js');
 const { extractVisionContext } = require('../services/groqService.js');
 const { buildSummaryPrompt } = require('../utils/promptBuilder.js');
 
-const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0.1:6379', {
+const redisUrl = process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+
+const connection = new IORedis(redisUrl, {
   maxRetriesPerRequest: null,
+});
+
+connection.on('error', (err) => {
+  console.error('❌ Redis Worker Connection Error:', err.message);
 });
 
 /**

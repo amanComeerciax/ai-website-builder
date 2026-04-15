@@ -1,9 +1,15 @@
 const { Queue } = require('bullmq');
 const IORedis = require('ioredis');
 
-// Allow fallback to local Redis for Intel Mac testing if Upstash is not configured
-const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0.1:6379', {
+// Use Upstash Redis URL from Env, fallback to local for development
+const redisUrl = process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+
+const connection = new IORedis(redisUrl, {
   maxRetriesPerRequest: null,
+});
+
+connection.on('error', (err) => {
+  console.error('❌ Redis Connection Error:', err.message);
 });
 
 /**
