@@ -150,9 +150,20 @@ async function startServer() {
             console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}\n`)
         })
     } catch (error) {
-        console.error("Failed to start server:", error.message)
-        process.exit(1)
+        console.error("❌ ERROR: Server Startup Failed (Detailed):", error);
+        process.exit(1);
     }
 }
+
+// Global Error Handler for JSON responses
+app.use((err, req, res, next) => {
+    console.error("💥 Global Backend Error:", err);
+    res.status(500).json({ 
+        error: "Internal Server Error", 
+        message: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+    });
+});
+
 
 startServer()

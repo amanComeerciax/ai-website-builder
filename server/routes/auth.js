@@ -134,8 +134,8 @@ router.get('/me', requireAuth, async (req, res) => {
       workspaces: finalWorkspaces.map(w => ({ _id: w._id, name: w.name, plan: w.plan, createdAt: w.createdAt }))
     });
   } catch (error) {
-    console.error("Auth Fetch Error:", error);
-    return res.status(500).json({ error: "Failed to fetch user data" });
+    console.error("Auth Fetch Error (Detailed):", error);
+    return res.status(500).json({ error: "Failed to fetch user data", details: error.message });
   }
 });
 
