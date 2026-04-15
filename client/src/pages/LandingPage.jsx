@@ -80,11 +80,11 @@ const staggerParentFast = {
 
 // Rotating placeholder suggestions
 const PLACEHOLDER_SUGGESTIONS = [
-    "Ask StackForge to create an internal tool, a landing page, or a custom app...",
-    "Ask StackForge to build a SaaS dashboard with real-time charts...",
-    "Ask StackForge to design a portfolio for a freelance developer...",
-    "Ask StackForge to create a fitness app with nutrition tracking...",
-    "Ask StackForge to build an e-commerce platform for artisan coffee...",
+    " create an internal tool, a landing page, or a custom app...",
+    " build a SaaS dashboard with real-time charts...",
+    " design a portfolio for a freelance developer...",
+    "create a fitness app with nutrition tracking...",
+    " build an e-commerce platform for artisan coffee...",
 ]
 
 // How it works steps
@@ -340,8 +340,8 @@ export default function LandingPage() {
         <div className="landing">
             {/* ═══ Video Background Hero ═══ */}
             <section className="vhero">
-                <SeamlessVideoLayer 
-                    src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260329_050842_be71947f-f16e-4a14-810c-06e83d23ddb5.mp4" 
+                <SeamlessVideoLayer
+                    src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260329_050842_be71947f-f16e-4a14-810c-06e83d23ddb5.mp4"
                     objectPosition="center top"
                     style={{ opacity: 0.8 }}
                 />
