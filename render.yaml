@@ -19,7 +19,7 @@ services:
       - key: REDIS_URL # Recommended: Upstash or Render Managed Redis
         sync: false
       - key: UPSTASH_REDIS_URL # BullMQ fallback in your code
-        fromContext: REDIS_URL
+        sync: false
       - key: CLERK_SECRET_KEY
         sync: false
       - key: CLERK_PUBLISHABLE_KEY
@@ -56,7 +56,7 @@ services:
       - key: REDIS_URL
         sync: false
       - key: UPSTASH_REDIS_URL
-        fromContext: REDIS_URL
+        sync: false
       - key: CLERK_SECRET_KEY
         sync: false
       - key: CLERK_PUBLISHABLE_KEY
