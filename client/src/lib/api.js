@@ -172,7 +172,7 @@ class ApiClient {
             body: JSON.stringify({ 
                 projectId, 
                 prompt, 
-                model: model || 'qwen', 
+                model: model || 'mistral', 
                 existingFiles,
                 images,
                 fileContents,

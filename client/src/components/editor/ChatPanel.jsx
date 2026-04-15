@@ -11,6 +11,7 @@ import {
     Undo2, ThumbsUp, ThumbsDown, MoreHorizontal, Square
 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
+import { useEditorStore } from '../../stores/editorStore'
 import WebsiteStylePicker from './WebsiteStylePicker'
 import './ChatPanel.css'
 
@@ -179,7 +180,7 @@ export default function ChatPanel() {
         }
     }
 
-    const handleSend = () => {
+    const handleSend = async () => {
         const trimmed = input.trim()
         const hasAttachments = attachments.length > 0
         if (!trimmed && !hasAttachments) return
@@ -326,7 +327,6 @@ export default function ChatPanel() {
         const fileData = attachments.filter(a => a.type === 'file').map(a => ({ name: a.name, content: a.content }))
 
         // Snapshot current files for undo before generation replaces them
-        const { useEditorStore } = require('../../stores/editorStore')
         const currentFiles = useEditorStore.getState().files
         const currentHtml = useEditorStore.getState().htmlContent
         setFileSnapshot({ files: { ...currentFiles }, htmlContent: currentHtml })
@@ -340,7 +340,8 @@ export default function ChatPanel() {
             images: imageData.length > 0 ? imageData : undefined
         })
 
-        startGeneration(backendPrompt, projectId, null, styleOptions, imageData, fileData)
+        const token = await getToken()
+        startGeneration(backendPrompt, projectId, token, styleOptions, imageData, fileData)
     }
 
     const actionChips = [
@@ -432,7 +433,6 @@ export default function ChatPanel() {
 
     const handleUndo = () => {
         if (!fileSnapshot) return
-        const { useEditorStore } = require('../../stores/editorStore')
         const editorStore = useEditorStore.getState()
         // Restore the previous snapshot
         editorStore.setFiles(fileSnapshot.files)
