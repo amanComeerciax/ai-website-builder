@@ -19,7 +19,7 @@ export default function SuccessPage() {
         const verifyPayment = async () => {
             try {
                 const response = await fetch(
-                    `${import.meta.env.VITE_API_URL}/api/payment/verify-session/${sessionId}`
+                    `/api/payment/verify-session/${sessionId}`
                 );
                 const data = await response.json();
 
