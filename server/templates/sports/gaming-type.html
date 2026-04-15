@@ -330,6 +330,218 @@ section { padding: 6rem 4rem; }
 .testimonial-name { font-size: .875rem; font-weight: 700; }
 .testimonial-co { font-size: .75rem; color: #6b7280; margin-top: .2rem; font-weight: 300; }
 
+/* ══════════════════════════════════════
+   ── IMAGE GALLERY SECTION ──
+══════════════════════════════════════ */
+#gallery {
+  background: #000;
+  border-top: 1px solid rgba(255,255,255,.06);
+  padding: 6rem 4rem;
+  overflow: hidden;
+}
+@media(max-width:768px) { #gallery { padding: 4rem 2rem; } }
+
+.gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 3.5rem;
+}
+
+/* Filter tabs */
+.gallery-filters {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: 3rem;
+}
+.gallery-filter-btn {
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  padding: .45rem 1.2rem;
+  font-family: 'Rubik', sans-serif;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  background: rgba(255,255,255,.06);
+  color: #6b7280;
+  transition: background .2s, color .2s;
+}
+.gallery-filter-btn.active,
+.gallery-filter-btn:hover {
+  background: var(--red);
+  color: #fff;
+}
+
+/* Masonry-style grid */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: rgba(255,255,255,.06);
+}
+@media(max-width:1024px) { .gallery-grid { grid-template-columns: repeat(2, 1fr); } }
+@media(max-width:600px)  { .gallery-grid { grid-template-columns: 1fr; } }
+
+.gallery-item {
+  position: relative;
+  overflow: hidden;
+  background: #0a0a0a;
+  cursor: pointer;
+}
+.gallery-item.tall { aspect-ratio: 3/4; }
+.gallery-item.wide { aspect-ratio: 16/9; }
+.gallery-item.square { aspect-ratio: 1/1; }
+
+/* Span rules for visual rhythm */
+@media(min-width:1024px) {
+  .gallery-item:nth-child(1) { grid-row: span 2; }
+  .gallery-item:nth-child(5) { grid-column: span 2; }
+}
+
+.gallery-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .6s cubic-bezier(.4,0,.2,1), filter .4s;
+  filter: brightness(.85) saturate(.9);
+}
+.gallery-item:hover .gallery-img {
+  transform: scale(1.06);
+  filter: brightness(1) saturate(1.1);
+}
+
+/* Overlay on hover */
+.gallery-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.75) 0%, rgba(0,0,0,0) 55%);
+  opacity: 0;
+  transition: opacity .4s;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.5rem;
+}
+.gallery-item:hover .gallery-overlay { opacity: 1; }
+
+.gallery-tag {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: .4rem;
+}
+.gallery-caption {
+  font-size: .9rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: #fff;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+/* Red accent line on hover */
+.gallery-item::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--red);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .4s cubic-bezier(.4,0,.2,1);
+  z-index: 2;
+}
+.gallery-item:hover::after { transform: scaleX(1); }
+
+/* Number badge */
+.gallery-num {
+  position: absolute;
+  top: 1rem; left: 1rem;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .15em;
+  color: rgba(255,255,255,.3);
+  z-index: 2;
+}
+
+/* Lightbox */
+.lightbox {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.92);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  backdrop-filter: blur(8px);
+}
+.lightbox.open { display: flex; }
+.lightbox-inner {
+  position: relative;
+  max-width: 900px;
+  width: 100%;
+}
+.lightbox-img {
+  width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border: 1px solid rgba(255,255,255,.1);
+}
+.lightbox-close {
+  position: absolute;
+  top: -2.5rem; right: 0;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  font-weight: 300;
+  opacity: .7;
+  transition: opacity .2s;
+}
+.lightbox-close:hover { opacity: 1; }
+.lightbox-meta {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.lightbox-tag {
+  font-size: .65rem; font-weight: 700; letter-spacing: .15em;
+  text-transform: uppercase; color: var(--red);
+}
+.lightbox-caption {
+  font-size: .875rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: -.01em; color: #fff;
+}
+.lightbox-nav {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  background: rgba(0,0,0,.5);
+  border: 1px solid rgba(255,255,255,.15);
+  color: #fff; font-size: 1.2rem;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .2s, border-color .2s;
+}
+.lightbox-nav:hover { background: var(--red); border-color: var(--red); }
+.lightbox-nav.prev { left: -3.5rem; }
+.lightbox-nav.next { right: -3.5rem; }
+@media(max-width:768px) {
+  .lightbox-nav.prev { left: 0; top: auto; bottom: -3.5rem; transform: none; }
+  .lightbox-nav.next { right: 0; top: auto; bottom: -3.5rem; transform: none; }
+}
+/* ══════════════════════════════════════
+   END GALLERY
+══════════════════════════════════════ */
+
 /* ── CTA BAND ── */
 #cta-band {
   background: var(--red); padding: 5rem 4rem;
@@ -423,7 +635,6 @@ footer { background: #000; border-top: 1px solid rgba(255,255,255,.06); padding:
   </video>
 
   <div class="hero-inner">
-    <!-- NAVBAR -->
     <nav class="navbar" id="navbar">
       <div class="logo">
         <div class="logo-mark">
@@ -439,12 +650,12 @@ footer { background: #000; border-top: 1px solid rgba(255,255,255,.06); padding:
         <a href="#hero">Home</a>
         <a href="#about">About</a>
         <a href="#services">Services</a>
+        <a href="#gallery">Gallery</a>
         <a href="#contact">Contact</a>
       </div>
       <button class="clip-btn btn-red">Contact Us</button>
     </nav>
 
-    <!-- HERO CONTENT -->
     <div class="hero-content">
       <div class="hero-tag" id="hero-tag">Logistics Redefined</div>
       <h1 class="hero-headline" id="hero-headline">
@@ -457,7 +668,6 @@ footer { background: #000; border-top: 1px solid rgba(255,255,255,.06); padding:
     </div>
   </div>
 
-  <!-- CONSULTATION CARD -->
   <div class="consult-card-abs" id="consult-card">
     <div class="consult-card">
       <div class="consult-label">Free Offer</div>
@@ -764,6 +974,153 @@ footer { background: #000; border-top: 1px solid rgba(255,255,255,.06); padding:
   </div>
 </section>
 
+<!-- ═══════════ IMAGE GALLERY ═══════════ -->
+<section id="gallery">
+  <div class="gallery-header">
+    <div>
+      <div class="section-label gsap-left">Our Operations</div>
+      <h2 class="section-title gsap-left" style="margin-bottom:0">Behind every<br>delivery.</h2>
+    </div>
+    <p class="section-body gsap-fade" style="max-width:30ch; text-align:right">A glimpse into the fleet, facilities, and people that power Targo across the nation.</p>
+  </div>
+
+  <!-- Filter Buttons -->
+  <div class="gallery-filters gsap-fade">
+    <button class="gallery-filter-btn active" data-filter="all">All</button>
+    <button class="gallery-filter-btn" data-filter="fleet">Fleet</button>
+    <button class="gallery-filter-btn" data-filter="warehouse">Warehouse</button>
+    <button class="gallery-filter-btn" data-filter="delivery">Delivery</button>
+    <button class="gallery-filter-btn" data-filter="team">Team</button>
+  </div>
+
+  <!-- Gallery Grid -->
+  <div class="gallery-grid" id="galleryGrid">
+
+    <!-- Item 1 — tall, spans 2 rows on desktop -->
+    <div class="gallery-item tall gsap-scale" data-delay="0" data-category="fleet"
+         data-src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80"
+         data-tag="Fleet" data-caption="Heavy-Duty Long Haul Trucks">
+      <div class="gallery-num">01</div>
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80" alt="Long haul trucks" loading="lazy">
+      <div class="gallery-overlay">
+        <div class="gallery-tag">Fleet</div>
+        <div class="gallery-caption">Heavy-Duty Long Haul Trucks</div>
+      </div>
+    </div>
+
+    <!-- Item 2 -->
+    <div class="gallery-item square gsap-scale" data-delay=".08" data-category="warehouse"
+         data-src="https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&q=80"
+         data-tag="Warehouse" data-caption="Automated Distribution Hub">
+      <div class="gallery-num">02</div>
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&q=80" alt="Distribution warehouse" loading="lazy">
+      <div class="gallery-overlay">
+        <div class="gallery-tag">Warehouse</div>
+        <div class="gallery-caption">Automated Distribution Hub</div>
+      </div>
+    </div>
+
+    <!-- Item 3 -->
+    <div class="gallery-item square gsap-scale" data-delay=".16" data-category="delivery"
+         data-src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?w=800&q=80"
+         data-tag="Delivery" data-caption="Last-Mile Urban Delivery">
+      <div class="gallery-num">03</div>
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?w=800&q=80" alt="Urban delivery" loading="lazy">
+      <div class="gallery-overlay">
+        <div class="gallery-tag">Delivery</div>
+        <div class="gallery-caption">Last-Mile Urban Delivery</div>
+      </div>
+    </div>
+
+    <!-- Item 4 -->
+    <div class="gallery-item square gsap-scale" data-delay=".06" data-category="team"
+         data-src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=800&q=80"
+         data-tag="Team" data-caption="Operations Command Center">
+      <div class="gallery-num">04</div>
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=800&q=80" alt="Operations team" loading="lazy">
+      <div class="gallery-overlay">
+        <div class="gallery-tag">Team</div>
+        <div class="gallery-caption">Operations Command Center</div>
+      </div>
+    </div>
+
+    <!-- Item 5 — spans 2 cols on desktop -->
+    <div class="gallery-item wide gsap-scale" data-delay=".12" data-category="fleet"
+         data-src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=1200&q=80"
+         data-tag="Fleet" data-caption="National Freeway Network">
+      <div class="gallery-num">05</div>
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=1200&q=80" alt="Highway fleet" loading="lazy">
+      <div class="gallery-overlay">
+        <div class="gallery-tag">Fleet</div>
+        <div class="gallery-caption">National Freeway Network</div>
+      </div>
+    </div>
+
+    <!-- Item 6 -->
+    <div class="gallery-item square gsap-scale" data-delay=".18" data-category="warehouse"
+         data-src="https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800&q=80"
+         data-tag="Warehouse" data-caption="Cold Chain Storage Facility">
+      <div class="gallery-num">06</div>
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800&q=80" alt="Cold storage" loading="lazy">
+      <div class="gallery-overlay">
+        <div class="gallery-tag">Warehouse</div>
+        <div class="gallery-caption">Cold Chain Storage Facility</div>
+      </div>
+    </div>
+
+    <!-- Item 7 -->
+    <div class="gallery-item square gsap-scale" data-delay=".1" data-category="delivery"
+         data-src="https://images.unsplash.com/photo-1612831455359-970e23a1e4e9?w=800&q=80"
+         data-tag="Delivery" data-caption="Doorstep Signature Confirmation">
+      <div class="gallery-num">07</div>
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1612831455359-970e23a1e4e9?w=800&q=80" alt="Package delivery" loading="lazy">
+      <div class="gallery-overlay">
+        <div class="gallery-tag">Delivery</div>
+        <div class="gallery-caption">Doorstep Signature Confirmation</div>
+      </div>
+    </div>
+
+    <!-- Item 8 -->
+    <div class="gallery-item square gsap-scale" data-delay=".14" data-category="team"
+         data-src="https://images.unsplash.com/photo-1573497620053-ea5300f94f21?w=800&q=80"
+         data-tag="Team" data-caption="24/7 Dispatch Support Team">
+      <div class="gallery-num">08</div>
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1573497620053-ea5300f94f21?w=800&q=80" alt="Support team" loading="lazy">
+      <div class="gallery-overlay">
+        <div class="gallery-tag">Team</div>
+        <div class="gallery-caption">24/7 Dispatch Support Team</div>
+      </div>
+    </div>
+
+    <!-- Item 9 -->
+    <div class="gallery-item square gsap-scale" data-delay=".22" data-category="fleet"
+         data-src="https://images.unsplash.com/photo-1545987796-200677ee1011?w=800&q=80"
+         data-tag="Fleet" data-caption="Urban Delivery Van Fleet">
+      <div class="gallery-num">09</div>
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1545987796-200677ee1011?w=800&q=80" alt="Delivery vans" loading="lazy">
+      <div class="gallery-overlay">
+        <div class="gallery-tag">Fleet</div>
+        <div class="gallery-caption">Urban Delivery Van Fleet</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" id="lightboxClose">✕</button>
+    <button class="lightbox-nav prev" id="lightboxPrev">&#8592;</button>
+    <button class="lightbox-nav next" id="lightboxNext">&#8594;</button>
+    <img class="lightbox-img" id="lightboxImg" src="" alt="">
+    <div class="lightbox-meta">
+      <span class="lightbox-tag" id="lightboxTag"></span>
+      <span class="lightbox-caption" id="lightboxCaption"></span>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════ CTA BAND ═══════════ -->
 <div id="cta-band" class="gsap-fade">
   <div class="cta-headline">Ready to move faster?<br>Let's talk.</div>
@@ -915,54 +1272,35 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ── SCROLL ANIMATIONS ── */
-/* Generic fade */
 gsap.utils.toArray('.gsap-fade').forEach(el => {
   gsap.to(el, {
-    opacity: 1,
-    duration: .8,
-    ease: 'power2.out',
+    opacity: 1, duration: .8, ease: 'power2.out',
     scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' }
   });
 });
-
-/* Slide up */
 gsap.utils.toArray('.gsap-up').forEach(el => {
   const delay = parseFloat(el.dataset.delay || 0);
   gsap.to(el, {
-    y: 0, opacity: 1,
-    duration: .75, delay,
-    ease: 'power3.out',
+    y: 0, opacity: 1, duration: .75, delay, ease: 'power3.out',
     scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
   });
 });
-
-/* Slide left */
 gsap.utils.toArray('.gsap-left').forEach(el => {
   const delay = parseFloat(el.dataset.delay || 0);
   gsap.to(el, {
-    x: 0, opacity: 1,
-    duration: .7, delay,
-    ease: 'power3.out',
+    x: 0, opacity: 1, duration: .7, delay, ease: 'power3.out',
     scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
   });
 });
-
-/* Slide right */
 gsap.utils.toArray('.gsap-right').forEach(el => {
   gsap.to(el, {
-    x: 0, opacity: 1,
-    duration: .75,
-    ease: 'power3.out',
+    x: 0, opacity: 1, duration: .75, ease: 'power3.out',
     scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
   });
 });
-
-/* Scale up */
 gsap.utils.toArray('.gsap-scale').forEach(el => {
   gsap.to(el, {
-    scale: 1, opacity: 1,
-    duration: .8,
-    ease: 'power2.out',
+    scale: 1, opacity: 1, duration: .8, ease: 'power2.out',
     scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' }
   });
 });
@@ -971,8 +1309,7 @@ gsap.utils.toArray('.gsap-scale').forEach(el => {
 gsap.utils.toArray('[data-target]').forEach(el => {
   const target = parseInt(el.dataset.target);
   ScrollTrigger.create({
-    trigger: el,
-    start: 'top 85%',
+    trigger: el, start: 'top 85%',
     onEnter: () => {
       gsap.to({ val: 0 }, {
         val: target, duration: 1.5, ease: 'power2.out',
@@ -984,9 +1321,77 @@ gsap.utils.toArray('[data-target]').forEach(el => {
 
 /* ── CTA BAND PARALLAX ── */
 gsap.to('#cta-band .cta-headline', {
-  y: -20,
-  ease: 'none',
+  y: -20, ease: 'none',
   scrollTrigger: { trigger: '#cta-band', start: 'top bottom', end: 'bottom top', scrub: true }
+});
+
+/* ═══════════════════════════════════
+   GALLERY LOGIC
+═══════════════════════════════════ */
+const items = Array.from(document.querySelectorAll('.gallery-item'));
+const filterBtns = document.querySelectorAll('.gallery-filter-btn');
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+const lightboxTag = document.getElementById('lightboxTag');
+const lightboxCaption = document.getElementById('lightboxCaption');
+let currentIndex = 0;
+let visibleItems = [...items];
+
+/* Filter */
+filterBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    filterBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    items.forEach(item => {
+      const show = filter === 'all' || item.dataset.category === filter;
+      item.style.display = show ? '' : 'none';
+    });
+    visibleItems = items.filter(i => i.style.display !== 'none');
+  });
+});
+
+/* Open lightbox */
+items.forEach((item, idx) => {
+  item.addEventListener('click', () => {
+    currentIndex = visibleItems.indexOf(item);
+    openLightbox(item);
+  });
+});
+
+function openLightbox(item) {
+  lightboxImg.src = item.dataset.src;
+  lightboxTag.textContent = item.dataset.tag;
+  lightboxCaption.textContent = item.dataset.caption;
+  lightbox.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+
+function closeLightbox() {
+  lightbox.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('lightboxPrev').addEventListener('click', (e) => {
+  e.stopPropagation();
+  currentIndex = (currentIndex - 1 + visibleItems.length) % visibleItems.length;
+  openLightbox(visibleItems[currentIndex]);
+});
+document.getElementById('lightboxNext').addEventListener('click', (e) => {
+  e.stopPropagation();
+  currentIndex = (currentIndex + 1) % visibleItems.length;
+  openLightbox(visibleItems[currentIndex]);
+});
+
+/* Keyboard navigation */
+document.addEventListener('keydown', e => {
+  if (!lightbox.classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') document.getElementById('lightboxPrev').click();
+  if (e.key === 'ArrowRight') document.getElementById('lightboxNext').click();
 });
 </script>
 </body>
