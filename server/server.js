@@ -139,6 +139,12 @@ app.use((err, req, res, next) => {
 async function startServer() {
     try {
         await connectDB()
+        
+        // 🚀 Initialize AI Generation Worker in-process (Free Tier Optimization)
+        // This allows running the API and Job Queue in a single Render Free Web Service.
+        require("./workers/aiWorker")
+        console.log("⚙️  AI Generation Worker initialized within API process.")
+
         app.listen(PORT, () => {
             console.log(`\n🚀 StackForge AI Server running on port ${PORT}`)
             console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}\n`)
