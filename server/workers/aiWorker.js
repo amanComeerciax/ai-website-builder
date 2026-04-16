@@ -171,11 +171,12 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
       const visionSpec = await extractVisionContext(images);
       
       if (visionSpec) {
-        enrichedPrompt += `\n\n[USER ATTACHED SCREENSHOT(S) FOR REFERENCE]\n`;
-        enrichedPrompt += `The user attached screenshot(s) for visual layout/style reference. A vision model analyzed the screenshot and extracted the following architectural and design constraints. YOU MUST ADHERE STRICTLY TO THESE EXTRACTED DETAILS:\n\n`;
-        enrichedPrompt += `### VISION EXTRACTION SPEC ###\n${visionSpec}\n##############################\n`;
+        enrichedPrompt += `\n\n[USER ATTACHED SCREENSHOT OF THEIR CURRENT SITE — PROBLEM REPORT]\n`;
+        enrichedPrompt += `The user attached a screenshot showing problems on their EXISTING website. A vision model analyzed the screenshot and identified the following SPECIFIC ISSUES that need fixing.\n`;
+        enrichedPrompt += `FIX ONLY these identified problems. Do NOT redesign or restructure other sections. Do NOT add new content.\n\n`;
+        enrichedPrompt += `### IDENTIFIED PROBLEMS ###\n${visionSpec}\n###########################\n`;
       } else {
-        enrichedPrompt += `\n\n[User attached ${images.length} image(s) for reference]`;
+        enrichedPrompt += `\n\n[User attached ${images.length} image(s) showing issues to fix on their current site]`;
       }
     }
     if (fileContents && fileContents.length > 0) {

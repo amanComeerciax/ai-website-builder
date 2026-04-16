@@ -109,14 +109,27 @@ async function extractVisionContext(images) {
 
   if (!images || images.length === 0) return '';
 
-  const visionPrompt = `You are an expert UI/UX designer. Analyze the attached screenshot(s) precisely.
-Extract and describe the following in extreme detail so a web developer can perfectly recreate it:
-1. Overall Layout (columns, cards, spacing)
-2. Exact Colors (estimate hex codes for background, exact text colors, buttons)
-3. Typography (is it Sans-serif like Inter, serif like Merriweather? Font weights and sizes)
-4. Key UI Components (buttons, toggles, navbars, shadows, border radii)
+  const visionPrompt = `You are an expert UI/UX auditor. The user is showing you a screenshot of THEIR OWN website that has problems they want fixed.
 
-Format as a highly structured, dense text block.`;
+Your job is to identify SPECIFIC PROBLEMS — not describe the design. Focus on what's BROKEN or WRONG.
+
+Analyze and report:
+
+1. LAYOUT PROBLEMS: Are elements misaligned? Is spacing inconsistent? Are columns uneven? Is content overflowing or overlapping?
+2. SIZING ISSUES: Are images too large/small? Is text the wrong size? Are cards/containers improperly sized?
+3. ALIGNMENT DEFECTS: Are elements not centered when they should be? Is text left-aligned when it should be centered? Are grid items misaligned?
+4. MISSING PROPERTIES: Are there missing borders, shadows, padding, margins, or border-radius that make elements look broken?
+5. IMAGE PROBLEMS: Are images stretched, cropped badly, or showing placeholder/broken content?
+6. SECTION IDENTIFICATION: Identify WHICH section (hero, features, testimonials, gallery, pricing, footer, etc.) each problem is in.
+
+FORMAT YOUR RESPONSE AS:
+SECTION: [section name]
+PROBLEMS:
+- [specific problem 1 with exact CSS fix suggestion]
+- [specific problem 2 with exact CSS fix suggestion]
+
+ONLY report actual problems. Do NOT describe things that look fine. Do NOT suggest redesigns — only fixes.
+Be specific: "The 3 image cards have unequal heights — add min-height or object-fit:cover" NOT "the layout could be improved".`;
 
   // Format messages for OpenAI-compatible multimodal endpoint
   const contentArray = [

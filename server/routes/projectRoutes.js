@@ -4,6 +4,7 @@ const Project = require("../models/Project")
 const Message = require("../models/Message")
 const Version = require("../models/Version")
 const WorkspaceMember = require("../models/WorkspaceMember")
+const Workspace = require("../models/Workspace")
 const { generateProjectName } = require('../utils/nameGenerator.js');
 
 const { requireAuth } = require('../middleware/requireAuth');
@@ -39,7 +40,7 @@ router.get("/", requireAuth, async (req, res, next) => {
             const member = await WorkspaceMember.findOne({ workspaceId, userId, status: 'active' });
             if (member) {
                 // Return ALL projects in this workspace (not just user's own)
-                const projects = await Project.find({ workspaceId }).sort({ createdAt: -1 });
+                const projects = await Project.find({ workspaceId }).sort({ updatedAt: -1 });
                 return res.json({ projects, memberRole: member.role });
             }
         }
@@ -50,7 +51,7 @@ router.get("/", requireAuth, async (req, res, next) => {
             query.workspaceId = workspaceId;
         }
 
-        const projects = await Project.find(query).sort({ createdAt: -1 });
+        const projects = await Project.find(query).sort({ updatedAt: -1 });
         res.json({ projects, memberRole: 'owner' });
     } catch (error) {
         next(error);
@@ -127,6 +128,19 @@ router.post("/", requireAuth, async (req, res, next) => {
             }
         }
 
+        // Apply workspace default visibility setting if workspace exists
+        let visibility = 'workspace'; // fallback default
+        if (workspaceId) {
+            try {
+                const ws = await Workspace.findById(workspaceId).lean();
+                if (ws?.privacySettings?.defaultProjectVisibility) {
+                    visibility = ws.privacySettings.defaultProjectVisibility;
+                }
+            } catch (e) {
+                console.warn('[ProjectCreate] Could not read workspace privacy settings:', e.message);
+            }
+        }
+
         const project = await Project.create({
             userId,
             workspaceId: workspaceId || null,
@@ -135,10 +149,11 @@ router.post("/", requireAuth, async (req, res, next) => {
             folderId: folderId || null,
             currentFileTree,
             theme,
+            visibility,
             outputTrack: currentFileTree['index.html'] ? 'html' : 'html'
         });
 
-        console.log(`[ProjectCreate] Created project ${project._id}${templateId ? ` (from template: ${templateId})` : ''}`);
+        console.log(`[ProjectCreate] Created project ${project._id} (visibility: ${visibility})${templateId ? ` (from template: ${templateId})` : ''}`);
         res.status(201).json({ project });
     } catch (error) {
         next(error);
@@ -191,7 +206,16 @@ router.post("/:id/deploy", requireAuth, async (req, res, next) => {
         if (access.role === 'viewer') {
             return res.status(403).json({ error: "You don't have permission to deploy this project" });
         }
+
+        // ENFORCE: whoCanPublish — check workspace setting
         const project = access.project;
+        if (project.workspaceId) {
+            const ws = await Workspace.findById(project.workspaceId).lean();
+            const whoCanPublish = ws?.privacySettings?.whoCanPublish || 'editors';
+            if (whoCanPublish === 'owners' && !['owner'].includes(access.role)) {
+                return res.status(403).json({ error: "Publishing is restricted to workspace owners only" });
+            }
+        }
 
         if (!project.currentFileTree || Object.keys(project.currentFileTree).length === 0) {
             return res.status(400).json({ error: "Project has no files to deploy yet." });

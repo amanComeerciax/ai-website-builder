@@ -60,7 +60,7 @@ export default function SeamlessVideoLayer({ src, className, style, objectPositi
                 onTimeUpdate={active === 1 ? handleTimeUpdate : undefined}
                 style={{
                     ...baseStyle,
-                    opacity: active === 1 ? 0.8 : 0,
+                    opacity: active === 1 ? 1.0 : 0,
                     zIndex: active === 1 ? 2 : 1
                 }}
             />
@@ -73,7 +73,7 @@ export default function SeamlessVideoLayer({ src, className, style, objectPositi
                 onTimeUpdate={active === 2 ? handleTimeUpdate : undefined}
                 style={{
                     ...baseStyle,
-                    opacity: active === 2 ? 0.8 : 0,
+                    opacity: active === 2 ? 1.0 : 0,
                     zIndex: active === 2 ? 2 : 1
                 }}
             />

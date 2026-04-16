@@ -352,7 +352,7 @@ export default function DashboardPage() {
 
   const handleSend = async () => {
     const trimmed = promptValue.trim();
-    if (!trimmed) return;
+    if (!trimmed || isCreating) return;
 
     // Check for gibberish/vague prompts BEFORE creating a project
     if (isNonActionablePrompt(trimmed)) {
@@ -363,20 +363,26 @@ export default function DashboardPage() {
       return;
     }
 
-    const token = await getToken();
-    const folderId = searchParams.get("folder");
-    const { activeWorkspaceId } = useWorkspaceStore.getState();
-    const newProjectId = await createProject(
-      trimmed,
-      token,
-      folderId || null,
-      null,
-      activeWorkspaceId,
-    );
+    setIsCreating(true);
+    try {
+      const token = await getToken();
+      const folderId = searchParams.get("folder");
+      const { activeWorkspaceId } = useWorkspaceStore.getState();
+      const newProjectId = await createProject(
+        trimmed,
+        token,
+        folderId || null,
+        null,
+        activeWorkspaceId,
+      );
 
-    // Redirect to the real project URL — no more style params here!
-    const url = `/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`;
-    navigate(url);
+      // Redirect to the real project URL — no more style params here!
+      const url = `/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`;
+      navigate(url);
+    } catch (err) {
+      console.error('Project creation failed:', err);
+      setIsCreating(false);
+    }
   };
 
   // Build recently viewed list from stored IDs + project data
@@ -463,7 +469,7 @@ export default function DashboardPage() {
               <button
                 className={`lv-send-btn ${promptValue.trim() ? "active" : ""}`}
                 onClick={handleSend}
-                disabled={!promptValue.trim()}
+                disabled={!promptValue.trim() || isCreating}
               >
                 <ArrowUp size={18} strokeWidth={2.5} />
               </button>

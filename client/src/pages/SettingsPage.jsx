@@ -25,10 +25,16 @@ const Toggle = ({ isOn, onToggle }) => (
   </button>
 );
 
-const MutedDropdown = ({ options, value }) => (
+const MutedDropdown = ({ options, value, onChange, disabled }) => (
   <div className="sp-select-wrapper">
-    <select className="sp-select" value={value} onChange={() => {}}>
-      {options.map(opt => <option key={opt}>{opt}</option>)}
+    <select 
+      className="sp-select" 
+      value={value} 
+      onChange={(e) => onChange && onChange(e.target.value)}
+      disabled={disabled}
+      style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+    >
+      {options.map(opt => <option key={typeof opt === 'object' ? opt.value : opt} value={typeof opt === 'object' ? opt.value : opt}>{typeof opt === 'object' ? opt.label : opt}</option>)}
     </select>
     <ChevronDown size={14} className="sp-select-icon" />
   </div>
@@ -1199,26 +1205,173 @@ const CloudPage = () => {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PAGE: PRIVACY
+// PAGE: PRIVACY (Dynamic per-workspace settings)
 // ─────────────────────────────────────────────────────────────────────────────
 const PrivacyPage = () => {
-  const [toggles, setToggles] = useState({});
-  const toggle = (k) => setToggles(p => ({...p, [k]: !p[k]}));
+  const { getToken } = useAuth();
+  const { activeWorkspaceId } = useWorkspaceStore();
+  const [settings, setSettings] = useState(null);
+  const [memberRole, setMemberRole] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch privacy settings on mount
+  useEffect(() => {
+    if (!activeWorkspaceId) return;
+    let cancelled = false;
+    setIsLoading(true);
+    (async () => {
+      try {
+        const token = await getToken();
+        const data = await apiClient.getWorkspacePrivacy(activeWorkspaceId, token);
+        if (!cancelled) {
+          setSettings(data.settings);
+          setMemberRole(data.memberRole);
+        }
+      } catch (err) {
+        console.error('[PrivacyPage] Failed to load settings:', err);
+        toast.error('Failed to load privacy settings');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeWorkspaceId, getToken]);
+
+  const canEdit = memberRole === 'owner' || memberRole === 'admin';
+
+  // Auto-save a single setting change
+  const updateSetting = async (key, value) => {
+    if (!canEdit) return;
+    // Optimistic update
+    setSettings(prev => ({ ...prev, [key]: value }));
+    setIsSaving(true);
+    try {
+      const token = await getToken();
+      await apiClient.updateWorkspacePrivacy(activeWorkspaceId, { [key]: value }, token);
+      toast.success('Setting saved', { duration: 1500, style: { background: '#1a1a1a', color: '#fff', fontSize: '13px' } });
+    } catch (err) {
+      console.error('[PrivacyPage] Failed to save:', err);
+      toast.error('Failed to save setting');
+      // Revert on failure
+      setSettings(prev => ({ ...prev, [key]: key.includes('enabled') || key.includes('allow') || key.includes('cross') ? !value : value }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleSetting = (key) => {
+    if (!settings) return;
+    updateSetting(key, !settings[key]);
+  };
+
+  // Loading skeleton
+  if (isLoading || !settings) {
+    return (
+      <div className="sp-content">
+        <div className="sp-page-header">
+          <div>
+            <h1 className="sp-page-title">Privacy & Security</h1>
+            <p className="sp-page-subtitle">Loading settings...</p>
+          </div>
+        </div>
+        <div className="sp-card-no-padding">
+          {[...Array(8)].map((_, i) => (
+            <div className="sp-row" key={i} style={{ opacity: 0.3 }}>
+              <div className="sp-row-info">
+                <h4 className="sp-row-title" style={{ width: '60%', height: 14, background: '#333', borderRadius: 4 }}>&nbsp;</h4>
+                <p className="sp-row-desc" style={{ width: '40%', height: 12, background: '#2a2a2a', borderRadius: 4, marginTop: 6 }}>&nbsp;</p>
+              </div>
+              <div style={{ width: 44, height: 24, background: '#333', borderRadius: 12 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const rows = [
-    { label: 'Default project visibility', desc: 'Who can see projects by default.', right: <MutedDropdown options={['Workspace', 'Private', 'Public']} value="Workspace" /> },
-    { label: 'Default website access', desc: 'Who can view published sites.', badge: 'Business', badgeClass: 'sp-badge-business', right: <MutedDropdown options={['Anyone', 'Workspace only']} value="Anyone" /> },
-    { label: 'MCP servers access', desc: 'Allow Model Context Protocol servers.', badge: 'Business', badgeClass: 'sp-badge-business', t: 'mcp' },
-    { label: 'Data collection opt out', desc: 'Prevent training on your code.', badge: 'Business', badgeClass: 'sp-badge-business', t: 'data' },
-    { label: 'Restrict workspace invitations', desc: 'Only admins can invite.', badge: 'Enterprise', badgeClass: 'sp-badge-enterprise', t: 'inv' },
-    { label: 'Allow editors to transfer projects', desc: 'Let editors move projects out.', badge: 'Enterprise', badgeClass: 'sp-badge-enterprise', t: 'transfer' },
-    { label: 'Invite links', desc: 'Enable joining via secret link.', t: 'links', def: true },
-    { label: 'Who can publish externally', desc: 'Restrict external deploys.', badge: 'Enterprise', badgeClass: 'sp-badge-enterprise', right: <MutedDropdown options={['Editors and above', 'Owners only']} value="Editors and above" /> },
-    { label: 'Block publishing with critical findings', desc: 'Require passing security scans.', t: 'block' },
-    { label: 'Require security scan before first publish', desc: 'Mandatory pentest.', t: 'scan' },
-    { label: 'Allow public preview links sharing', desc: 'Share unpublished previews.', badge: 'Enterprise', badgeClass: 'sp-badge-enterprise', t: 'prev', def: true },
-    { label: 'Cross-project sharing', desc: 'Allow component reuse.', t: 'cross', def: true },
-    { label: 'Workspace discovery', desc: 'Users with matching domains can ask to join.', badge: 'Business', badgeClass: 'sp-badge-business', t: 'discover', def: true },
+    {
+      label: 'Default project visibility',
+      desc: 'Who can see new projects by default.',
+      right: (
+        <MutedDropdown
+          options={[
+            { value: 'workspace', label: 'Workspace' },
+            { value: 'private', label: 'Private' },
+            { value: 'public', label: 'Public' }
+          ]}
+          value={settings.defaultProjectVisibility}
+          onChange={(v) => updateSetting('defaultProjectVisibility', v)}
+          disabled={!canEdit}
+        />
+      )
+    },
+    {
+      label: 'Default website access',
+      desc: 'Who can view published sites.',
+      badge: 'Business',
+      badgeClass: 'sp-badge-business',
+      right: (
+        <MutedDropdown
+          options={[
+            { value: 'anyone', label: 'Anyone' },
+            { value: 'workspace', label: 'Workspace only' }
+          ]}
+          value={settings.defaultWebsiteAccess}
+          onChange={(v) => updateSetting('defaultWebsiteAccess', v)}
+          disabled={!canEdit}
+        />
+      )
+    },
+    {
+      label: 'Restrict workspace invitations',
+      desc: 'Only owners and admins can invite new members.',
+      badge: 'Enterprise',
+      badgeClass: 'sp-badge-enterprise',
+      key: 'restrictInvitations'
+    },
+    {
+      label: 'Allow editors to transfer projects',
+      desc: 'Let editors move projects out of this workspace.',
+      badge: 'Enterprise',
+      badgeClass: 'sp-badge-enterprise',
+      key: 'allowEditorsTransfer'
+    },
+    {
+      label: 'Invite links',
+      desc: 'Enable joining this workspace via a secret link.',
+      key: 'inviteLinksEnabled'
+    },
+    {
+      label: 'Who can publish externally',
+      desc: 'Restrict who can deploy sites to public URLs.',
+      badge: 'Enterprise',
+      badgeClass: 'sp-badge-enterprise',
+      right: (
+        <MutedDropdown
+          options={[
+            { value: 'editors', label: 'Editors and above' },
+            { value: 'owners', label: 'Owners only' }
+          ]}
+          value={settings.whoCanPublish}
+          onChange={(v) => updateSetting('whoCanPublish', v)}
+          disabled={!canEdit}
+        />
+      )
+    },
+    {
+      label: 'Allow public preview links sharing',
+      desc: 'Share unpublished site previews with external users.',
+      badge: 'Enterprise',
+      badgeClass: 'sp-badge-enterprise',
+      key: 'allowPreviewSharing'
+    },
+    {
+      label: 'Cross-project sharing',
+      desc: 'Allow reusing components and styles across projects.',
+      key: 'crossProjectSharing'
+    }
   ];
 
   return (
@@ -1226,8 +1379,13 @@ const PrivacyPage = () => {
       <div className="sp-page-header">
         <div>
           <h1 className="sp-page-title">Privacy & Security</h1>
-          <p className="sp-page-subtitle">Configure privacy, security, and data access.</p>
+          <p className="sp-page-subtitle">Configure privacy, security, and data access for this workspace.</p>
         </div>
+        {!canEdit && (
+          <div style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12, fontWeight: 500 }}>
+            View only — contact a workspace admin to change settings
+          </div>
+        )}
       </div>
 
       <div className="sp-card-no-padding">
@@ -1241,9 +1399,9 @@ const PrivacyPage = () => {
               <p className="sp-row-desc">{r.desc}</p>
             </div>
             {r.right ? r.right : (
-              <Toggle 
-                isOn={toggles[r.t] !== undefined ? toggles[r.t] : r.def} 
-                onToggle={() => toggle(r.t)} 
+              <Toggle
+                isOn={settings[r.key]}
+                onToggle={() => canEdit && toggleSetting(r.key)}
               />
             )}
           </div>

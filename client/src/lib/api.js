@@ -269,6 +269,18 @@ class ApiClient {
         }, token)
     }
 
+    // ── Workspace Privacy Settings ──
+    getWorkspacePrivacy(workspaceId, token) {
+        return this.request(`/workspaces/${workspaceId}/privacy`, {}, token)
+    }
+
+    updateWorkspacePrivacy(workspaceId, settings, token) {
+        return this.request(`/workspaces/${workspaceId}/privacy`, {
+            method: 'PUT',
+            body: JSON.stringify(settings),
+        }, token)
+    }
+
     // ── Health ──
     healthCheck() {
         return this.request('/health')

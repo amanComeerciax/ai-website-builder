@@ -17,15 +17,28 @@ router.post("/", requireAuth, async (req, res, next) => {
             return res.status(400).json({ error: "Email and workspaceId are required" });
         }
 
-        // Verify user is owner or admin of the workspace
-        const member = await WorkspaceMember.findOne({ workspaceId, userId });
-        if (!member || !['owner', 'admin'].includes(member.role)) {
-            return res.status(403).json({ error: "Only owners and admins can send invitations" });
-        }
-
-        // Get workspace name and inviter info
+        // Get workspace and privacy settings
         const workspace = await Workspace.findById(workspaceId);
         if (!workspace) return res.status(404).json({ error: "Workspace not found" });
+
+        // Verify user is a member
+        const member = await WorkspaceMember.findOne({ workspaceId, userId });
+        if (!member) {
+            return res.status(403).json({ error: "You are not a member of this workspace" });
+        }
+
+        // ENFORCE: restrictInvitations — when ON, only owner/admin can invite
+        const restrictInvitations = workspace.privacySettings?.restrictInvitations ?? false;
+        if (restrictInvitations) {
+            if (!['owner', 'admin'].includes(member.role)) {
+                return res.status(403).json({ error: "Workspace invitations are restricted to admins and owners only" });
+            }
+        } else {
+            // Default behavior: owner/admin only
+            if (!['owner', 'admin'].includes(member.role)) {
+                return res.status(403).json({ error: "Only owners and admins can send invitations" });
+            }
+        }
 
         const inviter = await User.findOne({ clerkId: userId });
         const inviterName = inviter?.name || inviter?.email?.split('@')[0] || 'Someone';
@@ -186,14 +199,20 @@ router.post("/link", requireAuth, async (req, res, next) => {
 
         if (!workspaceId) return res.status(400).json({ error: "workspaceId is required" });
 
+        const workspace = await Workspace.findById(workspaceId);
+        if (!workspace) return res.status(404).json({ error: "Workspace not found" });
+
+        // ENFORCE: inviteLinksEnabled — when OFF, block link generation
+        const inviteLinksEnabled = workspace.privacySettings?.inviteLinksEnabled ?? true;
+        if (!inviteLinksEnabled) {
+            return res.status(403).json({ error: "Invite links are disabled for this workspace" });
+        }
+
         // Verify ownership/admin
         const member = await WorkspaceMember.findOne({ workspaceId, userId });
         if (!member || !['owner', 'admin'].includes(member.role)) {
             return res.status(403).json({ error: "Only owners and admins can generate invite links" });
         }
-
-        const workspace = await Workspace.findById(workspaceId);
-        if (!workspace) return res.status(404).json({ error: "Workspace not found" });
 
         const inviter = await User.findOne({ clerkId: userId });
 
@@ -238,6 +257,13 @@ router.post("/join/:token", requireAuth, async (req, res, next) => {
             invitation.status = 'expired';
             await invitation.save();
             return res.status(410).json({ error: "This invite link has expired" });
+        }
+
+        // ENFORCE: inviteLinksEnabled — when OFF, block joining via link
+        const workspace = await Workspace.findById(invitation.workspaceId);
+        const inviteLinksEnabled = workspace?.privacySettings?.inviteLinksEnabled ?? true;
+        if (!inviteLinksEnabled) {
+            return res.status(403).json({ error: "Invite links have been disabled for this workspace" });
         }
 
         // Check if already a member

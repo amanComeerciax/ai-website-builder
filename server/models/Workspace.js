@@ -31,6 +31,44 @@ const workspaceSchema = new mongoose.Schema(
       default: '',
       unique: true,
       sparse: true
+    },
+    // ── Per-workspace privacy & security settings ──
+    privacySettings: {
+      defaultProjectVisibility: {
+        type: String,
+        enum: ['workspace', 'private', 'public'],
+        default: 'workspace'
+      },
+      defaultWebsiteAccess: {
+        type: String,
+        enum: ['anyone', 'workspace'],
+        default: 'anyone'
+      },
+      restrictInvitations: {
+        type: Boolean,
+        default: false
+      },
+      allowEditorsTransfer: {
+        type: Boolean,
+        default: false
+      },
+      inviteLinksEnabled: {
+        type: Boolean,
+        default: true
+      },
+      whoCanPublish: {
+        type: String,
+        enum: ['editors', 'owners'],
+        default: 'editors'
+      },
+      allowPreviewSharing: {
+        type: Boolean,
+        default: true
+      },
+      crossProjectSharing: {
+        type: Boolean,
+        default: true
+      }
     }
   },
   { timestamps: true }

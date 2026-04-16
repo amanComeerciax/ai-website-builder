@@ -168,6 +168,86 @@ router.post("/:id/avatar", requireAuth, async (req, res, next) => {
     }
 });
 
+// ── GET /api/workspaces/:id/privacy — Get workspace privacy settings ──
+router.get("/:id/privacy", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+
+        // Must be a member of this workspace
+        const member = await WorkspaceMember.findOne({ workspaceId: req.params.id, userId, status: 'active' });
+        if (!member) {
+            return res.status(403).json({ error: "You are not a member of this workspace" });
+        }
+
+        const workspace = await Workspace.findById(req.params.id).lean();
+        if (!workspace) {
+            return res.status(404).json({ error: "Workspace not found" });
+        }
+
+        // Return settings with defaults for workspaces that haven't configured them yet
+        const defaults = {
+            defaultProjectVisibility: 'workspace',
+            defaultWebsiteAccess: 'anyone',
+            restrictInvitations: false,
+            allowEditorsTransfer: false,
+            inviteLinksEnabled: true,
+            whoCanPublish: 'editors',
+            allowPreviewSharing: true,
+            crossProjectSharing: true
+        };
+
+        const settings = { ...defaults, ...(workspace.privacySettings || {}) };
+
+        res.json({ settings, memberRole: member.role });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ── PUT /api/workspaces/:id/privacy — Update workspace privacy settings ──
+router.put("/:id/privacy", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+
+        // Must be owner or admin
+        const member = await WorkspaceMember.findOne({ workspaceId: req.params.id, userId, status: 'active' });
+        if (!member || !['owner', 'admin'].includes(member.role)) {
+            return res.status(403).json({ error: "Only owners and admins can update privacy settings" });
+        }
+
+        const allowedFields = [
+            'defaultProjectVisibility', 'defaultWebsiteAccess', 'restrictInvitations',
+            'allowEditorsTransfer', 'inviteLinksEnabled', 'whoCanPublish',
+            'allowPreviewSharing', 'crossProjectSharing'
+        ];
+
+        const updates = {};
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                updates[`privacySettings.${field}`] = req.body[field];
+            }
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: "No valid settings to update" });
+        }
+
+        const workspace = await Workspace.findByIdAndUpdate(
+            req.params.id,
+            { $set: updates },
+            { new: true }
+        );
+
+        if (!workspace) {
+            return res.status(404).json({ error: "Workspace not found" });
+        }
+
+        res.json({ settings: workspace.privacySettings });
+    } catch (error) {
+        next(error);
+    }
+});
+
 // ── DELETE /api/workspaces/:id — Delete a workspace ──
 router.delete("/:id", requireAuth, async (req, res, next) => {
     try {

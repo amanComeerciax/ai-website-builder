@@ -308,7 +308,7 @@ async function editExistingHtml(existingHtml, userPrompt, enrichedSpec, onProgre
   // ── SURGICAL DIFF-PATCH APPROACH ──
   // The AI returns ONLY the changed snippets as JSON, not the full 45K HTML
   const systemPrompt = `You are an expert web developer performing SURGICAL code edits.
-The user has an existing website and wants specific changes. 
+The user has an existing website and wants ONLY specific changes — nothing more.
 
 YOUR OUTPUT FORMAT — MANDATORY:
 Return a JSON array of patches. Each patch has "find" (exact original snippet) and "replace" (modified snippet).
@@ -319,39 +319,56 @@ Example output:
   {"find": "</head>", "replace": "<link href=\\"https://fonts.googleapis.com/css2?family=Inter&display=swap\\" rel=\\"stylesheet\\">\\n</head>"}
 ]
 
-CRITICAL RULES:
-1. The "find" value MUST be an EXACT substring of the existing HTML — copy it character-for-character from the provided code. Include enough context to be unique.
+═══ ABSOLUTE RULES (VIOLATING ANY = FAILURE) ═══
+
+RULE 1 — SCOPE LOCK:
+You MUST ONLY patch the sections/elements the user explicitly references in their prompt.
+Every other part of the HTML — every section, every image, every class, every style — must remain BYTE-FOR-BYTE identical.
+If the user says "fix the testimonials section", you touch ONLY the testimonials section. The hero, navbar, footer, features, pricing, and ALL other sections stay UNTOUCHED.
+
+RULE 2 — NO ADDITIVE CHANGES:
+Do NOT add new sections, new elements, or new content the user didn't ask for.
+Do NOT restructure, reorder, or reorganize existing layout.
+Do NOT "improve" things the user didn't mention — even if you think they look bad.
+The user's request is the COMPLETE scope. Nothing beyond it.
+
+RULE 3 — IMAGE PRESERVATION:
+Do NOT replace, swap, or modify images in sections the user didn't reference.
+Only fix images inside the SPECIFIC section the user is talking about.
+If the user says "fix this section" and attaches a screenshot, fix alignment/sizing/spacing of existing images — don't replace them with different images unless explicitly asked.
+
+RULE 4 — SCREENSHOT = PROBLEM REPORT:
+If the user attached a screenshot with a VISION EXTRACTION SPEC, that spec describes what's WRONG with their site.
+Your job is to FIX those specific problems (misalignment, wrong sizes, broken spacing, overlapping elements, missing CSS properties) in the targeted section ONLY.
+Do NOT redesign the section. Do NOT change content. ONLY fix the layout/CSS problems identified.
+
+RULE 5 — TYPO TOLERANCE:
+The user's prompt may contain typos, broken words, and informal spelling. YOU MUST interpret their INTENT, not their literal text. Examples:
+  - "uesr" = "user", "bcuz" = "because", "fllow" = "follow", "secion" = "section"
+  - "ix this" = "fix this", "chnage" = "change", "improper" = "improper/broken"
+  - "aligment" = "alignment", "plcing" = "placing"
+Read past the typos and understand what they actually want fixed.
+
+═══ PATCH RULES ═══
+
+1. The "find" value MUST be an EXACT substring of the existing HTML — copy it character-for-character. Include enough context to be unique.
 2. The "replace" value is the modified version of that snippet.
-3. Only include patches for things that ACTUALLY need to change. Do NOT patch unchanged code.
-4. To add something to <head> (like a font link), use {"find": "</head>", "replace": "<new stuff here>\\n</head>"}.
-5. To add an icon/logo before text in a container, find the container and replace it with the icon + original content.
+3. To add something to <head> (like a font link), use {"find": "</head>", "replace": "<new stuff here>\\n</head>"}.
+4. For logos, use inline SVG or Unicode emoji — NEVER broken <img> tags.
+5. For images, use: https://image.pollinations.ai/prompt/{URL-ENCODED-DESCRIPTION}?width=800&height=600&nologo=true
+   NEVER use source.unsplash.com (DEAD), placehold.co, or leave src="" empty.
 
-FONT RULES:
-- When changing fonts: add a Google Fonts <link> patch to </head>, then patch each targeted element's style or add a <style> rule.
-- Use the format: font-family: 'FontName', sans-serif;
+Return ONLY the JSON array. No markdown wrapping, no explanations.`;
 
-LOGO / ICON RULES:
-- When adding a "logo" beside text: use an inline SVG or Unicode emoji (e.g., 🍕). NEVER use a broken <img> with a fake URL.
-- Place it INSIDE the same container, BEFORE the brand text.
-
-IMAGE RULES:
-- For images, write a short visual description (3-8 words) of what the image should show.
-  Use: https://image.pollinations.ai/prompt/{URL-ENCODED-DESCRIPTION}?width=800&height=600&nologo=true
-  The description must match the specific content (e.g., "hot masala chai cup" for a chai item).
-- NEVER use source.unsplash.com (DEAD), placehold.co, or leave src="" empty.
-- Images MUST match the business context.
-
-INTENT:
-- "Add a pizza logo beside the div" = place an emoji/SVG inside the div before the text — NOT add text "Pizza Logo".
-- Be precise. Return ONLY the JSON array. No markdown wrapping, no explanations.`;
-
-  const userMessage = `=== EDIT REQUEST ===
+  const userMessage = `=== EDIT REQUEST (interpret past any typos — understand the intent) ===
 ${userPrompt}
 
 === BUSINESS CONTEXT ===
 Business: ${enrichedSpec.businessName || 'N/A'}
 
 === EXISTING HTML (${htmlLength} chars) — find exact snippets from this code ===
+IMPORTANT: Only create patches for the specific section/element the user mentioned above. Leave everything else untouched.
+
 ${existingHtml}`;
 
   onProgress({ event: 'thinking', message: 'Planning surgical changes...' });
