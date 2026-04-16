@@ -198,11 +198,7 @@ Reply with ONLY the exact template name (e.g. template3). No explanation.`;
 
 /**
  * Apply an array of {find, replace} patches to the original HTML.
- * Uses multiple matching strategies for robustness:
- *  1. Exact match
- *  2. Trimmed match
- *  3. Whitespace-normalized match
- *  4. Key-content substring match (for short content like phone numbers, emails)
+ * Falls back gracefully if a patch doesn't match (logs a warning).
  */
 function applyPatches(originalHtml, patches) {
   let result = originalHtml;
@@ -214,83 +210,19 @@ function applyPatches(originalHtml, patches) {
       continue;
     }
 
-    let applied = false;
-
-    // Strategy 1: Exact match
+    // Try exact match first
     if (result.includes(patch.find)) {
       result = result.replace(patch.find, patch.replace);
-      applied = true;
-    }
-
-    // Strategy 2: Trimmed match
-    if (!applied) {
-      const trimmedFind = patch.find.trim();
-      if (trimmedFind && result.includes(trimmedFind)) {
-        result = result.replace(trimmedFind, patch.replace.trim());
-        applied = true;
-      }
-    }
-
-    // Strategy 3: Whitespace-normalized match
-    // Collapse all whitespace sequences to single spaces for comparison
-    if (!applied) {
-      const normalizeWS = (s) => s.replace(/\s+/g, ' ').trim();
-      const normalizedFind = normalizeWS(patch.find);
-      
-      if (normalizedFind.length > 10) {
-        // Find the matching region in the original HTML
-        const lines = result.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-          // Check a window of lines around this position
-          for (let windowSize = 1; windowSize <= 5 && (i + windowSize) <= lines.length; windowSize++) {
-            const chunk = lines.slice(i, i + windowSize).join('\n');
-            if (normalizeWS(chunk) === normalizedFind) {
-              result = result.replace(chunk, patch.replace);
-              applied = true;
-              break;
-            }
-          }
-          if (applied) break;
-        }
-      }
-    }
-
-    // Strategy 4: Key-content extraction match
-    // For simple text changes (phone, email, etc.), extract the inner text content
-    // and find the element containing it
-    if (!applied) {
-      // Extract text content from HTML snippet (strip tags)
-      const extractText = (html) => html.replace(/<[^>]+>/g, '').trim();
-      const findText = extractText(patch.find);
-      
-      if (findText.length > 3 && findText.length < 200) {
-        // Look for this text in the result
-        const textIndex = result.indexOf(findText);
-        if (textIndex !== -1) {
-          // Found the text — now find the surrounding tag context
-          // Replace just the text content within a reasonable window
-          const before = result.lastIndexOf('<', textIndex);
-          const after = result.indexOf('>', result.indexOf('</', textIndex));
-          
-          if (before !== -1 && after !== -1 && (after - before) < 500) {
-            const originalSnippet = result.substring(before, after + 1);
-            const replaceText = extractText(patch.replace);
-            const newSnippet = originalSnippet.replace(findText, replaceText);
-            
-            if (newSnippet !== originalSnippet) {
-              result = result.replace(originalSnippet, newSnippet);
-              applied = true;
-              console.log(`[Patcher] 🎯 Text-match applied: "${findText.substring(0, 40)}" → "${replaceText.substring(0, 40)}"`);
-            }
-          }
-        }
-      }
-    }
-
-    if (applied) {
       appliedCount++;
     } else {
-      console.warn(`[Patcher] ⚠️ Could not find patch target (${patch.find.substring(0, 80)}...)`);
+      // Try trimmed match (AI sometimes adds/removes whitespace)
+      const trimmedFind = patch.find.trim();
+      if (result.includes(trimmedFind)) {
+        result = result.replace(trimmedFind, patch.replace);
+        appliedCount++;
+      } else {
+        console.warn(`[Patcher] ⚠️ Could not find patch target (${patch.find.substring(0, 80)}...)`);
+      }
     }
   }
 

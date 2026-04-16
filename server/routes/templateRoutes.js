@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs/promises');
 const path = require('path');
-const { requireAuth } = require('../middleware/requireAuth');
+const { requireAuth, requireAdmin } = require('../middleware/requireAuth');
 const User = require('../models/User');
 const Template = require('../models/Template');
+
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 
@@ -109,16 +110,13 @@ router.get('/preview/:categoryId/:templateId', async (req, res, next) => {
     }
 });
 
+// ...
 // POST /api/templates (ADMIN ONLY)
-router.post('/', requireAuth, async (req, res, next) => {
+router.post('/', requireAdmin, async (req, res, next) => {
     try {
-        // 1. Security Check: Only specific admin email
-        const user = await User.findOne({ clerkId: req.auth.userId });
-        if (!user || user.email !== 'kingamaan14@gmail.com') {
-            return res.status(403).json({ error: 'Unauthorized: Admin access only.' });
-        }
-
+        // No need for manual email check now that requireAdmin is used
         const { title, description, category, htmlContent } = req.body;
+
         if (!title || !category || !htmlContent) {
             return res.status(400).json({ error: 'Missing required fields (title, category, htmlContent)' });
         }

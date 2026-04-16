@@ -11,6 +11,7 @@ import AuthPage from './pages/AuthPage'
 import SuccessPage from './pages/SuccessPage'
 import SettingsPage from './pages/SettingsPage'
 import AdminTemplatesPage from './pages/AdminTemplatesPage'
+import AdminUsersPage from './pages/AdminUsersPage'
 import { Toaster } from 'react-hot-toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -100,6 +101,10 @@ function App() {
           <Route
             path="/admin/templates"
             element={<ProtectedRoute><AdminTemplatesPage /></ProtectedRoute>}
+          />
+          <Route
+            path="/admin/users"
+            element={<ProtectedRoute><AdminUsersPage /></ProtectedRoute>}
           />
 
           {/* Editor route */}
