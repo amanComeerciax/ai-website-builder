@@ -280,6 +280,7 @@ export default function DashboardPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [warningMsg, setWarningMsg] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
   const textareaRef = useRef(null);
 
@@ -298,12 +299,23 @@ export default function DashboardPage() {
     }
   }, [isLoaded, isSignedIn, fetchUserData, getToken, userData]);
 
-  // Fetch templates on mount
+  // Fetch templates on mount — dedup by slug so multi-category templates show once
   useEffect(() => {
     fetch("/api/templates")
       .then((r) => r.json())
       .then((data) => {
-        if (data.templates) setTemplates(data.templates);
+        if (data.templates) {
+          // API already returns one entry per template, but guard against duplicates
+          const seen = new Set();
+          const unique = data.templates.filter(t => {
+            if (!t.isVisible) return false;
+            const key = t.slug || t.id;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setTemplates(unique);
+        }
       })
       .catch(() => { });
   }, []);
@@ -376,11 +388,11 @@ export default function DashboardPage() {
         activeWorkspaceId,
       );
 
-      // Redirect to the real project URL — no more style params here!
+      // Redirect to the real project URL
       const url = `/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`;
       navigate(url);
     } catch (err) {
-      console.error('Project creation failed:', err);
+      console.error('Navigation failed:', err);
       setIsCreating(false);
     }
   };
@@ -599,8 +611,8 @@ export default function DashboardPage() {
                     <div className="lv-card-thumb-gradient" />
                   </div>
                   <div className="lv-card-body">
-                    <div className="lv-card-title">{t.title}</div>
-                    <div className="lv-card-desc">{t.description}</div>
+                    <div className="lv-card-title">{t.themeName || t.title}</div>
+                    <div className="lv-card-desc">{t.themeTagline || t.description}</div>
                   </div>
                 </div>
               ))}

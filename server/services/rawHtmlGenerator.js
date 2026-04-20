@@ -57,6 +57,135 @@ function fixBrokenImages(html, businessContext = '') {
   return html;
 }
 
+/**
+ * Extract the design system from existing HTML using code-based parsing.
+ * Parses <style> blocks, inline styles, and class patterns to identify:
+ * - Color palette (CSS variables, hex/rgb values)
+ * - Font families
+ * - Grid/layout patterns (grid-template-columns, flexbox)
+ * - Spacing tokens (padding, margin, gap)
+ * - Border-radius values
+ * - Shadow patterns
+ * Zero AI calls — pure regex/string parsing.
+ */
+function extractDesignSystem(html) {
+  const design = {
+    colors: [],
+    fonts: [],
+    gridPatterns: [],
+    spacing: [],
+    borderRadius: [],
+    shadows: [],
+    cssVariables: {},
+    summary: ''
+  };
+
+  // Extract all <style> content
+  const styleBlocks = [];
+  const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+  let m;
+  while ((m = styleRegex.exec(html)) !== null) {
+    styleBlocks.push(m[1]);
+  }
+  const allCss = styleBlocks.join('\n');
+
+  // CSS Variables
+  const varRegex = /--(\w[\w-]*)\s*:\s*([^;]+)/g;
+  while ((m = varRegex.exec(allCss)) !== null) {
+    design.cssVariables[`--${m[1]}`] = m[2].trim();
+  }
+
+  // Colors (hex, rgb, hsl)
+  const colorSet = new Set();
+  const hexRegex = /#(?:[0-9a-fA-F]{3,4}){1,2}\b/g;
+  while ((m = hexRegex.exec(allCss)) !== null) colorSet.add(m[0]);
+  const rgbRegex = /rgba?\([^)]+\)/g;
+  while ((m = rgbRegex.exec(allCss)) !== null) colorSet.add(m[0]);
+  const hslRegex = /hsla?\([^)]+\)/g;
+  while ((m = hslRegex.exec(allCss)) !== null) colorSet.add(m[0]);
+  design.colors = [...colorSet].slice(0, 20);
+
+  // Fonts
+  const fontSet = new Set();
+  const fontRegex = /font-family\s*:\s*([^;]+)/g;
+  while ((m = fontRegex.exec(allCss)) !== null) {
+    fontSet.add(m[1].trim().replace(/['"/]/g, '').split(',')[0].trim());
+  }
+  // Also check Google Fonts links
+  const gfRegex = /fonts\.googleapis\.com\/css2?\?family=([^&"']+)/g;
+  while ((m = gfRegex.exec(html)) !== null) {
+    fontSet.add(decodeURIComponent(m[1]).replace(/\+/g, ' ').split(':')[0]);
+  }
+  design.fonts = [...fontSet].slice(0, 6);
+
+  // Grid patterns
+  const gridRegex = /grid-template-columns\s*:\s*([^;]+)/g;
+  while ((m = gridRegex.exec(allCss)) !== null) design.gridPatterns.push(m[1].trim());
+
+  // Border radius values
+  const brSet = new Set();
+  const brRegex = /border-radius\s*:\s*([^;]+)/g;
+  while ((m = brRegex.exec(allCss)) !== null) brSet.add(m[1].trim());
+  design.borderRadius = [...brSet].slice(0, 8);
+
+  // Spacing (gap, padding, margin)
+  const gapSet = new Set();
+  const gapRegex = /(?:gap|padding|margin)\s*:\s*([^;]+)/g;
+  while ((m = gapRegex.exec(allCss)) !== null) gapSet.add(m[1].trim());
+  design.spacing = [...gapSet].slice(0, 12);
+
+  // Box shadows
+  const shadowSet = new Set();
+  const shadowRegex = /box-shadow\s*:\s*([^;]+)/g;
+  while ((m = shadowRegex.exec(allCss)) !== null) shadowSet.add(m[1].trim());
+  design.shadows = [...shadowSet].slice(0, 5);
+
+  // Build summary string for injection into prompts
+  const parts = [];
+  if (design.fonts.length > 0) parts.push(`Fonts: ${design.fonts.join(', ')}`);
+  if (design.colors.length > 0) parts.push(`Color palette: ${design.colors.slice(0, 10).join(', ')}`);
+  if (design.gridPatterns.length > 0) parts.push(`Grid patterns: ${design.gridPatterns.join(' | ')}`);
+  if (design.borderRadius.length > 0) parts.push(`Border radius: ${design.borderRadius.join(', ')}`);
+  if (design.spacing.length > 0) parts.push(`Spacing: ${design.spacing.slice(0, 6).join(', ')}`);
+  if (design.shadows.length > 0) parts.push(`Shadows: ${design.shadows.slice(0, 3).join(' | ')}`);
+  if (Object.keys(design.cssVariables).length > 0) {
+    const vars = Object.entries(design.cssVariables).slice(0, 15).map(([k, v]) => `${k}: ${v}`).join('; ');
+    parts.push(`CSS Variables: ${vars}`);
+  }
+  design.summary = parts.join('\n');
+
+  return design;
+}
+
+/**
+ * Extract a section map from the HTML — identifies all <section>, <header>, <footer>,
+ * and major <div> blocks with IDs/classes so the AI can accurately target sections.
+ */
+function extractSectionMap(html) {
+  const sections = [];
+  // Match <section>, <header>, <footer>, <main>, <article>, <nav> with id/class
+  const sectionRegex = /<(section|header|footer|main|article|nav)([^>]*)>/gi;
+  let m;
+  while ((m = sectionRegex.exec(html)) !== null) {
+    const tag = m[1].toLowerCase();
+    const attrs = m[2];
+    const idMatch = attrs.match(/id\s*=\s*["']([^"']+)["']/);
+    const classMatch = attrs.match(/class\s*=\s*["']([^"']+)["']/);
+    
+    // Get a snippet of the content (first 150 chars after the opening tag)
+    const contentStart = m.index + m[0].length;
+    const snippet = html.substring(contentStart, contentStart + 150).replace(/<[^>]+>/g, ' ').trim().substring(0, 80);
+    
+    sections.push({
+      tag,
+      id: idMatch ? idMatch[1] : null,
+      classes: classMatch ? classMatch[1] : null,
+      contentPreview: snippet,
+    });
+  }
+  return sections;
+}
+
 async function getRawTemplate(enrichedSpec, requestModel) {
   const queryStr = `${enrichedSpec.businessName || ''} - ${enrichedSpec.description || ''} - ${enrichedSpec.rawPrompt || ''}`;
 
@@ -101,6 +230,19 @@ async function getRawTemplate(enrichedSpec, requestModel) {
             console.log(`[Generator] ✅ Rendered user-selected template from JSON: ${jsonPath}`);
           } catch (renderErr) {
             console.warn(`[Generator] ⚠️ Failed to load/render user-selected template "${enrichedSpec.templateId}":`, renderErr.message);
+          }
+        }
+
+        // Fallback: fetch from MongoDB (for templates uploaded via admin or community)
+        if (!htmlContent) {
+          try {
+            const dbTemplate = await Template.findOne({ slug: templateName }).lean();
+            if (dbTemplate && dbTemplate.htmlContent) {
+              htmlContent = dbTemplate.htmlContent;
+              console.log(`[Generator] ✅ Loaded user-selected template HTML from MongoDB: ${templateName}`);
+            }
+          } catch (dbErr) {
+             console.warn(`[Generator] ⚠️ Error finding template "${templateName}" in MongoDB:`, dbErr.message);
           }
         }
 
@@ -204,6 +346,8 @@ function applyPatches(originalHtml, patches) {
   let result = originalHtml;
   let appliedCount = 0;
 
+  const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
   for (const patch of patches) {
     if (!patch.find || patch.replace === undefined) {
       console.warn(`[Patcher] Skipping invalid patch:`, JSON.stringify(patch).substring(0, 100));
@@ -215,13 +359,30 @@ function applyPatches(originalHtml, patches) {
       result = result.replace(patch.find, patch.replace);
       appliedCount++;
     } else {
-      // Try trimmed match (AI sometimes adds/removes whitespace)
+      // Try trimmed match
       const trimmedFind = patch.find.trim();
       if (result.includes(trimmedFind)) {
         result = result.replace(trimmedFind, patch.replace);
         appliedCount++;
       } else {
-        console.warn(`[Patcher] ⚠️ Could not find patch target (${patch.find.substring(0, 80)}...)`);
+        // Try simple fuzzy match: ignore all whitespace differences
+        const findRegexStr = patch.find
+            .split(/\\s+/)
+            .filter(part => part.length > 0)
+            .map(escapeRegExp)
+            .join('\\\\s+');
+            
+        try {
+           const regex = new RegExp(findRegexStr);
+           if (regex.test(result)) {
+               result = result.replace(regex, patch.replace);
+               appliedCount++;
+           } else {
+               console.warn(`[Patcher] ⚠️ Could not find patch target (${patch.find.substring(0, 80)}...)`);
+           }
+        } catch (e) {
+           console.warn(`[Patcher] ⚠️ Regex match failed for target (${patch.find.substring(0, 80)}...)`);
+        }
       }
     }
   }
@@ -237,10 +398,149 @@ async function editExistingHtml(existingHtml, userPrompt, enrichedSpec, onProgre
   const htmlLength = existingHtml.length;
   console.log(`[Generator] ✏️ editExistingHtml called — prompt: "${userPrompt.substring(0, 100)}..." (${htmlLength} chars)`);
 
+  // ── PRE-PROCESSING: Extract design system and section map (code-based, zero AI cost) ──
+  const designSystem = extractDesignSystem(existingHtml);
+  const sectionMap = extractSectionMap(existingHtml);
+  console.log(`[Generator] 🎨 Extracted design system: ${designSystem.colors.length} colors, ${designSystem.fonts.length} fonts, ${designSystem.gridPatterns.length} grids`);
+  console.log(`[Generator] 📍 Section map: ${sectionMap.length} sections found`);
+
+  // ── DETECT INTENT (MULTI-INTENT) ──
+  // A user prompt can contain MULTIPLE tasks. We detect ALL of them.
+  const lowerPrompt = userPrompt.toLowerCase();
+  const editIntents = new Set();
+
+  if (/change.*image|swap.*image|replace.*image|update.*image|new.*image|different.*image|change.*photo|swap.*photo|every.*image.*same|same.*image/i.test(lowerPrompt)) {
+    editIntents.add('change_images');
+  }
+  if (/redesign|rebuild|redo|make.*new|rewrite|restyle/i.test(lowerPrompt)) {
+    editIntents.add('redesign_section');
+  }
+  if (/change.*colou?r|change.*font|change.*text|update.*text|change.*heading|rename|change.*name|translat|english|languag|russian|spanish|french|german|chinese|hindi|arabic|no\s+\w+\s+language|use\s+\w+\s+language/i.test(lowerPrompt)) {
+    editIntents.add('change_content');
+  }
+  if (/fix|improve|adjust|align|broken|wrong|bad|ugly|improper|issue|problem|suitable|proper/i.test(lowerPrompt)) {
+    editIntents.add('fix_section');
+  }
+
+  // If nothing matched, fall back to the general intent
+  if (editIntents.size === 0) editIntents.add('general');
+
+  // Track whether the prompt references multiple distinct sections or "everywhere"
+  const isMultiSection = /every|all|whole|entire|website|page|everywhere/i.test(lowerPrompt)
+    || (lowerPrompt.match(/\b(and|also|plus|additionally)\b/g) || []).length >= 1;
+
+  console.log(`[Generator] 🎯 Detected edit intents: [${[...editIntents].join(', ')}] | Multi-section: ${isMultiSection}`);
+
+  // Build section map description for the AI
+  const sectionMapDesc = sectionMap.length > 0
+    ? sectionMap.map((s, i) => {
+        let desc = `  ${i + 1}. <${s.tag}>`;
+        if (s.id) desc += ` id="${s.id}"`;
+        if (s.classes) desc += ` class="${s.classes.substring(0, 60)}"`;
+        if (s.contentPreview) desc += ` — "${s.contentPreview.substring(0, 50)}..."`;
+        return desc;
+      }).join('\n')
+    : '  (No semantic sections detected)';
+
+  // ── MULTI-INTENT instruction builder ──
+  // Each detected intent appends its own instruction block so the AI sees ALL tasks.
+  const intentBlocks = [];
+
+  if (editIntents.has('change_images')) {
+    intentBlocks.push(`
+═══ TASK: CHANGE IMAGES ═══
+Replace image src URLs with new, UNIQUE Pollinations URLs that match the website context.
+
+CRITICAL — UNIQUE IMAGE GENERATION PROCESS:
+For EACH image on the page, follow this 3-step process:
+  Step 1: Read the heading/text near the image to understand what it represents
+  Step 2: Write a SPECIFIC, UNIQUE description for THAT image (minimum 5 words, max 12 words)
+  Step 3: URL-encode the description and embed it in the Pollinations URL
+
+Example for a hacker site with 4 sections:
+  - GHOST section → "dark hooded figure in neon green cyberspace"
+  - CODE section → "glowing lines of source code on black terminal"
+  - DRIVE section → "encrypted hard drive with digital locks"
+  - SERVER section → "server rack with blinking lights in dark room"
+
+URL pattern: https://image.pollinations.ai/prompt/{URL-ENCODED-UNIQUE-DESCRIPTION}?width={W}&height={H}&nologo=true
+  Hero/banners: width=1200&height=800 | Cards: width=800&height=600 | Avatars: width=400&height=400
+
+IMAGE QUALITY RULES:
+- Every <img> must also have: object-fit: cover; width: 100%; proper max-height; border-radius matching the site; overflow:hidden on its container
+- NEVER repeat the same image URL or same description twice on the page
+- NEVER use generic descriptions like "website image" or "section image" — be SPECIFIC to the content
+- Each description must contain keywords from that specific section's heading/text
+`);
+  }
+
+  if (editIntents.has('change_content')) {
+    intentBlocks.push(`
+═══ TASK: CHANGE CONTENT / LANGUAGE ═══
+Modify text content as the user requested.
+- If the user asked for a specific LANGUAGE (e.g. "use English", "no Russian"), translate ALL visible text in the targeted area(s) to the requested language.
+- If the user mentioned changing headings, names, or labels, update those specifically.
+- Keep all images, layout, and CSS untouched unless another TASK block says otherwise.
+`);
+  }
+
+  if (editIntents.has('fix_section')) {
+    intentBlocks.push(`
+═══ TASK: FIX / IMPROVE SECTION ═══
+Fix EVERYTHING wrong with the targeted section(s):
+- Fix image sizing: add object-fit: cover, proper width/height, max-height constraints
+- Fix image containers: add overflow: hidden, border-radius matching the site
+- Fix layout: proper grid/flex, consistent columns, equal-height cards
+- Fix alignment: text-align, justify-content, align-items
+- Fix spacing: consistent padding, margin, gap
+- Make the section look PROFESSIONAL and match the rest of the website's quality
+
+CRITICAL — FIXING means IMPROVING, not DELETING:
+- NEVER remove any content, cards, images, or HTML elements
+- Keep ALL existing elements — just fix their CSS/styling/layout
+- "Fix" = add/modify CSS properties, wrap in containers, add grid/flex
+- "Fix" ≠ delete, remove, or simplify
+`);
+  }
+
+  if (editIntents.has('redesign_section')) {
+    intentBlocks.push(`
+═══ TASK: REDESIGN SECTION ═══
+Restructure the HTML of the target section, BUT:
+- MUST use the same design system (colors, fonts, spacing, border-radius) as the rest of the site
+- The redesigned section must look like it belongs to the same website
+`);
+  }
+
+  // Always append design inheritance rules for quality
+  intentBlocks.push(`
+═══ DESIGN INHERITANCE RULES (apply to ALL changes) ═══
+Before making ANY change, analyze the existing site's design system:
+- Use the SAME color palette (CSS variables, hex values, gradients) for any new/modified element
+- Use the SAME typography (font-family, sizes, weights) — never introduce new fonts
+- Use the SAME layout patterns (grid columns, flex layouts, card structures)
+- Use the SAME spacing system (padding, margin, gap values)
+- Use the SAME decoration (border-radius, shadows, hover effects, transitions)
+
+If you ADD any new section or content block:
+- It MUST look like it was designed by the same designer who made the original template
+- Use the SAME grid column count, card styling, heading hierarchy, section padding
+- Include hover effects/transitions if the template has them
+- NEVER create a section with raw unstyled images or plain text blocks
+- Every new section MUST be responsive (use the same breakpoints as the blueprint)
+- Every <img> must be inside a properly sized container with overflow:hidden and object-fit:cover
+`);
+
+  const intentInstructions = intentBlocks.join('\n');
+
+  // Scope instruction — adapt based on whether this is multi-section
+  const scopeInstruction = isMultiSection
+    ? `\nSCOPE: The user's prompt references MULTIPLE areas or the whole website. You may create patches for MULTIPLE sections as needed. Still, ONLY change what the user explicitly asked for — do not add unrelated improvements.`
+    : `\nSCOPE: Identify WHICH section(s) the user is referring to, and create patches ONLY for those section(s). Do NOT touch unrelated sections.`;
+
   // ── SURGICAL DIFF-PATCH APPROACH ──
-  // The AI returns ONLY the changed snippets as JSON, not the full 45K HTML
-  const systemPrompt = `You are an expert web developer performing SURGICAL code edits.
-The user has an existing website and wants ONLY specific changes — nothing more.
+  const systemPrompt = `You are an expert web developer and UI designer performing SURGICAL code edits.
+The user has an existing website and wants specific changes. CAREFULLY read their FULL prompt — it may contain MULTIPLE separate tasks.
 
 YOUR OUTPUT FORMAT — MANDATORY:
 Return a JSON array of patches. Each patch has "find" (exact original snippet) and "replace" (modified snippet).
@@ -250,70 +550,157 @@ Example output:
   {"find": "<a href=\\"#menu\\">Menu</a>", "replace": "<a href=\\"#menu\\" style=\\"font-family: 'Inter', sans-serif\\">Menu</a>"},
   {"find": "</head>", "replace": "<link href=\\"https://fonts.googleapis.com/css2?family=Inter&display=swap\\" rel=\\"stylesheet\\">\\n</head>"}
 ]
+${intentInstructions}
+${scopeInstruction}
 
-═══ ABSOLUTE RULES (VIOLATING ANY = FAILURE) ═══
+═══ WEBSITE SECTION MAP (use to identify sections the user is referring to) ═══
+${sectionMapDesc}
 
-RULE 1 — SCOPE LOCK:
-You MUST ONLY patch the sections/elements the user explicitly references in their prompt.
-Every other part of the HTML — every section, every image, every class, every style — must remain BYTE-FOR-BYTE identical.
-If the user says "fix the testimonials section", you touch ONLY the testimonials section. The hero, navbar, footer, features, pricing, and ALL other sections stay UNTOUCHED.
+═══ EXISTING DESIGN SYSTEM (use these values for any CSS changes/additions) ═══
+${designSystem.summary || '(Could not extract — analyze the HTML inline styles and <style> blocks)'}
 
-RULE 2 — NO ADDITIVE CHANGES:
-Do NOT add new sections, new elements, or new content the user didn't ask for.
-Do NOT restructure, reorder, or reorganize existing layout.
-Do NOT "improve" things the user didn't mention — even if you think they look bad.
-The user's request is the COMPLETE scope. Nothing beyond it.
+╔══════════════════════════════════════════════════════════════════╗
+║  ZERO TOLERANCE RULES — VIOLATING ANY = TOTAL FAILURE           ║
+╚══════════════════════════════════════════════════════════════════╝
 
-RULE 3 — IMAGE PRESERVATION:
-Do NOT replace, swap, or modify images in sections the user didn't reference.
-Only fix images inside the SPECIFIC section the user is talking about.
-If the user says "fix this section" and attaches a screenshot, fix alignment/sizing/spacing of existing images — don't replace them with different images unless explicitly asked.
+RULE 0 — NEVER DELETE (HIGHEST PRIORITY RULE):
+You MUST NEVER delete, remove, or empty out ANY section, div, image, card, or HTML element.
+"Fixing" a section means ADDING or MODIFYING CSS/styles — NOT removing HTML.
+If a section has 6 images, it must STILL have 6 images after your fix.
+If a section has 4 cards, it must STILL have 4 cards after your fix.
+The "replace" value in your patch must contain ALL the original HTML elements — just with added/modified CSS.
+If your patch's "replace" has FEWER elements than "find", you have FAILED.
+The ONLY time you may remove an element is if the user EXPLICITLY says "remove" or "delete".
 
-RULE 4 — SCREENSHOT = PROBLEM REPORT:
-If the user attached a screenshot with a VISION EXTRACTION SPEC, that spec describes what's WRONG with their site.
-Your job is to FIX those specific problems (misalignment, wrong sizes, broken spacing, overlapping elements, missing CSS properties) in the targeted section ONLY.
-Do NOT redesign the section. Do NOT change content. ONLY fix the layout/CSS problems identified.
+RULE 1 — TASK DECOMPOSITION:
+Before generating patches, FIRST decompose the user's prompt into INDIVIDUAL tasks.
+For each task, identify WHICH section(s) it targets using the SECTION MAP above.
+Then create patches for ALL tasks, not just the first one.
+Use fuzzy matching for typos. "galery secion" = gallery section. "languange" = language.
 
-RULE 5 — TYPO TOLERANCE:
-The user's prompt may contain typos, broken words, and informal spelling. YOU MUST interpret their INTENT, not their literal text. Examples:
-  - "uesr" = "user", "bcuz" = "because", "fllow" = "follow", "secion" = "section"
-  - "ix this" = "fix this", "chnage" = "change", "improper" = "improper/broken"
-  - "aligment" = "alignment", "plcing" = "placing"
-Read past the typos and understand what they actually want fixed.
+RULE 2 — SCOPE AWARENESS:
+You MUST ONLY create patches for sections/elements the user explicitly mentioned or referenced.
+Do NOT touch sections the user didn't reference — even if you think they need improvement.
+But if the user says "every image" or "all text" or "whole website", you MAY patch across multiple sections.
+
+SPECIFICALLY, you MUST NOT:
+✗ "Improve" or "fix" anything the user didn't ask about — even if you think it looks bad
+✗ Add, remove, or reorder entire sections unless explicitly asked
+✗ Delete ANY element from a section (see RULE 0)
+
+RULE 3 — DESIGN CONSISTENCY:
+Any CSS you add or modify MUST use values from the EXISTING DESIGN SYSTEM above.
+- Use the same fonts, colors, border-radius, and spacing as the rest of the site
+- Use the same grid column patterns
+- If the site uses CSS variables (--var-name), use those in your patches
+- NEVER introduce new colors, fonts, or spacing that don't exist in the design system
+
+RULE 4 — IMAGE CONSTRAINTS:
+When fixing images in the targeted section:
+- CRITICAL: NEVER ADD new <img> tags! Only modify existing ones.
+- DO NOT inject images into text marquees, headers, or paragraphs.
+- Every <img> MUST preserve its original CSS classes, inline styles, and DOM structure.
+- Do NOT change the layout flex or grid properties to accommodate an image.
+- NEVER leave an <img> without size constraints (object-fit: cover, width: 100%).
+
+RULE 5 — SCREENSHOT = PROBLEM REPORT:
+If the user attached a screenshot with a VISION EXTRACTION SPEC, fix the CSS problems identified there.
+
+RULE 6 — TYPO TOLERANCE:
+Interpret past typos: "secion" = "section", "aligment" = "alignment", "chnage" = "change", "languange" = "language".
 
 ═══ PATCH RULES ═══
 
 1. The "find" value MUST be an EXACT substring of the existing HTML — copy it character-for-character. Include enough context to be unique.
-2. The "replace" value is the modified version of that snippet.
-3. To add something to <head> (like a font link), use {"find": "</head>", "replace": "<new stuff here>\\n</head>"}.
-4. For logos, use inline SVG or Unicode emoji — NEVER broken <img> tags.
-5. For images, use: https://image.pollinations.ai/prompt/{URL-ENCODED-DESCRIPTION}?width=800&height=600&nologo=true
-   NEVER use source.unsplash.com (DEAD), placehold.co, or leave src="" empty.
+2. The "replace" value is the modified version.
+3. EXTRACT JSON SAFELY: Since you are returning a JSON string of HTML, you MUST escape all internal double quotes as \\" and newlines as \\n. NEVER use unescaped double quotes inside the "find" or "replace" values, or it will break JSON.parse.
+4. To add CSS, prefer patching the existing <style> block or adding inline styles.
+5. For EXISTING images, use: https://image.pollinations.ai/prompt/{URL-ENCODED-DESCRIPTION}?width=800&height=600&nologo=true
+   NEVER use source.unsplash.com, placehold.co, or inject new images.
+6. DOUBLE-CHECK every patch: does this "find" string exist in the HTML? If not, DELETE that patch.
 
 Return ONLY the JSON array. No markdown wrapping, no explanations.`;
 
-  const userMessage = `=== EDIT REQUEST (interpret past any typos — understand the intent) ===
+  // ── PHASE 1: AI PROMPT UNDERSTANDING ──
+  // Instead of ONLY using regex, we let the AI itself decompose the user prompt
+  // into structured tasks. This is how Claude/GPT work — they "think" first.
+  onProgress({ event: 'thinking', message: 'Understanding your request...' });
+  onProgress({ event: 'log', type: 'Reading', file: 'prompt analysis', message: 'AI is breaking down your request into tasks...' });
+
+  let aiTaskDecomposition = '';
+  try {
+    const decomposePrompt = `You are an expert at understanding user requests for website modifications.
+The user sent a message asking for changes to their website. Your job is to break it down into a NUMBERED LIST of concrete, specific tasks.
+
+For each task, identify:
+1. WHAT to change (images, text, layout, alignment, colors, etc.)
+2. WHERE to change it (which section: hero, footer, nav, gallery, etc. — or "all sections" if global)
+3. HOW to change it (the specific modification)
+
+EXAMPLES:
+User: "change the images every images is same and use english no russian and fix footer"
+Decomposition:
+1. CHANGE IMAGES: Replace all duplicate/identical images across ALL sections with unique, contextually relevant images for each section
+2. CHANGE LANGUAGE: Translate all Russian text to English across the ENTIRE website
+3. FIX FOOTER: Fix the layout/alignment/styling of the FOOTER section
+
+User: "dont use same images for GHOST, CODE, DRIVE, SERVER sections"
+Decomposition:
+1. CHANGE IMAGES: Replace the image in the GHOST section with a unique image matching "ghost" theme
+2. CHANGE IMAGES: Replace the image in the CODE section with a unique image matching "code" theme
+3. CHANGE IMAGES: Replace the image in the DRIVE section with a unique image matching "drive" theme
+4. CHANGE IMAGES: Replace the image in the SERVER section with a unique image matching "server" theme
+
+IMPORTANT:
+- If the user attached a SCREENSHOT with identified problems, include those as SEPARATE tasks
+- Include ALL tasks — do not skip any part of the user's request
+- Be specific about WHICH sections are affected
+- Interpret typos: "chnage" = change, "aligment" = alignment, "languange" = language
+
+Return ONLY the numbered task list. No other text.`;
+
+    const decomposeResult = await callModel('summarize', userPrompt, decomposePrompt, { forceModel: requestModel });
+    aiTaskDecomposition = decomposeResult.content.trim();
+    console.log(`[Generator] 🧠 AI Task Decomposition:\n${aiTaskDecomposition}`);
+  } catch (decompErr) {
+    console.warn(`[Generator] ⚠️ Task decomposition failed (non-fatal):`, decompErr.message);
+    aiTaskDecomposition = `1. ${userPrompt}`; // Fallback to raw prompt
+  }
+
+  // ── PHASE 2: Generate patches using both the raw prompt AND the AI decomposition ──
+  const userMessage = `=== EDIT REQUEST (the user's original message — interpret past typos) ===
 ${userPrompt}
+
+=== AI TASK BREAKDOWN (structured interpretation of the above request) ===
+${aiTaskDecomposition}
 
 === BUSINESS CONTEXT ===
 Business: ${enrichedSpec.businessName || 'N/A'}
 
 === EXISTING HTML (${htmlLength} chars) — find exact snippets from this code ===
-IMPORTANT: Only create patches for the specific section/element the user mentioned above. Leave everything else untouched.
+INSTRUCTIONS:
+1. Use the AI TASK BREAKDOWN above as your checklist — create patches for EVERY numbered task.
+2. For each task, find the exact HTML snippet to modify and create a patch.
+3. Do NOT skip any task. Verify you have at least one patch per task.
+4. For image changes: write a descriptive, UNIQUE prompt for EACH image based on its section context.
 
 ${existingHtml}`;
 
-  onProgress({ event: 'thinking', message: 'Planning surgical changes...' });
+  onProgress({ event: 'thinking', message: editIntents.has('fix_section') ? 'Analyzing section issues...' : `Planning ${editIntents.size > 1 ? editIntents.size + ' ' : ''}surgical changes...` });
+  onProgress({ event: 'log', type: 'Reading', file: 'task breakdown', message: `Identified ${aiTaskDecomposition.split('\n').filter(l => /^\d+\./.test(l.trim())).length} tasks to execute` });
 
   const response = await callModel('generate_html', userMessage, systemPrompt, { forceModel: requestModel });
   
   let patchJson = response.content.trim();
 
-  // Clean markdown wrapping
-  if (patchJson.startsWith('```json')) {
-    patchJson = patchJson.replace(/^```json/, '').replace(/```$/, '').trim();
-  } else if (patchJson.startsWith('```')) {
-    patchJson = patchJson.replace(/^```/, '').replace(/```$/, '').trim();
+  // Robustly extract JSON array if wrapped in markdown or conversational text
+  try {
+    const match = patchJson.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (match) {
+      patchJson = match[0];
+    }
+  } catch (e) {
+    console.warn(`[Generator] ⚠️ Regex extraction failed, trying raw response string`);
   }
 
   console.log(`[Generator] 📦 AI returned ${patchJson.length} chars of patches (vs ${htmlLength} chars full HTML — ${Math.round((1 - patchJson.length / htmlLength) * 100)}% savings)`);
@@ -325,14 +712,22 @@ ${existingHtml}`;
       throw new Error('Response is not an array');
     }
   } catch (parseErr) {
-    // FALLBACK: If the AI returned full HTML instead of patches, use it directly
-    console.warn(`[Generator] ⚠️ AI did not return valid JSON patches, checking if it returned full HTML...`);
-    if (patchJson.includes('<!DOCTYPE html>') || patchJson.includes('<html')) {
-      console.log(`[Generator] ↩️ Falling back to full-HTML mode`);
-      onProgress({ event: 'log', type: 'Editing', file: 'index.html', message: 'Applied changes (full rewrite mode)' });
-      return patchJson;
+    // FALLBACK: Try a softer parse or drop to full HTML
+    console.warn(`[Generator] ⚠️ JSON parse failed: ${parseErr.message}. Attempting cleanup...`);
+    // Remove invisible control characters that break JSON
+    patchJson = patchJson.replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, " ");
+    try {
+      patches = JSON.parse(patchJson);
+      console.log(`[Generator] ✅ Secondary JSON parse succeeded after cleanup`);
+    } catch (secondErr) {
+      console.warn(`[Generator] ⚠️ Secondary JSON parse failed. Checking if it returned full HTML...`);
+      if (patchJson.includes('<!DOCTYPE html>') || patchJson.includes('<html')) {
+        console.log(`[Generator] ↩️ Falling back to full-HTML mode`);
+        onProgress({ event: 'log', type: 'Editing', file: 'index.html', message: 'Applied changes (full rewrite mode)' });
+        return patchJson;
+      }
+      throw new Error(`AI returned invalid patch format. Ensure there are no unescaped quotes or newlines in the payload. Error: ${secondErr.message}`);
     }
-    throw new Error(`AI returned invalid patch format: ${parseErr.message}`);
   }
 
   onProgress({ event: 'thinking', message: `Applying ${patches.length} surgical patches...` });
@@ -446,8 +841,8 @@ RULES:
 2. Only create patches for the TARGET ELEMENTS listed above. Do NOT touch anything else.
 3. Include enough surrounding context in "find" to make it unique (e.g., include the full tag with attributes).
 4. To add CSS rules, patch "</head>" to inject a <style> block before it.
-5. For font changes, also add a Google Fonts <link> patch to </head>.
-6. For logos, use inline SVG or emoji — NEVER broken <img> tags.
+5. NEVER ADD new <img> elements. Only modify existing ones.
+6. For existing images, preserve the exact CSS classes and sizing (object-fit: cover, width: 100%). You may use: https://image.pollinations.ai/prompt/{URL-ENCODED}?width=800&height=600&nologo=true
 7. Return ONLY the JSON array. No markdown. No explanations.`;
 
   const userMessage = `=== EDIT REQUEST ===
@@ -516,22 +911,25 @@ ${existingHtml}`;
  * Build the system prompt for content customization (shared by single-shot and chunked modes)
  */
 function getContentCustomizationPrompt(isChunkMode = false) {
-  const extraRule = isChunkMode
-    ? `\n6. You are receiving ONE SECTION of a larger website. Customize ONLY this section's content. Do NOT add <html>, <head>, <body>, or <style> tags. Return ONLY the section HTML.`
-    : `\n5. Return ONLY the final valid HTML code. No markdown wrapping. No explanations.`;
+  const chunkRule = isChunkMode
+    ? `\n\nCHUNK MODE RULE: You are receiving ONE SECTION of a larger website. Customize ONLY this section's content. Do NOT add <html>, <head>, <body>, or <style> tags. Return ONLY the section HTML.`
+    : `\n\nOUTPUT: Return ONLY the final valid HTML code. No markdown wrapping. No explanations.`;
 
-  return `You are an expert web developer and copywriter.
+  return `You are an expert web developer, UI designer, and copywriter.
 You will be provided with a design blueprint and a target business specification.
-Your job is to rewrite ONLY the text content, images, and brand names to match the new business.
+Your PRIMARY job is to rewrite the text content, images, and brand names to match the new business.
 
-CRITICAL RULES:
-1. NEVER modify the HTML structure, class names, CSS, scripts, or IDs.
-2. Maintain the EXACT length and tone of the original text blocks.
-3. IMAGES — AUTONOMOUS CONTEXT-AWARE SYSTEM:
-   For EVERY <img> tag, think: "What should this image ACTUALLY show for this business?"
-   Write a short visual description (3-8 words) matching the specific card/section content.
-   Use this URL pattern:
-   https://image.pollinations.ai/prompt/{URL-ENCODED-DESCRIPTION}?width={W}&height={H}&nologo=true
+═══ CONTENT RULES ═══
+
+1. PRESERVE the HTML structure, class names, CSS, scripts, and IDs of the original blueprint.
+2. Maintain the APPROXIMATE length and tone of the original text blocks.
+3. IMAGES — STRICT PRESERVATION & AUTONOMOUS CONTEXT:
+   - CRITICAL: DO NOT ADD any new <img> elements anywhere! Only use images where they already exist in the blueprint template.
+   - Do NOT inject images into text marquees, headers, or paragraphs that were text-only.
+   - For EVERY EXISTING <img> tag, think: "What should this image ACTUALLY show for this business?"
+   - Write a short visual description (3-8 words) matching the specific card/section content.
+   - Use this URL pattern to trigger our backend waterfall resolver:
+     https://image.pollinations.ai/prompt/{URL-ENCODED-DESCRIPTION}?width={W}&height={H}&nologo=true
    
    Hero/banner images: width=1200&height=800
    Card/feature images: width=800&height=600
@@ -540,12 +938,46 @@ CRITICAL RULES:
    Example for a chai shop "Masala Chai" card:
    <img src="https://image.pollinations.ai/prompt/hot%20masala%20chai%20glass%20cup%20with%20cardamom?width=800&height=600&nologo=true" alt="Masala Chai">
    
-   RULES:
-   - Each image MUST have a UNIQUE description that matches its specific card/item content.
-   - Descriptions must be relevant to the business. A chai shop = chai, tea, Indian snacks images. A gym = weights, yoga, fitness images.
-   - NEVER repeat the same URL on the page.
-   - NEVER use source.unsplash.com (DEAD), placehold.co, or leave src="" empty.
-4. If ANY image src is empty, broken, or uses source.unsplash.com, replace it with a Pollinations URL matching the business.${extraRule}`;
+   IMAGE RULES:
+   - NEVER add <img> tags that weren't in the original template.
+   - Each image MUST have a UNIQUE description.
+   - If ANY image src is empty, broken, or uses source.unsplash.com, replace it with a Pollinations URL.
+
+═══ DESIGN INHERITANCE RULES (CRITICAL — for any new or modified content) ═══
+
+5. DESIGN SYSTEM EXTRACTION:
+   Before making ANY changes, you MUST analyze the blueprint's design system:
+   - Identify the color palette (CSS variables, hex values, gradients)
+   - Identify the typography (font families, sizes, weights, line-heights)
+   - Identify the layout patterns (grid columns, flex layouts, card structures)
+   - Identify the spacing system (padding, margin, gap values)
+   - Identify the decoration patterns (border-radius, shadows, hover effects)
+   ALL new content you create MUST use these EXACT same values.
+
+6. IMAGE EXACT PRESERVATION & SIZING:
+   - You MUST PRESERVE the exact CSS classes, inline styles, and DOM structure of the original <img> tags.
+   - Do NOT remove or alter existing Tailwind classes on images or their parent containers.
+   - Do NOT change the layout flex or grid properties to accommodate an image.
+   - NEVER add new images to sections that did not originally require them. Keep the exact vibe, layout, and visual geometry as the original design.
+
+7. SECTION QUALITY STANDARD:
+   If you add ANY section, element, or content block that doesn't exist in the original blueprint:
+   - It MUST look like it was designed by the same designer who made the original template
+   - Use the SAME grid column count (if template uses 3-col, your new section uses 3-col)
+   - Use the SAME card styling (padding, border-radius, background, shadows)
+   - Use the SAME heading hierarchy (font-size, font-weight, color, spacing)
+   - Use the SAME section spacing/padding as other sections in the template
+   - Include proper hover effects if the template has them (transitions, transforms, opacity)
+   - NEVER create a section with just a heading and raw unstyled images below it
+   - EVERY new section must be responsive (use the same breakpoints as the blueprint)
+
+8. LAYOUT QUALITY CHECKLIST (apply to every section in the output):
+   ✓ Images are contained and properly sized (not overflowing)
+   ✓ Grid/flex layouts have consistent gaps and alignment
+   ✓ Text has proper contrast against its background
+   ✓ Cards/items in a row have equal heights
+   ✓ Mobile breakpoints are handled (if the blueprint has @media rules)
+   ✓ No orphaned elements floating outside their containers${chunkRule}`;
 }
 
 /**

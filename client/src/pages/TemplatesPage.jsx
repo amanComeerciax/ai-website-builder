@@ -1,13 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import './TemplatesPage.css';
 
+// Global cache for preview HTML so we don't re-fetch on repeat hovers
+const templateHtmlCache = {};
+
 export default function TemplatesPage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const initialPrompt = searchParams.get('prompt') || '';
     
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
+    
+    // AI Guided Selection States
+    const [analyzingPrompt, setAnalyzingPrompt] = useState(!!initialPrompt);
+    const [aiRecommendedCategory, setAiRecommendedCategory] = useState(null);
+    const [selectedCategory, setSelectedCategory] = useState('all');
 
     // Modal States
     const [previewTemplate, setPreviewTemplate] = useState(null);
@@ -38,6 +48,31 @@ export default function TemplatesPage() {
         fetchTemplates();
     }, []);
 
+    // AI Categorization Effect
+    useEffect(() => {
+        if (!initialPrompt) return;
+
+        async function analyzePrompt() {
+            try {
+                const res = await fetch('/api/generate/suggest-category', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: initialPrompt })
+                });
+                const data = await res.json();
+                if (data.category) {
+                    setAiRecommendedCategory(data.category);
+                    setSelectedCategory(data.category);
+                }
+            } catch (err) {
+                console.error('Failed to analyze prompt:', err);
+            } finally {
+                setAnalyzingPrompt(false);
+            }
+        }
+        analyzePrompt();
+    }, [initialPrompt]);
+
     // Step 1: Open Large Preview Modal
     const handlePreviewTemplate = async (template) => {
         setPreviewTemplate(template);
@@ -60,8 +95,15 @@ export default function TemplatesPage() {
         }
     };
 
-    // Step 2: Open Remix Modal from Preview
+    // Step 2: Open Remix Modal from Preview (or bypass if AI guided)
     const handleOpenRemix = () => {
+        if (initialPrompt) {
+            // Bypass remix modal completely, drop straight into builder with the user's prompt
+            const promptParams = `templateId=${encodeURIComponent(previewTemplate.id)}&templateName=${encodeURIComponent(previewTemplate.title)}&prompt=${encodeURIComponent(initialPrompt)}`;
+            navigate(`/chat/new?${promptParams}`);
+            return;
+        }
+
         setRemixTemplate(previewTemplate);
         setProjectName(`Remix of ${previewTemplate.title}`);
         setPreviewTemplate(null); // Close preview modal
@@ -132,41 +174,57 @@ export default function TemplatesPage() {
         </div>
     );
 
-    // Sub-component for Live Previews
+    // Sub-component for Live Previews - Auto-Loads via IntersectionObserver
     const LiveThumbnail = ({ template }) => {
-        const [html, setHtml] = useState(null);
+        const [html, setHtml] = useState(templateHtmlCache[template.id] || null);
         const [isVisible, setIsVisible] = useState(false);
         const [isLoaded, setIsLoaded] = useState(false);
-        const thumbnailRef = React.useRef();
+        const wrapperRef = React.useRef(null);
 
+        // Visibility tracking
         useEffect(() => {
-            const observer = new IntersectionObserver(([entry]) => {
-                if (entry.isIntersecting) {
+            if (!template?.id || template.id === 'undefined') return;
+            if (templateHtmlCache[template.id]) {
+                setHtml(templateHtmlCache[template.id]);
+                return;
+            }
+
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
                     setIsVisible(true);
-                    observer.disconnect();
+                    observer.disconnect(); // fetch only once
                 }
-            }, { threshold: 0.1 });
+            }, { rootMargin: '200px' });
 
-            if (thumbnailRef.current) observer.observe(thumbnailRef.current);
+            if (wrapperRef.current) {
+                observer.observe(wrapperRef.current);
+            }
             return () => observer.disconnect();
-        }, []);
+        }, [template.id]);
 
+        // Fetching logic
         useEffect(() => {
-            if (!isVisible) return;
-            const fetchPreview = async () => {
-                try {
-                    const res = await fetch(`/api/templates/preview/${template.id}`);
-                    const data = await res.json();
-                    if (res.ok) setHtml(data.html);
-                } catch (err) {}
-            };
-            fetchPreview();
-        }, [isVisible, template.id]);
+            if (!isVisible || html) return;
+            
+            let mounted = true;
+            fetch(`/api/templates/preview/${template.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (mounted && data.html) {
+                        templateHtmlCache[template.id] = data.html;
+                        setHtml(data.html);
+                    }
+                })
+                .catch(() => {});
+                
+            return () => { mounted = false; };
+        }, [isVisible, html, template.id]);
 
         return (
-            <div className="lv-template-iframe-wrapper" ref={thumbnailRef}>
+            <div className="lv-template-iframe-wrapper" ref={wrapperRef}>
                 {/* Always show skeleton until iframe is fully loaded */}
                 {!isLoaded && <SkeletonPlaceholder />}
+
                 {html && (
                     <iframe 
                         className={`lv-template-iframe ${isLoaded ? 'loaded' : ''}`}
@@ -181,15 +239,40 @@ export default function TemplatesPage() {
         );
     };
 
+    const filteredTemplates = templates.filter(tpl => {
+        if (selectedCategory === 'all') return true;
+        // Check if the template ID or slug has the category name in it e.g. "portfolio/xyz"
+        return tpl.id.includes(selectedCategory) || (tpl.categoryId && tpl.categoryId.includes(selectedCategory));
+    });
+
     return (
         <div className="lv-templates-page">
             <div className="lv-templates-container">
                 <div className="lv-templates-header">
-                    <h1 className="lv-templates-title">Start with a Blueprint</h1>
-                    <p className="lv-templates-subtitle">Choose from our curated collection of professional templates to kickstart your next project.</p>
+                    {analyzingPrompt ? (
+                        <>
+                            <h1 className="lv-templates-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div className="spinner-border text-primary" style={{width: '24px', height: '24px', borderWidth: '3px'}}></div>
+                                AI is analyzing your request...
+                            </h1>
+                            <p className="lv-templates-subtitle">We are finding the perfect structural blueprints for your project.</p>
+                        </>
+                    ) : aiRecommendedCategory ? (
+                        <>
+                            <h1 className="lv-templates-title">Recommended Blueprints</h1>
+                            <p className="lv-templates-subtitle">
+                                Based on your prompt, we recommend these <strong>{aiRecommendedCategory}</strong> templates. Choose the structure that best fits your needs.
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <h1 className="lv-templates-title">Start with a Blueprint</h1>
+                            <p className="lv-templates-subtitle">Choose from our curated collection of professional templates to kickstart your next project.</p>
+                        </>
+                    )}
                 </div>
 
-                {loading ? (
+                {(loading || analyzingPrompt) ? (
                     <div className="lv-templates-grid">
                         {[1,2,3,4,5,6].map(i => (
                             <div key={i} className="lv-template-card">
@@ -205,9 +288,47 @@ export default function TemplatesPage() {
                             </div>
                         ))}
                     </div>
+                ) : filteredTemplates.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px', color: '#9ca3af' }}>
+                        <p style={{ marginBottom: '24px', fontSize: '1.1rem', color: '#e5e7eb' }}>We've analyzed your unique request and are ready to build it.</p>
+                        
+                        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+                            <button 
+                                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}
+                                onClick={() => navigate(`/chat/new?prompt=${encodeURIComponent(initialPrompt)}`)}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                                Generate Custom Layout
+                            </button>
+                            <button 
+                                style={{ padding: '12px 24px', background: '#1f2937', color: 'white', borderRadius: '8px', border: '1px solid #374151', cursor: 'pointer' }}
+                                onClick={() => setSelectedCategory('all')}
+                            >
+                                Browse other blueprints
+                            </button>
+                        </div>
+                    </div>
                 ) : (
                     <div className="lv-templates-grid">
-                        {templates.map((tpl) => (
+                        {/* Auto-Generate Fallback Card */}
+                        {initialPrompt && (
+                            <div 
+                                className="lv-template-card"
+                                onClick={() => navigate(`/chat/new?prompt=${encodeURIComponent(initialPrompt)}`)}
+                                style={{ border: '1px solid #8b5cf6', boxShadow: '0 0 15px rgba(139, 92, 246, 0.15)' }}
+                            >
+                                <div className="lv-template-image-wrapper" style={{ background: 'linear-gradient(to bottom right, #0f172a, #1e1b4b)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '48px', height: '48px', opacity: 0.8 }}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>
+                                    <span style={{ color: 'white', fontWeight: 500, letterSpacing: '0.5px' }}>Custom AI Structure</span>
+                                </div>
+                                <div className="lv-template-info">
+                                    <h3 className="lv-template-name" style={{ color: '#c4b5fd' }}>Start from scratch</h3>
+                                    <p className="lv-template-desc">None of these fit? Let the AI generate a completely custom layout using a theme.</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {filteredTemplates.map((tpl) => (
                             <div 
                                 key={tpl.id} 
                                 className="lv-template-card"

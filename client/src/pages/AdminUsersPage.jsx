@@ -75,7 +75,7 @@ export default function AdminUsersPage() {
 
     if (!isLoaded || (isSignedIn && !userData)) return <div className="admin-loading"><Loader2 className="spinning" /> Loading...</div>;
 
-    const isAdmin = userData?.role === 'admin' || userData?.email === 'kingamaan14@gmail.com';
+    const isAdmin = userData?.role === 'admin';
     if (!isSignedIn || !isAdmin) {
         return <div className="admin-unauthorized"><h1>Unauthorized</h1></div>;
     }

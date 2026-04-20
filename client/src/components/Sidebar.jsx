@@ -94,6 +94,7 @@ export default function Sidebar() {
     // Get up to 3 most recently edited projects
     const recentProjects = projects.slice(0, 3)
 
+
     // Initial sync: sync user → fetch user data (sets default workspace) → fetch workspaces list
     useEffect(() => {
         if (isLoaded && isSignedIn && clerkUser) {
@@ -419,6 +420,8 @@ export default function Sidebar() {
                     <div className="lv-empty-recents">No recent projects</div>
                 )}
             </div>
+
+
             </div>
 
             <div className="lv-sidebar-bottom">

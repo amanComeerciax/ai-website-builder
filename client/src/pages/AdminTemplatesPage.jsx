@@ -80,7 +80,7 @@ export default function AdminTemplatesPage() {
     // Security block on frontend
     const userRole = userData?.role || 'user';
     const userEmail = user?.primaryEmailAddress?.emailAddress;
-    const isAdmin = userRole === 'admin' || userEmail === 'kingamaan14@gmail.com';
+    const isAdmin = userRole === 'admin';
 
     if (!isSignedIn || !isAdmin) {
         return (

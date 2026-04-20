@@ -146,6 +146,12 @@ class ApiClient {
         }, token)
     }
 
+    deleteVersion(projectId, versionId, token) {
+        return this.request(`/projects/${projectId}/versions/${versionId}`, {
+            method: 'DELETE',
+        }, token)
+    }
+
     // ── Folders ──
     getFolders(token, workspaceId = null) {
         const url = workspaceId ? `/folders?workspaceId=${workspaceId}` : '/folders';

@@ -8,16 +8,29 @@ const templateSchema = new mongoose.Schema(
       unique: true,
       trim: true
     },
-    // Auto-generated description of what this template is good for
     description: {
       type: String,
       default: 'General purpose website'
     },
-    // Slug to satisfy pre-existing DB index
     slug: {
       type: String,
       unique: true,
       sparse: true
+    },
+    // Multiple categories this template belongs to (e.g. ['saas', 'landing', 'coffee-shop'])
+    categories: {
+      type: [String],
+      default: []
+    },
+    // User-facing fancy theme name (e.g. "Aurora", "Velocity")
+    themeName: {
+      type: String,
+      default: ''
+    },
+    // User-facing short tagline (e.g. "Sleek & minimal")
+    themeTagline: {
+      type: String,
+      default: ''
     },
     // Comma-separated keywords for AI matching
     keywords: {
@@ -34,16 +47,52 @@ const templateSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
-    // Whether the template is active/available for selection
+
+    // ── Visibility Controls ──
+
+    // Whether the template is soft-deleted / active at all
     isActive: {
       type: Boolean,
       default: true
-    }
+    },
+    // Controls Browse Templates gallery (admin curates — default false, admin must toggle on)
+    isVisible: {
+      type: Boolean,
+      default: false
+    },
+    // Controls the Theme Picker during new project creation (available immediately after upload)
+    isVisibleInThemes: {
+      type: Boolean,
+      default: true
+    },
+
+    // ── Community Submission ──
+
+    // 'admin' = uploaded by admin | 'community' = submitted by a user
+    source: {
+      type: String,
+      enum: ['admin', 'community'],
+      default: 'admin'
+    },
+    // The user who submitted this template (for community templates)
+    submittedBy: {
+      clerkId: { type: String, default: null },
+      name:    { type: String, default: null },
+      email:   { type: String, default: null },
+    },
+    // Admin approval state for community submissions
+    approvalStatus: {
+      type: String,
+      enum: ['approved', 'pending', 'rejected'],
+      default: 'approved'   // admin uploads auto-approved; community = 'pending'
+    },
   },
   { timestamps: true }
 );
 
-// Index for fast lookups
-templateSchema.index({ isActive: 1, name: 1 });
+// Indexes for fast lookups
+templateSchema.index({ isActive: 1, isVisible: 1 });
+templateSchema.index({ isActive: 1, isVisibleInThemes: 1 });
+templateSchema.index({ approvalStatus: 1, source: 1 });
 
 module.exports = mongoose.model("Template", templateSchema);

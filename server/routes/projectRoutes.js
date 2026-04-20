@@ -458,4 +458,27 @@ router.post("/:id/versions/:versionId/restore", requireAuth, async (req, res, ne
     }
 });
 
+// ── DELETE /api/projects/:id/versions/:versionId — Delete a specific version ──
+router.delete("/:id/versions/:versionId", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const access = await getProjectWithAccess(req.params.id, userId);
+        
+        if (!access) return res.status(404).json({ error: "Project not found" });
+        if (access.role === 'viewer') return res.status(403).json({ error: "Viewers cannot delete versions" });
+        const project = access.project;
+        
+        const version = await Version.findOneAndDelete({ _id: req.params.versionId, projectId: project._id });
+        if (!version) return res.status(404).json({ error: "Version not found" });
+        
+        if (project.activeVersionId && project.activeVersionId.toString() === req.params.versionId) {
+            project.activeVersionId = null;
+            await project.save();
+        }
+        res.json({ message: "Version deleted successfully" });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router

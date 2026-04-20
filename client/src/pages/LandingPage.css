@@ -452,7 +452,18 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: #0a0a0a;
+    background: #000;
+}
+
+.vhero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, 
+        rgba(0,0,0,0.5) 0%, 
+        rgba(0,0,0,0.2) 40%, 
+        rgba(0,0,0,0.4) 100%);
+    z-index: 1;
+    pointer-events: none;
 }
 
 .vhero-video {
@@ -468,26 +479,31 @@
     pointer-events: none;
 }
 
-/* Force nav links to black on video hero */
+/* Force nav links to white on video hero */
 .vhero .lp-nav .lp-nav-logo,
 .vhero .lp-nav .lp-nav-link {
-    color: #000;
+    color: #fff;
 }
 .vhero .lp-nav .lp-nav-link:hover {
-    color: #333;
-    background: rgba(0,0,0,0.05);
+    color: #fff;
+    background: rgba(255,255,255,0.1);
 }
 .vhero .lp-nav .lp-nav-center {
     position: static;
     transform: none;
-    background: rgba(255,255,255,0.6);
+    background: rgba(0,0,0,0.25);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(0,0,0,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
 }
 .vhero .lp-nav-scrolled {
-    background: rgba(255,255,255,0.85);
+    background: rgba(0,0,0,0.85);
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(0,0,0,0.08);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+/* Keep logo and nav links white even after scroll */
+.vhero .lp-nav-scrolled .lp-nav-logo,
+.vhero .lp-nav-scrolled .lp-nav-link {
+    color: #fff;
 }
 
 /* Nav buttons */
@@ -496,7 +512,7 @@
     font-size: 14px;
     font-weight: 500;
     font-family: 'Schibsted Grotesk', sans-serif;
-    color: #000;
+    color: #fff;
     background: transparent;
     border: none;
     border-radius: 8px;
@@ -504,7 +520,7 @@
     transition: background 0.2s;
 }
 .vhero-nav-btn-ghost:hover {
-    background: rgba(0,0,0,0.06);
+    background: rgba(255,255,255,0.1);
 }
 .vhero-nav-btn-solid {
     padding: 8px 16px;
@@ -591,7 +607,7 @@
     letter-spacing: -0.4px;
     color: #fff;
     max-width: 736px;
-    width: 542px;
+    width: 100%;
     margin-top: 34px;
     text-align: center;
     line-height: 1.5;

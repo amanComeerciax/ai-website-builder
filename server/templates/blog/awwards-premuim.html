@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Oura — Return to the Organic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --green-950:#052e16;
+  --green-900:#14532d;
+  --green-800:#166534;
+  --green-700:#15803d;
+  --green-600:#16a34a;
+  --green-200:#bbf7d0;
+  --green-100:#dcfce7;
+  --green-50:#f0fdf4;
+  --emerald-100:#d1fae5;
+  --emerald-200:#a7f3d0;
+  --stone-50:#fafaf9;
+  --stone-100:#f5f5f4;
+  --stone-200:#e7e5e4;
+}
+
+html{scroll-behavior:smooth}
+
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--stone-50);
+  color:var(--green-950);
+  overflow-x:hidden;
+  cursor:none;
+}
+
+/* GRAIN OVERLAY */
+.grain-overlay{
+  pointer-events:none;
+  position:fixed;
+  inset:0;
+  z-index:999;
+  opacity:0.03;
+  mix-blend-mode:overlay;
+}
+.grain-overlay svg{width:100%;height:100%}
+
+/* CUSTOM CURSOR */
+#cursor{
+  pointer-events:none;
+  position:fixed;
+  top:0;left:0;
+  width:32px;height:32px;
+  border-radius:50%;
+  background:var(--green-900);
+  mix-blend-mode:difference;
+  z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:transform 0.08s ease;
+  display:none;
+}
+@media(min-width:768px){#cursor{display:block}}
+
+/* NAVBAR */
+nav{
+  position:fixed;
+  top:0;left:0;right:0;
+  z-index:400;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:1.5rem 3rem;
+  transform:translateY(-100%);
+}
+.nav-logo{display:flex;align-items:center;gap:8px}
+.nav-logo-dot{width:16px;height:16px;border-radius:50%;background:var(--green-800)}
+.nav-logo-text{
+  font-family:'DM Serif Display',serif;
+  font-size:1.25rem;
+  font-weight:700;
+  color:var(--green-950);
+  letter-spacing:-0.02em;
+}
+.nav-links{display:none;align-items:center;gap:2rem}
+@media(min-width:768px){.nav-links{display:flex}}
+.nav-link{
+  font-size:0.875rem;
+  font-weight:500;
+  color:var(--green-900);
+  text-decoration:none;
+  position:relative;
+  overflow:hidden;
+  display:inline-block;
+}
+.nav-link span{display:inline-block;transition:transform 0.3s ease}
+.nav-link .link-hover{
+  position:absolute;left:0;top:0;
+  color:var(--green-600);
+  transform:translateY(100%);
+  transition:transform 0.3s ease;
+}
+.nav-link:hover span:first-child{transform:translateY(-100%)}
+.nav-link:hover .link-hover{transform:translateY(0)}
+.nav-cta{
+  border-radius:9999px;
+  border:1.5px solid var(--green-900);
+  padding:0.5rem 1.5rem;
+  font-size:0.875rem;
+  font-weight:500;
+  color:var(--green-900);
+  background:transparent;
+  cursor:none;
+  transition:background 0.3s,color 0.3s;
+}
+.nav-cta:hover{background:var(--green-900);color:var(--stone-50)}
+
+/* BLOBS */
+.blob{
+  position:absolute;
+  border-radius:100%;
+  filter:blur(80px);
+  animation:pulse 4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:0.6}50%{opacity:1}}
+
+/* HERO */
+#hero{
+  position:relative;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  overflow:hidden;
+  background:var(--stone-50);
+  padding:8rem 3rem 5rem;
+}
+.hero-blob-1{
+  top:-10%;right:-10%;
+  width:500px;height:500px;
+  background:rgba(187,247,208,0.4);
+}
+.hero-blob-2{
+  bottom:10%;left:-10%;
+  width:400px;height:400px;
+  background:rgba(209,250,229,0.5);
+}
+.hero-grid{
+  max-width:1400px;
+  margin:0 auto;
+  width:100%;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:3rem;
+}
+@media(min-width:1024px){.hero-grid{grid-template-columns:7fr 5fr}}
+
+.hero-title{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(3.5rem,8vw,7rem);
+  line-height:1.1;
+  color:var(--green-950);
+  overflow:visible;
+}
+.hero-title .word-wrap{overflow:hidden}
+.hero-title .word{
+  display:inline-block;
+  transform:translateY(100%);
+}
+.hero-title .highlight{color:var(--green-800);font-style:italic}
+
+.hero-subtitle{
+  margin-top:2rem;
+  max-width:28rem;
+  font-size:1.125rem;
+  line-height:1.7;
+  color:rgba(20,83,45,0.7);
+  opacity:0;
+  transform:translateY(20px);
+}
+
+.hero-img-col{
+  position:relative;
+  height:60vh;
+}
+@media(min-width:1024px){.hero-img-col{height:auto}}
+
+.hero-img-wrap{
+  position:absolute;
+  inset:0;
+  border-radius:2rem;
+  overflow:hidden;
+}
+.hero-img-wrap img{
+  width:100%;height:100%;
+  object-fit:cover;
+  transform:scale(1.2);
+}
+.hero-img-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(5,46,22,0.4),transparent);
+}
+
+.hero-quote{
+  position:absolute;
+  bottom:-3rem;left:-3rem;
+  background:var(--stone-100);
+  padding:1.5rem;
+  border-radius:2rem 0 2rem 0;
+  box-shadow:0 20px 60px rgba(5,46,22,0.15);
+  max-width:280px;
+  display:none;
+  opacity:0;
+  transform:translateY(20px);
+}
+@media(min-width:1024px){.hero-quote{display:block}}
+.hero-quote p{
+  font-family:'DM Serif Display',serif;
+  font-style:italic;
+  font-size:1.25rem;
+  color:var(--green-900);
+  margin-bottom:0.5rem;
+}
+.hero-quote-sub{
+  display:flex;align-items:center;gap:0.5rem;
+  font-size:0.75rem;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  color:rgba(21,128,61,0.6);
+}
+.hero-quote-sub::before{
+  content:'';
+  display:block;width:32px;height:1px;
+  background:rgba(21,128,61,0.6);
+}
+
+.hero-scroll{
+  position:absolute;
+  bottom:2.5rem;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0.5rem;
+  color:rgba(20,83,45,0.4);
+  opacity:0;
+}
+.hero-scroll span{
+  font-size:0.75rem;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+}
+.bounce-icon{
+  animation:bounce 1.5s ease-in-out infinite;
+}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+/* STATEMENT */
+#statement{
+  background:var(--stone-50);
+  padding:8rem 3rem;
+  display:flex;align-items:center;justify-content:center;
+  min-height:60vh;
+}
+.statement-inner{max-width:56rem;margin:0 auto;text-align:center}
+.statement-text{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(1.75rem,4vw,3rem);
+  line-height:1.4;
+  color:var(--green-950);
+}
+.type-char{display:inline-block;opacity:0}
+.statement-line{
+  width:1px;height:6rem;
+  background:var(--green-900);
+  margin:3rem auto 0;
+  opacity:0.3;
+  transform:scaleY(0);
+  transform-origin:top;
+}
+
+/* MARQUEE */
+#marquee{
+  overflow:hidden;
+  background:var(--green-900);
+  padding:1.5rem 0;
+}
+.marquee-track{
+  display:flex;
+  white-space:nowrap;
+}
+.marquee-text{
+  padding:0 1rem;
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(2rem,5vw,3.5rem);
+  font-style:italic;
+  color:rgba(240,253,244,0.2);
+  flex-shrink:0;
+}
+
+/* GALLERY */
+#gallery{
+  background:var(--stone-100);
+  padding:8rem 3rem;
+}
+.gallery-inner{max-width:1400px;margin:0 auto}
+.gallery-header{
+  margin-bottom:6rem;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:2rem;
+}
+@media(min-width:768px){.gallery-header{flex-direction:row;align-items:flex-end}}
+.gallery-title{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(2.5rem,5vw,4.5rem);
+  color:var(--green-950);
+}
+.gallery-title em{font-style:italic;color:var(--green-800)}
+.gallery-desc{max-width:20rem;color:rgba(20,83,45,0.7);line-height:1.6}
+.gallery-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:2rem;
+}
+@media(min-width:768px){.gallery-grid{grid-template-columns:repeat(3,1fr)}}
+.gallery-col{display:flex;flex-direction:column;gap:1.5rem}
+.gallery-col.offset-top{padding-top:5rem}
+.gallery-col.offset-mid{padding-top:0}
+.gallery-col.offset-bot{padding-top:2.5rem}
+
+.gallery-card{
+  position:relative;
+  overflow:hidden;
+  border-radius:1rem;
+  cursor:none;
+}
+.gallery-card img{
+  width:100%;
+  aspect-ratio:3/4;
+  object-fit:cover;
+  display:block;
+  transition:transform 0.6s ease;
+}
+.gallery-card:hover img{transform:scale(1.05)}
+.gallery-card-overlay{
+  position:absolute;inset:0;
+  background:rgba(5,46,22,0.2);
+  opacity:0;
+  transition:opacity 0.5s;
+  z-index:1;
+}
+.gallery-card:hover .gallery-card-overlay{opacity:1}
+.gallery-card-info{
+  position:absolute;bottom:0;left:0;width:100%;
+  transform:translateY(100%);
+  padding:1.5rem;
+  transition:transform 0.5s ease;
+  z-index:2;
+}
+.gallery-card:hover .gallery-card-info{transform:translateY(0)}
+.gallery-card-info-inner{
+  background:rgba(255,255,255,0.9);
+  backdrop-filter:blur(8px);
+  border-radius:0.75rem;
+  padding:1rem;
+}
+.gallery-card-tag{
+  font-size:0.75rem;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  color:var(--green-800);
+}
+.gallery-card-title{
+  font-family:'DM Serif Display',serif;
+  font-size:1.25rem;
+  color:var(--green-950);
+}
+
+.air-card{
+  aspect-ratio:3/4;
+  border-radius:1rem;
+  background:var(--green-900);
+  padding:2rem;
+  color:var(--stone-100);
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.air-card-icon{opacity:0.5;width:3rem;height:3rem}
+.air-card-title{
+  font-family:'DM Serif Display',serif;
+  font-size:2rem;
+  margin-bottom:0.5rem;
+}
+.air-card-desc{color:rgba(187,247,208,0.6);font-size:0.875rem;line-height:1.6}
+
+/* FEATURES */
+#features{
+  position:relative;
+  height:300vh;
+  background:var(--green-50);
+}
+.features-sticky{
+  position:sticky;
+  top:0;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  overflow:hidden;
+}
+.features-track{
+  display:flex;
+  gap:3rem;
+  padding:0 3rem;
+  will-change:transform;
+}
+.features-intro{
+  width:30vw;
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.features-intro h2{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(2.5rem,4vw,3.5rem);
+  color:var(--green-950);
+}
+.features-intro h2 em{font-style:italic;opacity:0.5}
+.features-intro p{
+  margin-top:1.5rem;
+  font-size:1.1rem;
+  color:rgba(20,83,45,0.7);
+  line-height:1.6;
+}
+.features-arrow{
+  margin-top:2rem;
+  display:flex;gap:0.5rem;
+}
+
+.feature-card{
+  width:400px;
+  height:60vh;
+  flex-shrink:0;
+  border-radius:2rem;
+  padding:2.5rem;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  overflow:hidden;
+  transition:transform 0.3s ease;
+}
+.feature-card:hover{transform:translateY(-8px)}
+.feature-card.bg-green{background:var(--green-200)}
+.feature-card.bg-stone{background:var(--stone-200)}
+.feature-card.bg-emerald{background:var(--emerald-200)}
+.feature-card.bg-dark{background:var(--green-800);color:white}
+
+.feature-icon-wrap{
+  background:rgba(255,255,255,0.3);
+  border-radius:9999px;
+  padding:1rem;
+  width:fit-content;
+  backdrop-filter:blur(4px);
+}
+.feature-icon{width:24px;height:24px}
+.feature-card-title{
+  font-family:'DM Serif Display',serif;
+  font-size:2.25rem;
+  margin-bottom:1rem;
+}
+.feature-card-desc{opacity:0.7;line-height:1.6}
+
+/* FOOTER */
+footer{
+  position:relative;
+  background:var(--green-950);
+  padding:6rem 3rem;
+  color:var(--stone-100);
+  overflow:hidden;
+}
+.footer-blob-1{
+  position:absolute;
+  top:-5rem;left:-5rem;
+  width:24rem;height:24rem;
+  border-radius:50%;
+  background:rgba(22,101,52,0.3);
+  filter:blur(80px);
+}
+.footer-blob-2{
+  position:absolute;
+  bottom:-5rem;right:-5rem;
+  width:24rem;height:24rem;
+  border-radius:50%;
+  background:rgba(6,78,59,0.3);
+  filter:blur(80px);
+}
+.footer-inner{
+  position:relative;
+  z-index:1;
+  max-width:1400px;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+}
+.footer-title{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(3rem,10vw,10rem);
+  line-height:1;
+  opacity:0;
+  transform:translateY(50px);
+}
+.footer-sub{
+  margin-top:2rem;
+  max-width:32rem;
+  font-size:1.125rem;
+  color:rgba(240,253,244,0.6);
+  line-height:1.6;
+  opacity:0;
+}
+.footer-cta{
+  margin-top:3rem;
+  position:relative;
+  overflow:hidden;
+  border-radius:9999px;
+  background:var(--stone-100);
+  padding:1rem 2.5rem;
+  color:var(--green-950);
+  font-weight:500;
+  cursor:none;
+  border:none;
+  font-size:1rem;
+  font-family:'DM Sans',sans-serif;
+  opacity:0;
+}
+.footer-cta-bg{
+  position:absolute;inset:0;
+  background:var(--green-200);
+  transform:translateX(-100%);
+  transition:transform 0.3s ease;
+  z-index:0;
+}
+.footer-cta:hover .footer-cta-bg{transform:translateX(0)}
+.footer-cta span{position:relative;z-index:1}
+.footer-cta:hover{transform:scale(1.05)}
+.footer-cta:active{transform:scale(0.95)}
+
+.footer-bottom{
+  position:relative;
+  z-index:1;
+  max-width:1400px;
+  margin:8rem auto 0;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:2rem;
+  border-top:1px solid rgba(20,83,45,0.5);
+  padding-top:2rem;
+  font-size:0.875rem;
+  color:rgba(240,253,244,0.4);
+}
+@media(min-width:768px){.footer-bottom{flex-direction:row}}
+.footer-links{display:flex;gap:2rem}
+.footer-links a{color:rgba(240,253,244,0.4);text-decoration:none;transition:color 0.2s}
+.footer-links a:hover{color:white}
+
+/* SVG ICONS */
+svg.icon{display:inline-block;vertical-align:middle}
+
+/* Utility */
+.overflow-hidden{overflow:hidden}
+.selection-override::selection{background:var(--green-200);color:var(--green-900)}
+</style>
+</head>
+<body class="selection-override">
+
+<!-- GRAIN -->
+<div class="grain-overlay">
+  <svg><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noise)"/></svg>
+</div>
+
+<!-- CURSOR -->
+<div id="cursor"></div>
+
+<!-- NAV -->
+<nav id="navbar">
+  <div class="nav-logo">
+    <div class="nav-logo-dot"></div>
+    <span class="nav-logo-text">Oura.</span>
+  </div>
+  <div class="nav-links">
+    <a href="#" class="nav-link"><span>Essence</span><span class="link-hover">Essence</span></a>
+    <a href="#" class="nav-link"><span>Origin</span><span class="link-hover">Origin</span></a>
+    <a href="#" class="nav-link"><span>Collection</span><span class="link-hover">Collection</span></a>
+    <a href="#" class="nav-link"><span>Contact</span><span class="link-hover">Contact</span></a>
+  </div>
+  <button class="nav-cta">Get Started</button>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="blob hero-blob-1"></div>
+  <div class="blob hero-blob-2"></div>
+
+  <div class="hero-grid">
+    <div style="position:relative;z-index:10;display:flex;flex-direction:column;justify-content:center;">
+      <h1 class="hero-title">
+        <div class="word-wrap"><span class="word" id="w1">Return</span>&nbsp;</div>
+        <div class="word-wrap"><span class="word" id="w2">to the</span>&nbsp;</div>
+        <div class="word-wrap"><span class="word highlight" id="w3">organic.</span></div>
+      </h1>
+      <p class="hero-subtitle" id="hero-sub">
+        We curate spaces and objects that breathe. A collection inspired by the unhurried rhythms of nature, designed for the modern sanctuary.
+      </p>
+    </div>
+
+    <div class="hero-img-col">
+      <div class="hero-img-wrap" id="hero-img-wrap">
+        <img src="https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?q=80&w=1200&auto=format&fit=crop" alt="Nature" id="hero-img"/>
+        <div class="hero-img-overlay"></div>
+      </div>
+      <div class="hero-quote" id="hero-quote">
+        <p>"Serenity is not a luxury."</p>
+        <div class="hero-quote-sub">Manifesto 01</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-scroll" id="hero-scroll">
+    <span>Scroll</span>
+    <svg class="bounce-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+  </div>
+</section>
+
+<!-- STATEMENT -->
+<section id="statement">
+  <div class="statement-inner">
+    <h2 class="statement-text" id="statement-text"></h2>
+    <div class="statement-line" id="statement-line"></div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div id="marquee">
+  <div class="marquee-track" id="marquee-track">
+    <span class="marquee-text">Sustainable • Organic • Timeless • Pure • </span>
+    <span class="marquee-text">Sustainable • Organic • Timeless • Pure • </span>
+    <span class="marquee-text">Sustainable • Organic • Timeless • Pure • </span>
+    <span class="marquee-text">Sustainable • Organic • Timeless • Pure • </span>
+  </div>
+</div>
+
+<!-- GALLERY -->
+<section id="gallery">
+  <div class="gallery-inner">
+    <div class="gallery-header">
+      <h2 class="gallery-title">Breathing <br><em>Space</em></h2>
+      <p class="gallery-desc">Our materials are sourced responsibly, ensuring that every curve and texture feels like a gift from the earth itself.</p>
+    </div>
+    <div class="gallery-grid">
+      <div class="gallery-col offset-top" id="gcol1">
+        <div class="gallery-card">
+          <img src="https://plus.unsplash.com/premium_photo-1668698356664-9653597e44e4?q=80&w=600&auto=format&fit=crop" alt="Forest Retreat"/>
+          <div class="gallery-card-overlay"></div>
+          <div class="gallery-card-info">
+            <div class="gallery-card-info-inner">
+              <div class="gallery-card-tag">Architecture</div>
+              <div class="gallery-card-title">Forest Retreat</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-col offset-mid">
+        <div class="gallery-card">
+          <img src="https://images.unsplash.com/photo-1463936575829-25148e1db1b8?q=80&w=600&auto=format&fit=crop" alt="Morning Dew"/>
+          <div class="gallery-card-overlay"></div>
+          <div class="gallery-card-info">
+            <div class="gallery-card-info-inner">
+              <div class="gallery-card-tag">Interior</div>
+              <div class="gallery-card-title">Morning Dew</div>
+            </div>
+          </div>
+        </div>
+        <div class="air-card">
+          <svg class="air-card-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+          <div>
+            <div class="air-card-title">Air</div>
+            <p class="air-card-desc">Allowing the wind to flow through open spaces, creating a natural ventilation system.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-col offset-bot" id="gcol3">
+        <div class="gallery-card">
+          <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=600&auto=format&fit=crop" alt="Stone & Clay"/>
+          <div class="gallery-card-overlay"></div>
+          <div class="gallery-card-info">
+            <div class="gallery-card-info-inner">
+              <div class="gallery-card-tag">Materials</div>
+              <div class="gallery-card-title">Stone &amp; Clay</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES HORIZONTAL -->
+<section id="features">
+  <div class="features-sticky">
+    <div class="features-track" id="features-track">
+      <div class="features-intro">
+        <h2>Our <br><em>Principles</em></h2>
+        <p>Swipe to discover the core pillars that define our connection to the organic world.</p>
+        <div class="features-arrow">
+          <svg width="24" height="24" fill="none" stroke="var(--green-900)" stroke-width="2" viewBox="0 0 24 24" style="animation:pulse-arrow 1.5s ease-in-out infinite"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+
+      <div class="feature-card bg-green">
+        <div class="feature-icon-wrap">
+          <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22c4.97 0 9-4.03 9-9C21 7.5 12 2 12 2S3 7.5 3 13c0 4.97 4.03 9 9 9z"/><path d="M12 22V12M12 12C9 10 6 8 6 8M12 12c3-2 6-4 6-4"/></svg>
+        </div>
+        <div>
+          <div class="feature-card-title">Sustainability</div>
+          <p class="feature-card-desc">Embracing the imperfections found in nature to create truly unique experiences.</p>
+        </div>
+      </div>
+
+      <div class="feature-card bg-stone">
+        <div class="feature-icon-wrap">
+          <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <div>
+          <div class="feature-card-title">Fluidity</div>
+          <p class="feature-card-desc">Embracing the imperfections found in nature to create truly unique experiences.</p>
+        </div>
+      </div>
+
+      <div class="feature-card bg-emerald">
+        <div class="feature-icon-wrap">
+          <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+        </div>
+        <div>
+          <div class="feature-card-title">Circulation</div>
+          <p class="feature-card-desc">Embracing the imperfections found in nature to create truly unique experiences.</p>
+        </div>
+      </div>
+
+      <div class="feature-card bg-dark">
+        <div class="feature-icon-wrap">
+          <svg class="feature-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+        </div>
+        <div>
+          <div class="feature-card-title">Grounded</div>
+          <p class="feature-card-desc">Embracing the imperfections found in nature to create truly unique experiences.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-blob-1"></div>
+  <div class="footer-blob-2"></div>
+  <div class="footer-inner">
+    <h2 class="footer-title" id="footer-title">Let's Grow</h2>
+    <p class="footer-sub" id="footer-sub">Join us in cultivating a future where design and nature coexist in perfect harmony.</p>
+    <button class="footer-cta" id="footer-cta">
+      <div class="footer-cta-bg"></div>
+      <span>Start Project</span>
+    </button>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2024 Oura Organic. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="#">Instagram</a>
+      <a href="#">Twitter</a>
+      <a href="#">LinkedIn</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+@keyframes pulse-arrow{0%,100%{opacity:1;transform:translateX(0)}50%{opacity:0.5;transform:translateX(4px)}}
+@keyframes marquee-move{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.marquee-track{animation:marquee-move 20s linear infinite}
+</style>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// CURSOR
+const cursor = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0.08, ease: 'none' });
+});
+
+// NAV ENTRANCE
+gsap.to('#navbar', {
+  y: 0,
+  duration: 0.8,
+  ease: 'power3.out',
+  delay: 0.2
+});
+
+// HERO TITLE
+const words = ['#w1','#w2','#w3'];
+gsap.to(words, {
+  y: 0,
+  duration: 1,
+  ease: 'power3.out',
+  stagger: 0.1,
+  delay: 0.3
+});
+
+// HERO SUBTITLE
+gsap.to('#hero-sub', {
+  opacity: 1,
+  y: 0,
+  duration: 1,
+  ease: 'power3.out',
+  delay: 0.6
+});
+
+// HERO IMG SCALE
+gsap.to('#hero-img', {
+  scale: 1,
+  duration: 1.5,
+  ease: 'power2.out',
+  delay: 0.2
+});
+
+// HERO QUOTE
+gsap.to('#hero-quote', {
+  opacity: 1,
+  y: 0,
+  duration: 1,
+  ease: 'power3.out',
+  delay: 1
+});
+
+// HERO SCROLL INDICATOR
+gsap.to('#hero-scroll', {
+  opacity: 1,
+  duration: 1,
+  delay: 1.2
+});
+
+// PARALLAX HERO IMG on scroll
+gsap.to('#hero-img-wrap', {
+  y: 200,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#hero',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: true
+  }
+});
+
+gsap.to('#hero-quote', {
+  y: -150,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#hero',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: true
+  }
+});
+
+// STATEMENT TEXT - TypeReveal
+const statementText = "True luxury is the absence of noise. We believe in crafting spaces that don't just exist, but actively breathe with the rhythms of those who inhabit them.";
+const stEl = document.getElementById('statement-text');
+stEl.innerHTML = statementText.split('').map(ch =>
+  `<span class="type-char">${ch === ' ' ? '&nbsp;' : ch}</span>`
+).join('');
+
+gsap.to('#statement-text .type-char', {
+  opacity: 1,
+  y: 0,
+  filter: 'blur(0px)',
+  duration: 0.8,
+  stagger: 0.012,
+  ease: 'power3.out',
+  scrollTrigger: { trigger: '#statement', start: 'top 80%' }
+});
+
+gsap.fromTo('#statement-text .type-char',
+  { y: 20, filter: 'blur(4px)' },
+  {
+    y: 0,
+    filter: 'blur(0px)',
+    duration: 0.8,
+    stagger: 0.012,
+    ease: 'power3.out',
+    scrollTrigger: { trigger: '#statement', start: 'top 80%' }
+  }
+);
+
+// STATEMENT LINE
+gsap.to('#statement-line', {
+  scaleY: 1,
+  opacity: 0.3,
+  duration: 1,
+  ease: 'power3.out',
+  delay: 0.5,
+  scrollTrigger: { trigger: '#statement', start: 'top 80%' }
+});
+
+// GALLERY PARALLAX
+gsap.to('#gcol1', {
+  y: -100,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#gallery',
+    start: 'top bottom',
+    end: 'bottom top',
+    scrub: true
+  }
+});
+
+gsap.to('#gcol3', {
+  y: 100,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#gallery',
+    start: 'top bottom',
+    end: 'bottom top',
+    scrub: true
+  }
+});
+
+// FEATURES HORIZONTAL SCROLL
+const featuresTrack = document.getElementById('features-track');
+const totalScroll = () => featuresTrack.scrollWidth - window.innerWidth;
+
+gsap.to(featuresTrack, {
+  x: () => -(featuresTrack.scrollWidth - window.innerWidth) * 0.65,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#features',
+    start: 'top top',
+    end: 'bottom bottom',
+    scrub: 1,
+    pin: false,
+    invalidateOnRefresh: true
+  }
+});
+
+// FOOTER ANIMATIONS
+gsap.to('#footer-title', {
+  opacity: 1,
+  y: 0,
+  duration: 0.8,
+  ease: 'power3.out',
+  scrollTrigger: { trigger: 'footer', start: 'top 80%' }
+});
+
+gsap.to('#footer-sub', {
+  opacity: 1,
+  duration: 0.8,
+  ease: 'power3.out',
+  delay: 0.3,
+  scrollTrigger: { trigger: 'footer', start: 'top 80%' }
+});
+
+gsap.to('#footer-cta', {
+  opacity: 1,
+  duration: 0.8,
+  ease: 'power3.out',
+  delay: 0.5,
+  scrollTrigger: { trigger: 'footer', start: 'top 80%' }
+});
+
+// Gallery header reveal
+gsap.fromTo('.gallery-header', 
+  { opacity: 0, y: 40 },
+  {
+    opacity: 1, y: 0,
+    duration: 1,
+    ease: 'power3.out',
+    scrollTrigger: { trigger: '#gallery', start: 'top 80%' }
+  }
+);
+
+ScrollTrigger.refresh();
+</script>
+</body>
+</html>

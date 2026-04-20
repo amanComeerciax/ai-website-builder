@@ -1,0 +1,9 @@
+{
+  "ignore": [
+    "templates/*",
+    "logs/*",
+    "node_modules",
+    "*.test.js",
+    "*.spec.js"
+  ]
+}

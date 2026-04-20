@@ -240,10 +240,10 @@ export default function ChatPage() {
                     // The loadProject hydration in the first useEffect will load it into the editor store.
                     // We just need to show the preview and ask for user details.
                     
-                    addMessage({ role: 'user', content: `I want to use the "${templateName || templateId}" template` });
+                    addMessage({ role: 'user', content: `I want to use the "${templateName || templateId}" theme` });
                     addMessage({ 
                         role: 'assistant', 
-                        content: `Great choice! Here's a live preview of the **${templateName || templateId}** template. 👉\n\nTo make it yours, **what's your brand name?**\n\n_Step 1 of 3_` 
+                        content: `Great choice! Here's a live preview of the **${templateName || templateId}** theme. 👉\n\nTo make it yours, **what's your brand name?**\n\n_Step 1 of 3_` 
                     });
 
                     // Force show the preview panel with the template HTML
@@ -258,7 +258,7 @@ export default function ChatPage() {
                     } else {
                         addMessage({ 
                             role: 'assistant', 
-                            content: `Hi! I'm excited to build your website for **"${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"**. \n\nTo get started, **please select a theme** from the options below.` 
+                            content: `Hi! I'm excited to build your website for **"${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"**. \n\nTo get started, **pick a category and choose a theme** from the options below.` 
                         });
                     }
                 }
@@ -511,7 +511,7 @@ export default function ChatPage() {
             <PublishModal
                 isOpen={isPublishModalOpen}
                 onClose={() => setIsPublishModalOpen(false)}
-                project={{...project, publishedUrl}}
+                project={project ? { ...project, publishedUrl } : null}
                 onPublish={handleDeploy}
                 isPublishing={isDeploying}
             />
