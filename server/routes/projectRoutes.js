@@ -231,8 +231,9 @@ router.put("/:id", requireAuth, async (req, res, next) => {
             updateData.folderId = folderId
         }
  
-        const project = await Project.findOneAndUpdate(
-            { _id: req.params.id },
+        // Use already-validated project document to prevent ID spoofing
+        const project = await Project.findByIdAndUpdate(
+            access.project._id,
             { $set: updateData },
             { new: true, runValidators: true }
         )
@@ -331,7 +332,8 @@ router.post("/:id/remix", requireAuth, async (req, res, next) => {
             userId,
             workspaceId: original.workspaceId,
             name: `${original.name} (copy)`,
-            status: original.status,
+            // Always set a clean status — never inherit 'generating' from original
+            status: original.currentFileTree?.['index.html'] ? 'done' : 'idle',
             folderId: original.folderId || null,
             currentFileTree: original.currentFileTree || {},
             theme: original.theme,
@@ -364,8 +366,9 @@ router.delete("/:id", requireAuth, async (req, res, next) => {
 
         await Project.findByIdAndDelete(req.params.id);
         
-        // Cascade delete messages
+        // Cascade delete messages AND versions (prevent MongoDB orphans)
         await Message.deleteMany({ projectId: req.params.id });
+        await Version.deleteMany({ projectId: req.params.id });
         
         res.json({ message: "Project deleted" })
     } catch (error) {

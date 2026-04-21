@@ -919,7 +919,39 @@ function renderToHTML(layoutSpec, themeConfig) {
     h1,h2,h3,h4,h5,h6 {
       font-family: '${theme.fontHeading}', system-ui, sans-serif;
     }
-    img { max-width: 100%; height: auto; }
+    /* ── IMAGE DEFAULTS ──────────────────────────────────────────
+       Standalone/inline images: natural size, no overflow.
+       ONLY known image-section classes get object-fit:cover.
+       Broad attribute selectors ([style*="height:"]>img etc.)
+       are intentionally excluded — they cause icon/decorator
+       images to blow up to full container size.
+    ─────────────────────────────────────────────────────────── */
+    img { max-width: 100%; height: auto; display: block; }
+
+    /* Gallery items — clearly image-only containers */
+    .g2-item img, .g2-bg img, [data-g2item] img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+    }
+
+    /* Avatar / circle images */
+    .coach-av > img, .test-av > img {
+      width: 100%; height: 100%;
+      object-fit: cover; border-radius: 50%; display: block;
+    }
+
+    /* Program card image area */
+    .prog-card-hero img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+    }
+
+    /* Sponsor grid images */
+    .sp2-item img {
+      width: 100%; height: 100%;
+      object-fit: contain; display: block;
+    }
+
     a { transition: all 0.2s; }
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: ${theme.bg}; }

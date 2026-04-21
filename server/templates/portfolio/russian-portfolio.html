@@ -1,0 +1,461 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Ninja Protocol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg-dark: #050505;
+            --text-light: #ffffff;
+            --accent-red: #dc2626;
+            /* red-600 */
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            overflow-x: hidden;
+        }
+
+        ::selection {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        /* Preloader specific styles */
+        .preloader-bg {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+        }
+
+        .scanline-overlay {
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        /* Stroke Text Effect */
+        .stroke-text {
+            -webkit-text-stroke: 1px white;
+            color: transparent;
+        }
+
+        /* Custom scrollbar hide */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Feature Card Border Animation */
+        .feature-card {
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .feature-card .border-line-top,
+        .feature-card .border-line-left {
+            position: absolute;
+            background: linear-gradient(to right, transparent, var(--accent-red), transparent);
+            opacity: 0;
+            transition: all 1s ease-in-out;
+        }
+
+        .feature-card .border-line-top {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            transform: translateX(-100%);
+        }
+
+        .feature-card .border-line-left {
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, var(--accent-red), transparent);
+            transform: translateY(-100%);
+            transition-delay: 0.1s;
+        }
+
+        .feature-card:hover .border-line-top {
+            transform: translateX(100%);
+            opacity: 1;
+        }
+
+        .feature-card:hover .border-line-left {
+            transform: translateY(100%);
+            opacity: 1;
+        }
+
+        /* Slice Image Styles */
+        .slice-container {
+            clip-path: polygon(0 0, 100% 0, 100% 45%, 0 55%);
+        }
+
+        .slice-container-bottom {
+            clip-path: polygon(0 55%, 100% 45%, 100% 100%, 0 100%);
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen font-sans">
+
+    <!-- Preloader -->
+    <div id="preloader"
+        class="fixed inset-0 bg-black z-[9999] flex flex-col p-8 md:p-16 font-mono text-sm md:text-base text-green-500 overflow-hidden preloader-bg">
+        <div class="scanline-overlay"></div>
+
+        <div id="terminal-output" class="flex-1 overflow-y-auto no-scrollbar space-y-2 relative z-10">
+            <!-- Lines injected here -->
+        </div>
+
+        <div class="absolute bottom-8 right-8 text-right z-10">
+            <h1 class="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter opacity-20">SAMURAI</h1>
+            <p class="text-xs text-white/40">SYSTEM v2.0</p>
+        </div>
+    </div>
+
+    <!-- Noise Overlay (Global) -->
+    <div class="fixed inset-0 pointer-events-none z-0 opacity-[0.03]"
+        style="background-image: url('https://grainy-gradients.vercel.app/noise.svg');"></div>
+
+    <!-- Main Content -->
+    <main class="relative z-10 opacity-0 transition-opacity duration-1000" id="main-content">
+
+        <!-- Header -->
+        <header
+            class="fixed top-0 left-0 w-full p-8 z-50 mix-blend-difference flex justify-between items-start font-mono text-xs md:text-sm">
+            <div>
+                <p>ПРОТОКОЛ</p>
+                <p>GHOST_SHELL</p>
+            </div>
+            <div class="text-right">
+                <p>ТОКИО // МОСКВА</p>
+                <p class="animate-pulse text-red-500">ЗАПИСЬ...</p>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="h-screen flex items-center justify-center relative overflow-hidden">
+            <div class="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+                <span class="text-[30vw] font-bold leading-none tracking-tighter blur-sm text-red-600">
+                    РОНИН
+                </span>
+            </div>
+            <div class="z-10 text-center space-y-6 flex flex-col items-center">
+                <span data-type-reveal class="font-mono text-red-500 text-sm tracking-[0.5em] uppercase block">System
+                    Override Initiated</span>
+                <div data-reveal-up class="text-6xl md:text-9xl font-black uppercase tracking-tighter">
+                    CYBER <br /> <span class="text-transparent stroke-text">NINJA</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="min-h-[50vh] flex items-center justify-center relative z-10 px-8 py-24">
+            <div class="max-w-5xl mx-auto text-center space-y-8 flex flex-col items-center">
+                <div data-reveal-up class="w-16 h-1 bg-red-600 mx-auto"></div>
+                <h3
+                    class="text-2xl md:text-5xl font-mono text-white/90 leading-tight uppercase font-medium tracking-tight">
+                    <span data-type-reveal>IN THE NEON JUNGLE, ONLY THE FASTEST SURVIVE. WE ARE THE GLITCH IN THE
+                        SYSTEM. THE GHOSTS IN THE MACHINE.</span>
+                </h3>
+            </div>
+        </section>
+
+        <!-- Sliced Image Gallery -->
+        <section class="relative z-10 py-24" id="gallery">
+            <!-- Images will be injected by JS based on config -->
+        </section>
+
+        <!-- Features Grid -->
+        <section class="min-h-screen relative z-10 py-24 px-8 flex flex-col justify-center">
+            <div class="max-w-7xl mx-auto w-full">
+                <h2 class="text-4xl md:text-6xl font-black uppercase mb-16 text-center tracking-tighter">
+                    СИСТЕМНЫЕ ФУНКЦИИ <br />
+                    <span class="text-sm font-mono text-red-500 tracking-[0.5em] block mt-4">SYSTEM FEATURES</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8" id="features-grid">
+                    <!-- Features injected by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="h-[50vh] flex items-center justify-center bg-white text-black relative overflow-hidden">
+            <div class="text-center">
+                <h2 class="text-4xl md:text-8xl font-black uppercase mb-4">
+                    <span data-type-reveal>END OF PROTOCOL</span>
+                </h2>
+                <div class="font-mono text-sm">
+                    <span data-type-reveal>CONNECTION TERMINATED</span>
+                </div>
+            </div>
+        </footer>
+
+    </main>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        // --- CONFIGURATION DATA (From Props) ---
+        const CONFIG = {
+            bootSequence: [
+                "INITIALIZING NEURAL NET...",
+                "LOADING PROTOCOL: GHOST",
+                "MEMORY CHECK: 128PB OK",
+                "SECURITY: BYPASSED",
+                "LOCATING TARGET...",
+                "TARGET LOCKED",
+                "MODE: STEALTH",
+                "ACCESS GRANTED // ENTER"
+            ],
+            images: [
+                { src: "https://images.unsplash.com/photo-1711725637816-b0755c582c86?q=80&w=1333&auto=format&fit=crop", title: "КАТАНА" },
+                { src: "https://images.unsplash.com/photo-1514539079130-25950c84af65?q=80&w=1000&auto=format&fit=crop", title: "ВОИН" },
+                { src: "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?q=80&w=1000&auto=format&fit=crop", title: "ТЕНЬ" },
+                { src: "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?q=80&w=1000&auto=format&fit=crop", title: "ЧЕСТЬ" }
+            ],
+            features: [
+                { title: "STEALTH", description: "Undetected navigation through encrypted corporate firewalls." },
+                { title: "AGILITY", description: "Lightning fast execution mimicking the cyber-blade draw." },
+                { title: "HACKING", description: "Precision algorithms slicing through noisy security data." },
+                { title: "GHOSTING", description: "Zero digital footprints left behind in the mainframe." }
+            ]
+        };
+
+        // --- PRELOADER LOGIC ---
+        const preloader = document.getElementById('preloader');
+        const terminalOutput = document.getElementById('terminal-output');
+        const mainContent = document.getElementById('main-content');
+
+        let lineIndex = 0;
+
+        function typeNextLine() {
+            if (lineIndex < CONFIG.bootSequence.length) {
+                const lineText = CONFIG.bootSequence[lineIndex];
+                const lineEl = document.createElement('div');
+                lineEl.className = 'flex';
+
+                const prefix = document.createElement('span');
+                prefix.className = 'mr-4 text-white/30';
+                prefix.innerText = `>0${lineIndex + 1}`;
+
+                const text = document.createElement('span');
+                text.className = 'text-white';
+                text.innerText = lineText;
+
+                lineEl.appendChild(prefix);
+                lineEl.appendChild(text);
+                terminalOutput.appendChild(lineEl);
+
+                // Auto scroll
+                terminalOutput.scrollTop = terminalOutput.scrollHeight;
+
+                lineIndex++;
+
+                // Random delay for realism
+                const delay = Math.random() * 300 + 100;
+                setTimeout(typeNextLine, delay);
+            } else {
+                // Add blinking cursor
+                const cursor = document.createElement('div');
+                cursor.className = 'animate-pulse text-red-500 mt-4';
+                cursor.innerText = '_';
+                terminalOutput.appendChild(cursor);
+
+                // Exit animation
+                setTimeout(() => {
+                    gsap.to(preloader, {
+                        clipPath: "polygon(0 0, 100% 0, 100% 0, 0 0)",
+                        duration: 0.8,
+                        ease: "power4.inOut",
+                        onComplete: () => {
+                            preloader.style.display = 'none';
+                            initAnimations();
+                        }
+                    });
+                }, 800);
+            }
+        }
+
+        // Start preloader
+        setTimeout(typeNextLine, 500);
+
+        // --- DYNAMIC CONTENT INJECTION ---
+
+        // Inject Images
+        const gallery = document.getElementById('gallery');
+        CONFIG.images.forEach((img, i) => {
+            const itemHTML = `
+                <div class="sliced-image relative w-full h-[80vh] md:h-screen flex items-center justify-center overflow-hidden my-24 group" data-index="${i}">
+                    <div class="relative w-[90%] md:w-[60%] h-[70%] md:h-[80%]">
+                        <!-- Top Slice -->
+                        <div class="slice-container absolute inset-0 z-10 overflow-hidden">
+                            <img src="${img.src}" alt="slice" class="w-full h-full object-cover grayscale contrast-125 brightness-75 group-hover:grayscale-0 transition-all duration-700" />
+                            <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 mix-blend-overlay pointer-events-none"></div>
+                        </div>
+                        <!-- Bottom Slice -->
+                        <div class="slice-container-bottom absolute inset-0 z-10 overflow-hidden">
+                            <img src="${img.src}" alt="slice" class="w-full h-full object-cover grayscale contrast-125 brightness-75 group-hover:grayscale-0 transition-all duration-700" />
+                        </div>
+                        <!-- Cut Line -->
+                        <div class="absolute top-[50%] left-[-10%] right-[-10%] h-[1px] bg-white/20 z-20 rotate-[-2deg] opacity-0 group-hover:opacity-100 transition-all duration-500 blur-[1px]"></div>
+                        <!-- Title -->
+                        <h2 class="slice-title absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 text-[15vw] leading-none font-bold text-white mix-blend-difference pointer-events-none font-mono">
+                            ${img.title}
+                        </h2>
+                    </div>
+                    <div class="absolute bottom-10 right-10 font-mono text-xs text-white/50">
+                        СИСТЕМА ID: 00${i + 1}
+                    </div>
+                </div>
+            `;
+            gallery.insertAdjacentHTML('beforeend', itemHTML);
+        });
+
+        // Inject Features
+        const featuresGrid = document.getElementById('features-grid');
+        CONFIG.features.forEach((f, i) => {
+            const featureHTML = `
+                <div class="feature-card p-8 md:p-12 hover:bg-white/[0.02] transition-colors duration-500 cursor-default">
+                    <div class="border-line-top"></div>
+                    <div class="border-line-left"></div>
+                    
+                    <h4 class="text-2xl md:text-4xl font-black uppercase mb-6 text-white group-hover:text-red-500 transition-colors duration-500">
+                        <span data-type-reveal>${f.title}</span>
+                    </h4>
+                    <p class="font-mono text-sm md:text-base text-white/50 group-hover:text-white/80 transition-colors duration-500">
+                        <span data-type-reveal>${f.description}</span>
+                    </p>
+                    <div class="mt-12 text-xs font-mono text-white/20 group-hover:text-red-500/50 transition-colors duration-500">
+                        <div data-reveal-up>
+                            ПРЯМОЙ ДОСТУП [0${i + 1}]
+                        </div>
+                    </div>
+                </div>
+            `;
+            featuresGrid.insertAdjacentHTML('beforeend', featureHTML);
+        });
+
+        // --- GSAP ANIMATIONS ---
+
+        function initAnimations() {
+            mainContent.style.opacity = 1;
+
+            // 1. Sliced Image Parallax
+            document.querySelectorAll('.sliced-image').forEach((el) => {
+                const topSlice = el.querySelector('.slice-container');
+                const bottomSlice = el.querySelector('.slice-container-bottom');
+                const title = el.querySelector('.slice-title');
+
+                const tl = gsap.timeline({
+                    scrollTrigger: {
+                        trigger: el,
+                        start: "top bottom",
+                        end: "bottom top",
+                        scrub: 0.5
+                    }
+                });
+
+                tl.fromTo(topSlice, { xPercent: 10, scale: 1.1 }, { xPercent: -10, scale: 1, ease: "none" }, 0);
+                tl.fromTo(bottomSlice, { xPercent: -10, scale: 1.1 }, { xPercent: 10, scale: 1, ease: "none" }, 0);
+                tl.fromTo(title, { opacity: 0, scale: 1.5, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", ease: "power2.out", duration: 0.5 }, 0.2);
+            });
+
+            // 2. Type Reveal
+            document.querySelectorAll('[data-type-reveal]').forEach(el => {
+                const text = el.innerText;
+                el.innerHTML = '';
+
+                text.split('').forEach(char => {
+                    const span = document.createElement('span');
+                    span.innerText = char === ' ' ? '\u00A0' : char;
+                    span.className = 'type-char opacity-0 inline-block';
+                    el.appendChild(span);
+                });
+
+                const chars = el.querySelectorAll('.type-char');
+                gsap.fromTo(chars,
+                    { opacity: 0, y: 15, filter: "blur(5px)" },
+                    {
+                        opacity: 1,
+                        y: 0,
+                        filter: "blur(0px)",
+                        duration: 0.8,
+                        stagger: 0.02,
+                        ease: "power3.out",
+                        scrollTrigger: {
+                            trigger: el,
+                            start: "top 85%",
+                        }
+                    }
+                );
+            });
+
+            // 3. Reveal Up
+            document.querySelectorAll('[data-reveal-up]').forEach(el => {
+                gsap.fromTo(el,
+                    { opacity: 0, y: 40, filter: "blur(10px)" },
+                    {
+                        opacity: 1,
+                        y: 0,
+                        filter: "blur(0px)",
+                        duration: 1.2,
+                        ease: "power3.out",
+                        scrollTrigger: {
+                            trigger: el,
+                            start: "top 85%",
+                        }
+                    }
+                );
+            });
+        }
+    </script>
+</body>
+
+</html>

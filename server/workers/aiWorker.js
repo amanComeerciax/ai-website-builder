@@ -205,10 +205,10 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   let suggestedActions = ['Change the color scheme', 'Add more sections', 'Update the content', 'Download Next.js project'];
 
   try {
-    const fileNames = Object.keys(result.files);
+    const fileNames = Object.keys(result.files || {});
     const { systemPrompt, userMessage } = buildSummaryPrompt(fileNames, {
       projectGlossary: { AppName: appName },
-      sections: result.layoutSpec.sections.map(s => s.component),
+      sections: result.layoutSpec?.sections?.map(s => s.component) || [],
     }, isModification, prompt);
     const r = await callModel('summarize', userMessage, systemPrompt);
     const s = JSON.parse(r.content);
@@ -219,7 +219,8 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     console.warn(`[Worker] Summary generation failed (non-fatal):`, e.message);
   }
 
-  console.log(`[Worker] Job ${job.id} complete — "${appName}" — ${result.layoutSpec.sections.length} sections`);
+  const sectionCount = result.layoutSpec?.sections?.length ?? '?';
+  console.log(`[Worker] Job ${job.id} complete — "${appName}" — ${sectionCount} sections`);
 
   // ─── PERSIST TO DB ─────────────────────────────────────────────
   const finalFiles = { 'index.html': result.html };

@@ -57,6 +57,125 @@ function fixBrokenImages(html, businessContext = '') {
   return html;
 }
 
+/**
+ * Post-processing: Fix image alignment for images already in the template.
+ *
+ * CONSERVATIVE APPROACH — only fix images that are CLEARLY inside
+ * image-container sections (identified by class name or explicit style).
+ * Never inject styles onto generic/decorative/icon images.
+ *
+ * TWO-LAYER:
+ *   Layer 1 — Regex: fixes imgs with known image-container classes or
+ *             explicit height/aspect-ratio in inline style
+ *   Layer 2 — CSS: class-specific rules only (no broad selectors)
+ */
+function fixImageAlignment(html) {
+  let fixCount = 0;
+
+  // Known image-section class names (from all templates)
+  const IMAGE_CLASSES = new Set([
+    'gallery-img','gallery-image','card-img','card-image','card-thumb',
+    'feature-img','feature-image','team-img','team-image','member-img',
+    'coach-img','hero-img','hero-image','portfolio-img','portfolio-image',
+    'project-img','project-image','blog-img','blog-image','post-img',
+    'thumbnail','thumb','cover-img','cover-image','slide-img','slider-img',
+    'carousel-img','profile-img','profile-image','section-img','content-img',
+    'product-img','product-image','item-img','service-img','service-image',
+    'testimonial-img','review-img','prog-card-hero',
+  ]);
+
+  // ── LAYER 1: Regex — only touch known image-section imgs ─────────────────
+  html = html.replace(/<img\b([^>]*)>/gi, (match, attrs) => {
+    // Skip if already has object-fit
+    if (/object-fit/i.test(attrs)) return match;
+
+    // Skip if no real src
+    if (!/src\s*=\s*["'][^"']+["']/i.test(attrs)) return match;
+
+    // Detect if this img has a known image-section class
+    const classMatch = attrs.match(/class\s*=\s*["']([^"']*)["']/i);
+    const classList = classMatch ? classMatch[1].toLowerCase().split(/\s+/) : [];
+    const hasImageClass = classList.some(c => IMAGE_CLASSES.has(c));
+
+    // Detect if inline style has explicit height or aspect-ratio
+    // (meaning the container explicitly defines dimensions for this image)
+    const styleMatch = attrs.match(/style\s*=\s*["']([^"']*)["']/i);
+    const inlineStyle = styleMatch ? styleMatch[1] : '';
+    const hasExplicitDim = /\b(height\s*:|aspect-ratio\s*:)/i.test(inlineStyle);
+
+    // Only fix if this is clearly an image section
+    if (!hasImageClass && !hasExplicitDim) return match;
+
+    // Append cover styles — never overwrite existing style properties
+    if (styleMatch) {
+      const existing = inlineStyle.replace(/;\s*$/, '');
+      const merged = `${existing};width:100%;height:100%;object-fit:cover;display:block;`;
+      const newAttrs = attrs.replace(/style\s*=\s*["'][^"']*["']/i, `style="${merged}"`);
+      fixCount++;
+      return `<img${newAttrs}>`;
+    } else {
+      fixCount++;
+      return `<img${attrs} style="width:100%;height:100%;object-fit:cover;display:block;">`;
+    }
+  });
+
+  // ── LAYER 2: Class-specific CSS only ─────────────────────────────────────
+  // NO broad selectors (overflow:hidden, height:, position:absolute) —
+  // those were causing decorative/icon images to blow up to full size.
+  const globalCss = `<style id="__img-align-fix__">
+/* AUTO-INJECTED: Image Alignment Fix — class-specific only */
+.gallery-img,.gallery-image,.card-img,.card-image,.card-thumb,
+.feature-img,.feature-image,.team-img,.team-image,.member-img,
+.coach-img,.hero-img,.hero-image,
+.portfolio-img,.portfolio-image,.project-img,.project-image,
+.blog-img,.blog-image,.post-img,.thumbnail,.thumb,
+.cover-img,.cover-image,.bg-img,.slide-img,.slider-img,.carousel-img,
+.profile-img,.profile-image,.section-img,.content-img,
+.product-img,.product-image,.item-img,.service-img,.service-image,
+.testimonial-img,.review-img,
+.g2-item img,.g2-bg img,.prog-card-hero img,
+.slice-container img,.slice-container-bottom img{
+  width:100%!important;height:100%!important;
+  object-fit:cover!important;display:block!important;
+}
+/* SaaS template: .s-img img, .g-img img */
+.s-img img,.g-img img{
+  width:100%!important;height:100%!important;
+  object-fit:cover!important;display:block!important;
+}
+/* Bento card image */
+.bc-img{width:100%!important;height:auto!important;object-fit:cover!important;display:block!important;}
+/* Avatar images — cover but don't force height (container controls it) */
+.avatar img,.av,.user-av,.author-img{object-fit:cover!important;display:block!important;}
+/* Sponsor/logo grids — contain (not cover) so logos aren't cropped */
+.sp2-item img,.sponsor-item img,.partner-item img,.logo-grid img,.brand-grid img{
+  width:100%!important;height:100%!important;
+  object-fit:contain!important;display:block!important;
+}
+/* Coach avatar inside its 80x80 circle container */
+.coach-av>img,.test-av>img{
+  width:100%!important;height:100%!important;
+  object-fit:cover!important;border-radius:50%!important;display:block!important;
+}
+</style>`;
+
+  // Inject before </head>; fallback to top of file
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', `${globalCss}\n</head>`);
+  } else {
+    html = globalCss + '\n' + html;
+  }
+
+  if (fixCount > 0) {
+    console.log(`[ImageFixer] 🎨 Fixed ${fixCount} image-section img(s) + injected class-specific CSS`);
+  } else {
+    console.log(`[ImageFixer] 🎨 Injected class-specific image alignment CSS`);
+  }
+
+  return html;
+}
+
+
 async function getRawTemplate(enrichedSpec, requestModel) {
   const queryStr = `${enrichedSpec.businessName || ''} - ${enrichedSpec.description || ''} - ${enrichedSpec.rawPrompt || ''}`;
 
@@ -272,6 +391,9 @@ IMAGE RULES:
   The description must match the specific content (e.g., "hot masala chai cup" for a chai item).
 - NEVER use source.unsplash.com (DEAD), placehold.co, or leave src="" empty.
 - Images MUST match the business context.
+- MANDATORY: Every <img> inside a container with a height or aspect-ratio MUST have style="width:100%;height:100%;object-fit:cover;display:block;"
+- Avatar/circle images MUST have style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"
+- Gallery/overlay images MUST have style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
 
 INTENT:
 - "Add a pizza logo beside the div" = place an emoji/SVG inside the div before the text — NOT add text "Pizza Logo".
@@ -333,6 +455,7 @@ ${existingHtml}`;
   // Post-process: resolve images via Pexels API (falls back to fixBrokenImages if no API key)
   onProgress({ event: 'log', type: 'Resolving', file: 'images', message: 'Finding matching stock photos...' });
   finalHtml = await resolveImages(finalHtml, enrichedSpec.businessName || enrichedSpec.description || '');
+  finalHtml = fixImageAlignment(finalHtml);
 
   return finalHtml;
 }
@@ -486,7 +609,8 @@ ${existingHtml}`;
 
   // Post-process: resolve images via Pexels API
   onProgress({ event: 'log', type: 'Resolving', file: 'images', message: 'Finding matching stock photos...' });
-  const fixedHtml = await resolveImages(finalHtml, enrichedSpec?.businessName || '');
+  let fixedHtml = await resolveImages(finalHtml, enrichedSpec?.businessName || '');
+  fixedHtml = fixImageAlignment(fixedHtml);
 
   return fixedHtml;
 }
@@ -521,7 +645,14 @@ CRITICAL RULES:
    Thumbnails/avatars: width=400&height=400
    
    Example for a chai shop "Masala Chai" card:
-   <img src="https://image.pollinations.ai/prompt/hot%20masala%20chai%20glass%20cup%20with%20cardamom?width=800&height=600&nologo=true" alt="Masala Chai">
+   <img src="https://image.pollinations.ai/prompt/hot%20masala%20chai%20glass%20cup%20with%20cardamom?width=800&height=600&nologo=true" alt="Masala Chai" style="width:100%;height:100%;object-fit:cover;display:block;">
+   
+   MANDATORY IMAGE CSS — ALWAYS ADD THESE STYLES:
+   - Images inside fixed-height containers: style="width:100%;height:100%;object-fit:cover;display:block;"
+   - Avatar/circle images: style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"
+   - Gallery/fullscreen images: style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
+   - NEVER leave an <img> tag without these styles when it is inside a div with a height or aspect-ratio.
+   - MISSING object-fit:cover is the #1 cause of broken image alignment — it is REQUIRED on every contained image.
    
    RULES:
    - Each image MUST have a UNIQUE description that matches its specific card/item content.
@@ -623,6 +754,7 @@ ${section.html}`;
   // Post-process: resolve images
   onProgress({ event: 'log', type: 'Resolving', file: 'images', message: 'Finding matching stock photos...' });
   finalHtml = await resolveImages(finalHtml, enrichedSpec.businessName || enrichedSpec.description || '');
+  finalHtml = fixImageAlignment(finalHtml);
 
   return { html: finalHtml, templateName: template.name };
 }
@@ -675,6 +807,7 @@ ${template.content}`;
   // Post-process: resolve images via Pexels API (real stock photos)
   onProgress({ event: 'log', type: 'Resolving', file: 'images', message: 'Finding matching stock photos...' });
   finalHtml = await resolveImages(finalHtml, enrichedSpec.businessName || enrichedSpec.description || '');
+  finalHtml = fixImageAlignment(finalHtml);
 
   return { html: finalHtml, templateName: template.name };
 }
