@@ -157,7 +157,9 @@ async function executeModelCall(model, messages, config) {
         return await callMistral(system, user, config, messages);
     }
     if (model === 'groq') {
-        return await callGroq('', '', config, messages);
+        const system = messages.find(m => m.role === 'system')?.content || '';
+        const user = messages.find(m => m.role === 'user')?.content || '';
+        return await callGroq(system, user, config, messages);
     }
     if (model === 'qwen') {
         const system = messages.find(m => m.role === 'system')?.content || '';

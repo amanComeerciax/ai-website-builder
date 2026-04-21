@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mindloop — Get Inspired With Us</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+:root {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --card: 0 0% 5%;
+  --border: 0 0% 20%;
+  --muted: 0 0% 15%;
+  --muted-fg: 0 0% 65%;
+  --hero-subtitle: 210 17% 95%;
+  --accent-teal: 170 15% 45%;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #000;
+  color: #fff;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+.serif { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; }
+
+/* ── LIQUID GLASS ── */
+.liquid-glass {
+  background: rgba(255,255,255,0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit; padding: 1.4px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 20%,
+    rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%,
+    rgba(255,255,255,0.15) 80%, rgba(255,255,255,0.45) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── NAVBAR ── */
+.navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 7rem;
+  background: transparent;
+}
+@media(max-width:900px) { .navbar { padding: 1rem 2rem; } }
+.navbar-logo { display: flex; align-items: center; gap: .6rem; }
+.logo-icon {
+  position: relative; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-outer {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.6);
+}
+.logo-inner {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.6);
+}
+.logo-text { font-size: 1rem; font-weight: 700; letter-spacing: -.02em; }
+.nav-links { display: flex; align-items: center; gap: .5rem; }
+.nav-links a {
+  color: rgba(255,255,255,.55); font-size: .85rem; text-decoration: none;
+  transition: color .2s; padding: 0 .35rem;
+}
+.nav-links a:hover { color: #fff; }
+.nav-sep { color: rgba(255,255,255,.2); font-size: .7rem; }
+@media(max-width:768px) { .nav-links { display: none; } }
+.nav-socials { display: flex; gap: .5rem; }
+.social-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: opacity .2s;
+}
+.social-btn:hover { opacity: .7; }
+.social-btn svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── HERO ── */
+#hero {
+  position: relative; width: 100%; height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  overflow: hidden; padding-top: 7rem;
+}
+#hero-video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0;
+}
+.hero-fade {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 16rem;
+  background: linear-gradient(to top, #000 0%, transparent 100%);
+  z-index: 1; pointer-events: none;
+}
+.hero-content {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 0 2rem;
+}
+.avatar-row { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.75rem; }
+.avatars { display: flex; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid #000; overflow: hidden; margin-left: -8px;
+  background: rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center;
+  font-size: .65rem; font-weight: 600; color: rgba(255,255,255,.8);
+}
+.avatar:first-child { margin-left: 0; }
+.avatar-label { font-size: .85rem; color: rgba(255,255,255,.55); }
+.hero-heading {
+  font-size: clamp(3rem, 8vw, 6rem); font-weight: 500;
+  letter-spacing: -2px; line-height: 1.05; margin-bottom: 1.25rem;
+}
+.hero-sub {
+  font-size: 1.1rem; color: hsl(210 17% 95%);
+  max-width: 44ch; margin-bottom: 2.5rem; line-height: 1.7; font-weight: 300;
+}
+.email-form {
+  display: flex; align-items: center; gap: .5rem;
+  max-width: 480px; width: 100%; padding: .375rem .375rem .375rem 1.25rem;
+  border-radius: 9999px;
+}
+.email-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #fff; font-size: .9rem; font-family: 'Inter', sans-serif;
+}
+.email-input::placeholder { color: rgba(255,255,255,.35); }
+.subscribe-btn {
+  background: #fff; color: #000; border: none; cursor: pointer;
+  padding: .75rem 2rem; border-radius: 9999px; font-size: .8rem;
+  font-weight: 700; letter-spacing: .08em; font-family: 'Inter', sans-serif;
+  transition: transform .2s, filter .2s; white-space: nowrap;
+}
+.subscribe-btn:hover { transform: scale(1.03); }
+.subscribe-btn:active { transform: scale(0.98); }
+
+/* ── SEARCH SECTION ── */
+#search {
+  padding: 13rem 7rem 3rem; text-align: center;
+}
+@media(max-width:900px) { #search { padding: 8rem 2rem 3rem; } }
+.search-heading {
+  font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 500;
+  letter-spacing: -2px; line-height: 1.1; margin-bottom: 1.5rem;
+}
+.search-sub {
+  color: rgba(255,255,255,.55); font-size: 1.1rem; max-width: 50ch;
+  margin: 0 auto 6rem; line-height: 1.7; font-weight: 300;
+}
+.platforms-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 3rem; max-width: 720px; margin: 0 auto 5rem;
+}
+@media(max-width:600px) { .platforms-grid { grid-template-columns: 1fr; gap: 2rem; } }
+.platform-card {
+  display: flex; flex-direction: column; align-items: center; gap: .75rem;
+}
+.platform-icon {
+  width: 120px; height: 120px; background: hsl(0 0% 8%);
+  border-radius: 24px; display: flex; align-items: center; justify-content: center;
+  font-size: 3rem; margin-bottom: .25rem;
+  border: 1px solid rgba(255,255,255,.08);
+  transition: border-color .3s;
+}
+.platform-card:hover .platform-icon { border-color: rgba(255,255,255,.2); }
+.platform-name { font-size: .9rem; font-weight: 600; }
+.platform-desc { font-size: .8rem; color: rgba(255,255,255,.45); text-align: center; line-height: 1.6; font-weight: 300; }
+.search-tagline { font-size: .875rem; color: rgba(255,255,255,.4); }
+
+/* ── MISSION ── */
+#mission { padding: 0 7rem 11rem; }
+@media(max-width:900px) { #mission { padding: 0 2rem 6rem; } }
+.mission-video-wrap {
+  display: flex; justify-content: center; margin-bottom: 5rem;
+}
+.mission-video {
+  width: min(800px, 100%); aspect-ratio: 1/1;
+  object-fit: cover; display: block;
+}
+.mission-text-wrap { max-width: 800px; margin: 0 auto; }
+.mission-p1 {
+  font-size: clamp(1.5rem, 3.5vw, 3rem); font-weight: 500;
+  letter-spacing: -1px; line-height: 1.35; margin-bottom: 2.5rem;
+}
+.mission-p2 {
+  font-size: clamp(1.1rem, 2vw, 1.75rem); font-weight: 500;
+  letter-spacing: -.5px; line-height: 1.45; color: rgba(255,255,255,.65);
+}
+.word-span {
+  display: inline-block;
+  opacity: .15; transition: opacity .1s;
+}
+.word-span.lit { opacity: 1; }
+
+/* ── SOLUTION ── */
+#solution {
+  padding: 8rem 7rem 11rem;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+@media(max-width:900px) { #solution { padding: 5rem 2rem 7rem; } }
+.solution-label {
+  font-size: .7rem; letter-spacing: .22em; text-transform: uppercase;
+  color: rgba(255,255,255,.45); margin-bottom: 1.25rem; font-weight: 500;
+}
+.solution-heading {
+  font-size: clamp(2rem, 5vw, 3.75rem); font-weight: 500;
+  letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 3.5rem;
+}
+.solution-video-wrap {
+  border-radius: 16px; overflow: hidden;
+  aspect-ratio: 3/1; width: 100%; margin-bottom: 4rem;
+}
+.solution-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.features-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 2rem; }
+@media(max-width:900px) { .features-grid { grid-template-columns: repeat(2,1fr); } }
+@media(max-width:480px) { .features-grid { grid-template-columns: 1fr; } }
+.feature-item { padding: 1.5rem; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; transition: border-color .3s; }
+.feature-item:hover { border-color: rgba(255,255,255,.2); }
+.feature-title { font-size: .9rem; font-weight: 600; margin-bottom: .5rem; }
+.feature-desc { font-size: .8rem; color: rgba(255,255,255,.45); line-height: 1.65; font-weight: 300; }
+
+/* ── NEWSLETTER / USE CASES ── */
+#usecases {
+  padding: 8rem 7rem 11rem;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+@media(max-width:900px) { #usecases { padding: 5rem 2rem 7rem; } }
+.usecases-header { text-align: center; margin-bottom: 5rem; }
+.usecases-label {
+  font-size: .7rem; letter-spacing: .22em; text-transform: uppercase;
+  color: rgba(255,255,255,.45); margin-bottom: 1rem; font-weight: 500;
+}
+.usecases-heading {
+  font-size: clamp(2rem, 4.5vw, 3.5rem); font-weight: 500;
+  letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 1.25rem;
+}
+.usecases-sub { font-size: 1rem; color: rgba(255,255,255,.45); max-width: 42ch; margin: 0 auto; line-height: 1.7; font-weight: 300; }
+.usecases-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem; }
+@media(max-width:900px) { .usecases-grid { grid-template-columns: 1fr; } }
+.usecase-card {
+  padding: 2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,.08);
+  background: hsl(0 0% 5%); transition: border-color .3s, transform .3s;
+}
+.usecase-card:hover { border-color: rgba(255,255,255,.18); transform: translateY(-4px); }
+.uc-num { font-size: .7rem; color: rgba(255,255,255,.25); letter-spacing: .15em; margin-bottom: 1.25rem; font-weight: 600; }
+.uc-title { font-size: 1.1rem; font-weight: 600; margin-bottom: .75rem; letter-spacing: -.02em; }
+.uc-desc { font-size: .825rem; color: rgba(255,255,255,.45); line-height: 1.7; font-weight: 300; }
+
+/* ── PHILOSOPHY ── */
+#philosophy {
+  padding: 8rem 7rem 11rem;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+@media(max-width:900px) { #philosophy { padding: 5rem 2rem 7rem; } }
+.philosophy-grid { display: grid; gap: 6rem; align-items: center; }
+@media(min-width:900px) { .philosophy-grid { grid-template-columns: 1fr 1fr; } }
+.phil-label { font-size: .7rem; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.45); margin-bottom: 1rem; font-weight: 500; }
+.phil-heading { font-size: clamp(2rem, 4vw, 3rem); font-weight: 500; letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 1.5rem; }
+.phil-body { font-size: .9375rem; color: rgba(255,255,255,.5); line-height: 1.8; font-weight: 300; }
+.phil-body + .phil-body { margin-top: 1rem; }
+.phil-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 2.5rem; }
+.phil-stat { padding: 1.5rem; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; }
+.phil-stat-num { font-size: 2.25rem; font-weight: 700; letter-spacing: -.04em; margin-bottom: .25rem; }
+.phil-stat-label { font-size: .775rem; color: rgba(255,255,255,.4); letter-spacing: .05em; font-weight: 300; }
+.phil-right { display: flex; flex-direction: column; gap: 1.25rem; }
+.phil-quote {
+  padding: 2rem; border: 1px solid rgba(255,255,255,.08); border-radius: 12px;
+  background: hsl(0 0% 5%); font-size: 1.05rem; line-height: 1.7;
+  font-weight: 300; color: rgba(255,255,255,.75);
+  transition: border-color .3s;
+}
+.phil-quote:hover { border-color: rgba(255,255,255,.2); }
+.phil-q-author { font-size: .8rem; color: rgba(255,255,255,.35); margin-top: .75rem; font-weight: 500; }
+
+/* ── CTA ── */
+#cta {
+  position: relative; padding: 8rem 7rem; text-align: center; overflow: hidden;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+@media(max-width:900px) { #cta { padding: 5rem 2rem; } }
+#cta-video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0;
+}
+.cta-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.55); z-index: 1;
+}
+.cta-content {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+}
+.cta-icon { display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; }
+.cta-icon-outer {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.5); display: flex; align-items: center; justify-content: center;
+}
+.cta-icon-inner {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.5);
+}
+.cta-heading {
+  font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 500;
+  letter-spacing: -2px; line-height: 1.05; margin-bottom: 1.25rem;
+}
+.cta-sub { font-size: 1.05rem; color: rgba(255,255,255,.5); max-width: 40ch; margin: 0 auto 2.5rem; line-height: 1.7; font-weight: 300; }
+.cta-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.btn-primary {
+  background: #fff; color: #000; border: none; cursor: pointer;
+  padding: .875rem 2.5rem; border-radius: 8px; font-size: .875rem;
+  font-weight: 700; letter-spacing: .04em; font-family: 'Inter', sans-serif;
+  transition: transform .2s, filter .2s;
+}
+.btn-primary:hover { filter: brightness(.92); }
+.btn-glass {
+  padding: .875rem 2.5rem; border-radius: 8px; font-size: .875rem;
+  font-weight: 600; color: #fff; cursor: pointer; font-family: 'Inter', sans-serif;
+  background: transparent; border: none; transition: opacity .2s;
+}
+.btn-glass:hover { opacity: .75; }
+
+/* ── FOOTER ── */
+footer {
+  padding: 3rem 7rem; border-top: 1px solid rgba(255,255,255,.08);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem;
+}
+@media(max-width:900px) { footer { padding: 2.5rem 2rem; } }
+.footer-copy { font-size: .8rem; color: rgba(255,255,255,.4); font-weight: 300; }
+.footer-links { display: flex; gap: 1.5rem; }
+.footer-links a { font-size: .8rem; color: rgba(255,255,255,.4); text-decoration: none; transition: color .2s; font-weight: 300; }
+.footer-links a:hover { color: #fff; }
+
+/* ── GSAP INITIAL STATES ── */
+.gsap-up { opacity: 0; transform: translateY(40px); }
+.gsap-left { opacity: 0; transform: translateX(-40px); }
+.gsap-right { opacity: 0; transform: translateX(40px); }
+.gsap-fade { opacity: 0; }
+.gsap-scale { opacity: 0; transform: scale(0.94); }
+
+/* ── HERO INITIAL (SEPARATE OVERRIDE) ── */
+#hero .hero-content > * { opacity: 0; transform: translateY(24px); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════
+     NAVBAR
+════════════════════════════════ -->
+<nav class="navbar" id="navbar">
+  <div class="navbar-logo">
+    <div class="logo-icon">
+      <div class="logo-outer"></div>
+      <div class="logo-inner"></div>
+    </div>
+    <span class="logo-text">Mindloop</span>
+  </div>
+  <div class="nav-links">
+    <a href="#hero">Home</a>
+    <span class="nav-sep">•</span>
+    <a href="#how">How It Works</a>
+    <span class="nav-sep">•</span>
+    <a href="#philosophy">Philosophy</a>
+    <span class="nav-sep">•</span>
+    <a href="#usecases">Use Cases</a>
+  </div>
+  <div class="nav-socials">
+    <div class="social-btn liquid-glass">
+      <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+    </div>
+    <div class="social-btn liquid-glass">
+      <svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+    </div>
+    <div class="social-btn liquid-glass">
+      <svg viewBox="0 0 24 24"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════
+     HERO
+════════════════════════════════ -->
+<section id="hero">
+  <video id="hero-video" autoplay loop muted playsinline>
+    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260325_120549_0cd82c36-56b3-4dd9-b190-069cfc3a623f.mp4" type="video/mp4">
+  </video>
+  <div class="hero-fade"></div>
+  <div class="hero-content">
+    <div class="avatar-row">
+      <div class="avatars">
+        <div class="avatar">A</div>
+        <div class="avatar">B</div>
+        <div class="avatar">C</div>
+      </div>
+      <span class="avatar-label">7,000+ people already subscribed</span>
+    </div>
+    <h1 class="hero-heading">Get <span class="serif">Inspired</span> with Us</h1>
+    <p class="hero-sub">Join our feed for meaningful updates, news around technology and a shared journey toward depth and direction.</p>
+    <div class="email-form liquid-glass">
+      <input class="email-input" type="email" placeholder="Enter your email address...">
+      <button class="subscribe-btn">SUBSCRIBE</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     SEARCH HAS CHANGED
+════════════════════════════════ -->
+<section id="search">
+  <h2 class="search-heading gsap-up">Search has <span class="serif">changed.</span><br>Have you?</h2>
+  <p class="search-sub gsap-up">The way people discover information is shifting. AI-powered platforms are replacing traditional search — and content creators need to adapt.</p>
+  <div class="platforms-grid">
+    <div class="platform-card gsap-up" data-delay="0">
+      <div class="platform-icon">🤖</div>
+      <div class="platform-name">ChatGPT</div>
+      <p class="platform-desc">Conversational answers have replaced ten blue links. Your content needs to be citable.</p>
+    </div>
+    <div class="platform-card gsap-up" data-delay=".1">
+      <div class="platform-icon">🔍</div>
+      <div class="platform-name">Perplexity</div>
+      <p class="platform-desc">AI synthesis pulls from trusted sources. If you're not one, you're invisible.</p>
+    </div>
+    <div class="platform-card gsap-up" data-delay=".2">
+      <div class="platform-icon">✦</div>
+      <div class="platform-name">Google AI</div>
+      <p class="platform-desc">Overviews are replacing clicks. Your newsletter becomes the answer — not a result.</p>
+    </div>
+  </div>
+  <p class="search-tagline gsap-fade">"If you don't answer the questions, someone else will."</p>
+</section>
+
+<!-- ═══════════════════════════════
+     MISSION
+════════════════════════════════ -->
+<section id="mission">
+  <div class="mission-video-wrap gsap-scale">
+    <video class="mission-video" autoplay loop muted playsinline>
+      <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260325_132944_a0d124bb-eaa1-4082-aa30-2310efb42b4b.mp4" type="video/mp4">
+    </video>
+  </div>
+  <div class="mission-text-wrap">
+    <p class="mission-p1" id="mission-p1"></p>
+    <p class="mission-p2" id="mission-p2"></p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     SOLUTION
+════════════════════════════════ -->
+<section id="solution">
+  <div class="solution-label gsap-fade">SOLUTION</div>
+  <h2 class="solution-heading gsap-up">The platform for <span class="serif">meaningful</span> content</h2>
+  <div class="solution-video-wrap gsap-scale">
+    <video class="solution-video" autoplay loop muted playsinline>
+      <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260325_125119_8e5ae31c-0021-4396-bc08-f7aebeb877a2.mp4" type="video/mp4">
+    </video>
+  </div>
+  <div class="features-grid">
+    <div class="feature-item gsap-up" data-delay="0">
+      <div class="feature-title">Curated Feed</div>
+      <p class="feature-desc">Algorithmically sound but human-curated. Every piece in your feed earned its place.</p>
+    </div>
+    <div class="feature-item gsap-up" data-delay=".08">
+      <div class="feature-title">Writer Tools</div>
+      <p class="feature-desc">From draft to distribution — write, format, publish, and analyze in one fluid workspace.</p>
+    </div>
+    <div class="feature-item gsap-up" data-delay=".16">
+      <div class="feature-title">Community</div>
+      <p class="feature-desc">Readers who think. Writers who listen. A platform built around conversation, not consumption.</p>
+    </div>
+    <div class="feature-item gsap-up" data-delay=".24">
+      <div class="feature-title">Distribution</div>
+      <p class="feature-desc">Reach the right audience across email, web, and AI-powered discovery — simultaneously.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     HOW IT WORKS
+════════════════════════════════ -->
+<section id="how" style="padding: 8rem 7rem 11rem; border-top: 1px solid rgba(255,255,255,.08)">
+  <div style="text-align:center; margin-bottom:4rem">
+    <div class="solution-label gsap-fade">HOW IT WORKS</div>
+    <h2 class="solution-heading gsap-up" style="margin-bottom:.75rem">From signup to <span class="serif">impact</span> in minutes</h2>
+    <p class="search-sub gsap-fade" style="margin:0 auto">No technical setup. No friction. Just your ideas and an audience ready to receive them.</p>
+  </div>
+  <div style="display:grid; grid-template-columns: repeat(4,1fr); gap:1.5rem" id="how-steps">
+    <div class="feature-item gsap-up" data-delay="0" style="text-align:left">
+      <div style="font-size:.65rem; color:rgba(255,255,255,.25); letter-spacing:.15em; margin-bottom:1.25rem; font-weight:600">01</div>
+      <div class="feature-title">Create Account</div>
+      <p class="feature-desc">Sign up in under 30 seconds. No credit card, no commitment. Your space is live immediately.</p>
+    </div>
+    <div class="feature-item gsap-up" data-delay=".1" style="text-align:left">
+      <div style="font-size:.65rem; color:rgba(255,255,255,.25); letter-spacing:.15em; margin-bottom:1.25rem; font-weight:600">02</div>
+      <div class="feature-title">Write & Format</div>
+      <p class="feature-desc">Use our distraction-free editor. Import drafts, add media, design your visual identity.</p>
+    </div>
+    <div class="feature-item gsap-up" data-delay=".2" style="text-align:left">
+      <div style="font-size:.65rem; color:rgba(255,255,255,.25); letter-spacing:.15em; margin-bottom:1.25rem; font-weight:600">03</div>
+      <div class="feature-title">Grow Audience</div>
+      <p class="feature-desc">Mindloop surfaces your work to readers with matching interests. Organic growth, by design.</p>
+    </div>
+    <div class="feature-item gsap-up" data-delay=".3" style="text-align:left">
+      <div style="font-size:.65rem; color:rgba(255,255,255,.25); letter-spacing:.15em; margin-bottom:1.25rem; font-weight:600">04</div>
+      <div class="feature-title">Monetize & Scale</div>
+      <p class="feature-desc">Subscriptions, sponsorships, and community access — multiple revenue paths, one platform.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     USE CASES
+════════════════════════════════ -->
+<section id="usecases">
+  <div class="usecases-header">
+    <div class="usecases-label gsap-fade">USE CASES</div>
+    <h2 class="usecases-heading gsap-up">Who <span class="serif">thrives</span> on Mindloop</h2>
+    <p class="usecases-sub gsap-fade">From solo writers to media brands — every voice finds its place here.</p>
+  </div>
+  <div class="usecases-grid">
+    <div class="usecase-card gsap-up" data-delay="0">
+      <div class="uc-num">USE CASE 01</div>
+      <div class="uc-title">Independent Writers</div>
+      <p class="uc-desc">Build a loyal readership without fighting algorithms. Publish on your own terms, earn directly from readers who value your perspective.</p>
+    </div>
+    <div class="usecase-card gsap-up" data-delay=".1">
+      <div class="uc-num">USE CASE 02</div>
+      <div class="uc-title">Thought Leaders</div>
+      <p class="uc-desc">Turn expertise into influence. Weekly dispatches that position you as the go-to voice in your domain — with built-in discovery.</p>
+    </div>
+    <div class="usecase-card gsap-up" data-delay=".2">
+      <div class="uc-num">USE CASE 03</div>
+      <div class="uc-title">Media Brands</div>
+      <p class="uc-desc">Migrate your audience, retain your brand, and unlock new revenue streams. White-label newsletters with enterprise analytics.</p>
+    </div>
+    <div class="usecase-card gsap-up" data-delay="0">
+      <div class="uc-num">USE CASE 04</div>
+      <div class="uc-title">Research Communities</div>
+      <p class="uc-desc">Share findings with an audience that acts on knowledge. Gated content, discussion threads, and citation-ready formats built in.</p>
+    </div>
+    <div class="usecase-card gsap-up" data-delay=".1">
+      <div class="uc-num">USE CASE 05</div>
+      <div class="uc-title">Curators & Digests</div>
+      <p class="uc-desc">The internet has too much noise. Curators are more valuable than ever. Mindloop gives curation the home it deserves.</p>
+    </div>
+    <div class="usecase-card gsap-up" data-delay=".2">
+      <div class="uc-num">USE CASE 06</div>
+      <div class="uc-title">Educators & Coaches</div>
+      <p class="uc-desc">Drip content, build cohorts, run live sessions. Turn your curriculum into a subscription that compounds over time.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     PHILOSOPHY
+════════════════════════════════ -->
+<section id="philosophy">
+  <div class="philosophy-grid">
+    <div>
+      <div class="phil-label gsap-fade">PHILOSOPHY</div>
+      <h2 class="phil-heading gsap-up">Depth over <span class="serif">velocity.</span><br>Signal over noise.</h2>
+      <p class="phil-body gsap-up">We believe the internet's default mode — optimized for engagement, driven by outrage, rewarding the loud over the thoughtful — is a solvable problem. We just need the right infrastructure.</p>
+      <p class="phil-body gsap-up">Mindloop is built on a single conviction: meaningful content deserves meaningful distribution. Not viral loops, not algorithmic manipulation — just great writing finding the readers who need it.</p>
+      <div class="phil-stats">
+        <div class="phil-stat gsap-scale">
+          <div class="phil-stat-num">7K+</div>
+          <div class="phil-stat-label">Active readers</div>
+        </div>
+        <div class="phil-stat gsap-scale">
+          <div class="phil-stat-num">340+</div>
+          <div class="phil-stat-label">Published writers</div>
+        </div>
+        <div class="phil-stat gsap-scale">
+          <div class="phil-stat-num">92%</div>
+          <div class="phil-stat-label">Open rate avg.</div>
+        </div>
+        <div class="phil-stat gsap-scale">
+          <div class="phil-stat-num">0</div>
+          <div class="phil-stat-label">Ads, ever</div>
+        </div>
+      </div>
+    </div>
+    <div class="phil-right">
+      <div class="phil-quote gsap-right">
+        "The best writing changes how you see the world. Mindloop gave my newsletter the audience it always deserved."
+        <div class="phil-q-author">— Ana Folau, Writer & Educator</div>
+      </div>
+      <div class="phil-quote gsap-right" data-delay=".1">
+        "Finally — a platform that values depth. My open rates went from 28% to 71% in three months."
+        <div class="phil-q-author">— Mark Chen, Technology Analyst</div>
+      </div>
+      <div class="phil-quote gsap-right" data-delay=".2">
+        "The community feature alone is worth it. My readers became collaborators. I never expected that."
+        <div class="phil-q-author">— Sara Osei, Research Lead</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     CTA
+════════════════════════════════ -->
+<section id="cta">
+  <video id="cta-video" autoplay loop muted playsinline>
+    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260325_120549_0cd82c36-56b3-4dd9-b190-069cfc3a623f.mp4" type="video/mp4">
+  </video>
+  <div class="cta-overlay"></div>
+  <div class="cta-content">
+    <div class="cta-icon gsap-fade">
+      <div class="cta-icon-outer">
+        <div class="cta-icon-inner"></div>
+      </div>
+    </div>
+    <h2 class="cta-heading gsap-up">Start Your <span class="serif">Journey</span></h2>
+    <p class="cta-sub gsap-up">Join thousands of readers and writers who chose depth over noise.</p>
+    <div class="cta-btns gsap-up">
+      <button class="btn-primary">Subscribe Now</button>
+      <button class="btn-glass liquid-glass" style="padding:.875rem 2.5rem; border-radius:8px">Start Writing</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     FOOTER
+════════════════════════════════ -->
+<footer>
+  <span class="footer-copy">© 2026 Mindloop. All rights reserved.</span>
+  <div class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Contact</a>
+  </div>
+</footer>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+/* ─── HERO ENTRANCE ─── */
+window.addEventListener('DOMContentLoaded', () => {
+  const heroChildren = document.querySelectorAll('#hero .hero-content > *');
+  gsap.to(heroChildren, {
+    opacity: 1, y: 0,
+    duration: .8, stagger: .15, delay: .3,
+    ease: 'power3.out'
+  });
+  gsap.from('#navbar', { y: -20, opacity: 0, duration: .6, ease: 'power2.out' });
+});
+
+/* ─── MISSION WORD REVEAL BUILD ─── */
+const p1text = "We're building a space where curiosity meets clarity — where readers find depth, writers find reach, and every newsletter becomes a conversation worth having.";
+const p2text = "A platform where content, community, and insight flow together — with less noise, less friction, and more meaning for everyone involved.";
+const highlightWords = ['curiosity', 'meets', 'clarity'];
+
+function buildWordSpans(text, el, highlight) {
+  el.innerHTML = '';
+  text.split(' ').forEach((word, i) => {
+    const span = document.createElement('span');
+    span.className = 'word-span';
+    if (highlight && highlight.some(h => word.toLowerCase().includes(h.toLowerCase()))) {
+      span.style.color = '#fff';
+    }
+    span.textContent = word + ' ';
+    el.appendChild(span);
+  });
+}
+
+const p1el = document.getElementById('mission-p1');
+const p2el = document.getElementById('mission-p2');
+buildWordSpans(p1text, p1el, highlightWords);
+buildWordSpans(p2text, p2el, null);
+
+/* scroll-driven word lighting */
+function setupWordReveal(el) {
+  const words = el.querySelectorAll('.word-span');
+  const total = words.length;
+  ScrollTrigger.create({
+    trigger: el,
+    start: 'top 80%',
+    end: 'bottom 30%',
+    scrub: .6,
+    onUpdate(self) {
+      const prog = self.progress;
+      words.forEach((w, i) => {
+        const threshold = i / total;
+        w.style.opacity = prog >= threshold ? 1 : 0.15;
+      });
+    }
+  });
+}
+setupWordReveal(p1el);
+setupWordReveal(p2el);
+
+/* ─── GENERIC SCROLL ANIMATIONS ─── */
+/* fade */
+gsap.utils.toArray('.gsap-fade').forEach(el => {
+  gsap.fromTo(el,
+    { opacity: 0 },
+    { opacity: 1, duration: .9, ease: 'power2.out',
+      scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' } }
+  );
+});
+
+/* slide up */
+gsap.utils.toArray('.gsap-up').forEach(el => {
+  const delay = parseFloat(el.dataset.delay || 0);
+  gsap.fromTo(el,
+    { opacity: 0, y: 40 },
+    { opacity: 1, y: 0, duration: .75, delay, ease: 'power3.out',
+      scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' } }
+  );
+});
+
+/* slide left */
+gsap.utils.toArray('.gsap-left').forEach(el => {
+  const delay = parseFloat(el.dataset.delay || 0);
+  gsap.fromTo(el,
+    { opacity: 0, x: -40 },
+    { opacity: 1, x: 0, duration: .75, delay, ease: 'power3.out',
+      scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' } }
+  );
+});
+
+/* slide right */
+gsap.utils.toArray('.gsap-right').forEach(el => {
+  const delay = parseFloat(el.dataset.delay || 0);
+  gsap.fromTo(el,
+    { opacity: 0, x: 40 },
+    { opacity: 1, x: 0, duration: .75, delay, ease: 'power3.out',
+      scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' } }
+  );
+});
+
+/* scale */
+gsap.utils.toArray('.gsap-scale').forEach(el => {
+  gsap.fromTo(el,
+    { opacity: 0, scale: 0.94 },
+    { opacity: 1, scale: 1, duration: .9, ease: 'power2.out',
+      scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' } }
+  );
+});
+
+/* ─── NAVBAR SCROLL GLASS ─── */
+ScrollTrigger.create({
+  start: 'top -60px',
+  onUpdate(self) {
+    const nav = document.getElementById('navbar');
+    if (self.direction === 1 && window.scrollY > 60) {
+      nav.style.background = 'rgba(0,0,0,0.7)';
+      nav.style.backdropFilter = 'blur(12px)';
+    } else if (window.scrollY <= 60) {
+      nav.style.background = 'transparent';
+      nav.style.backdropFilter = 'none';
+    }
+  }
+});
+
+/* ─── SECTION PARALLAX TITLES ─── */
+['#search h2','#solution .solution-heading','#cta .cta-heading'].forEach(sel => {
+  const el = document.querySelector(sel);
+  if (!el) return;
+  gsap.to(el, {
+    yPercent: -8, ease: 'none',
+    scrollTrigger: { trigger: el.closest('section') || el.parentElement, start: 'top bottom', end: 'bottom top', scrub: true }
+  });
+});
+
+/* ─── FEATURE CARDS LINE REVEAL ─── */
+gsap.utils.toArray('.feature-item, .usecase-card').forEach((card, i) => {
+  card.addEventListener('mouseenter', () => {
+    gsap.to(card, { borderColor: 'rgba(255,255,255,0.22)', duration: .3 });
+  });
+  card.addEventListener('mouseleave', () => {
+    gsap.to(card, { borderColor: 'rgba(255,255,255,0.08)', duration: .3 });
+  });
+});
+
+/* ─── PHILOSOPHY STATS COUNTER ─── */
+const statNums = document.querySelectorAll('.phil-stat-num');
+statNums.forEach(el => {
+  const text = el.textContent;
+  const num = parseInt(text);
+  if (isNaN(num)) return;
+  el.textContent = '0';
+  ScrollTrigger.create({
+    trigger: el,
+    start: 'top 85%',
+    onEnter: () => {
+      gsap.to({ v: 0 }, {
+        v: num, duration: 1.4, ease: 'power2.out',
+        onUpdate() { el.textContent = Math.round(this.targets()[0].v) + (text.includes('%') ? '%' : text.includes('+') ? '+' : text.includes('K') ? 'K+' : ''); }
+      });
+    }
+  });
+});
+</script>
+</body>
+</html>

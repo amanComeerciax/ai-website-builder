@@ -42,6 +42,7 @@ import ProjectHoverPreview from './ProjectHoverPreview'
 import CreateWorkspaceModal from './modals/CreateWorkspaceModal'
 import InviteMembersModal from './modals/InviteMembersModal'
 import InboxPanel from './InboxPanel'
+import SearchModal from './SearchModal'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import { useInvitationStore } from '../stores/invitationStore'
 import './Sidebar.css'
@@ -60,6 +61,7 @@ export default function Sidebar() {
     const navigate = useNavigate()
     const [isProjectsExpanded, setIsProjectsExpanded] = useState(false)
     const [isCreatedByMeExpanded, setIsCreatedByMeExpanded] = useState(false)
+    const [isSearchOpen, setIsSearchOpen] = useState(false)
 
     // Three-dot menu
     const [menuOpenId, setMenuOpenId] = useState(null)
@@ -90,6 +92,18 @@ export default function Sidebar() {
             return () => document.removeEventListener('mousedown', handleClickOutside)
         }
     }, [isUserProfileOpen])
+
+    // ⌘K / Ctrl+K global shortcut to open search
+    useEffect(() => {
+        const handleSearchShortcut = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault()
+                setIsSearchOpen(prev => !prev)
+            }
+        }
+        window.addEventListener('keydown', handleSearchShortcut)
+        return () => window.removeEventListener('keydown', handleSearchShortcut)
+    }, [])
 
     // Get up to 3 most recently edited projects
     const recentProjects = projects.slice(0, 3)
@@ -300,7 +314,7 @@ export default function Sidebar() {
                     <Home size={14} />
                     <span>Home</span>
                 </NavLink>
-                <button className="lv-nav-link">
+                <button className="lv-nav-link" onClick={() => setIsSearchOpen(true)}>
                     <Search size={14} />
                     <span>Search</span>
                     <div className="lv-badge">⌘K</div>
@@ -580,6 +594,10 @@ export default function Sidebar() {
         <InviteMembersModal
             isOpen={isInviteModalOpen}
             onClose={() => setInviteModalOpen(false)}
+        />
+        <SearchModal
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
         />
         </>
     )

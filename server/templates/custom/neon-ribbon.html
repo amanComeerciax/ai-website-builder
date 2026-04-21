@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NEON RIBBON</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',sans-serif;
+  background:#000;
+  color:#fff;
+  overflow-x:hidden;
+  cursor:none;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── CANVAS BG ── */
+#ribbon-canvas{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:0;
+  display:block;
+  touch-action:none;
+}
+
+/* ── CUSTOM CURSOR ── */
+#cursor{
+  position:fixed;
+  width:8px;height:8px;
+  background:#fff;
+  border-radius:50%;
+  pointer-events:none;
+  z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:transform .1s,opacity .2s;
+  mix-blend-mode:difference;
+}
+#cursor-ring{
+  position:fixed;
+  width:32px;height:32px;
+  border:1px solid rgba(255,255,255,.4);
+  border-radius:50%;
+  pointer-events:none;
+  z-index:9998;
+  transform:translate(-50%,-50%);
+  transition:transform .15s cubic-bezier(.4,0,.2,1),width .2s,height .2s,opacity .2s;
+}
+
+/* ── CONTENT LAYER ── */
+.content{position:relative;z-index:10;}
+
+/* ── NAVBAR ── */
+.navbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.25rem 4rem;
+  background:transparent;
+  transition:background .4s,backdrop-filter .4s;
+}
+.navbar.scrolled{
+  background:rgba(0,0,0,.6);
+  backdrop-filter:blur(16px);
+}
+@media(max-width:768px){.navbar{padding:1rem 1.5rem}}
+.nav-logo{
+  font-size:1.1rem;font-weight:900;letter-spacing:.25em;
+  text-transform:uppercase;
+  background:linear-gradient(90deg,#22d3ee,#a855f7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.nav-links{display:flex;gap:2rem;}
+@media(max-width:640px){.nav-links{display:none}}
+.nav-links a{
+  color:rgba(255,255,255,.55);font-size:.85rem;text-decoration:none;
+  font-weight:400;letter-spacing:.05em;transition:color .2s;
+}
+.nav-links a:hover{color:#fff;}
+.nav-btn{
+  padding:.5rem 1.5rem;border:1px solid rgba(255,255,255,.2);
+  border-radius:9999px;font-size:.8rem;font-weight:500;
+  background:rgba(255,255,255,.05);color:#fff;
+  backdrop-filter:blur(4px);cursor:none;
+  transition:background .2s,border-color .2s;
+  font-family:'Inter',sans-serif;
+}
+.nav-btn:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.4);}
+
+/* ── HERO ── */
+#hero{
+  position:relative;
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;
+  padding:8rem 2rem 4rem;
+  overflow:hidden;
+}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:.5rem;
+  font-size:.7rem;letter-spacing:.25em;text-transform:uppercase;
+  color:rgba(255,255,255,.4);margin-bottom:2rem;
+  border:1px solid rgba(255,255,255,.1);
+  padding:.4rem 1rem;border-radius:9999px;
+  background:rgba(255,255,255,.03);
+  backdrop-filter:blur(4px);
+}
+.hero-tag-dot{width:6px;height:6px;border-radius:50%;background:#22d3ee;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.hero-title{
+  font-size:clamp(4rem,12vw,10rem);
+  font-weight:900;letter-spacing:-.04em;line-height:.95;
+  text-transform:uppercase;
+  background:linear-gradient(135deg,#22d3ee 0%,#a855f7 50%,#ec4899 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 60px rgba(34,211,238,.3));
+  margin-bottom:1.5rem;
+}
+.hero-sub{
+  font-size:1.2rem;color:rgba(255,255,255,.6);
+  font-weight:300;max-width:42ch;
+  line-height:1.75;margin-bottom:3rem;
+}
+.hero-sub b{color:rgba(255,255,255,.9);font-weight:500;}
+.hero-btns{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;}
+.btn-primary{
+  padding:.875rem 2.5rem;border-radius:9999px;
+  background:linear-gradient(135deg,#22d3ee,#a855f7);
+  color:#000;font-weight:700;font-size:.875rem;letter-spacing:.05em;
+  border:none;cursor:none;font-family:'Inter',sans-serif;
+  transition:transform .2s,filter .2s;
+  text-transform:uppercase;
+}
+.btn-primary:hover{transform:translateY(-2px) scale(1.03);filter:brightness(1.1);}
+.btn-secondary{
+  padding:.875rem 2.5rem;border-radius:9999px;
+  border:1px solid rgba(255,255,255,.2);
+  color:#fff;font-size:.875rem;font-weight:500;
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(8px);
+  cursor:none;font-family:'Inter',sans-serif;
+  transition:background .2s,border-color .2s;
+}
+.btn-secondary:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.4);}
+.hero-scroll{
+  position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:.5rem;
+  color:rgba(255,255,255,.3);font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;
+}
+.scroll-line{
+  width:1px;height:40px;
+  background:linear-gradient(to bottom,rgba(255,255,255,.3),transparent);
+  animation:scroll-anim 1.8s ease-in-out infinite;
+}
+@keyframes scroll-anim{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* ── FEATURES ── */
+#features{
+  position:relative;
+  padding:8rem 4rem;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+@media(max-width:768px){#features{padding:5rem 1.5rem}}
+.section-label{
+  font-size:.68rem;letter-spacing:.25em;text-transform:uppercase;
+  color:rgba(255,255,255,.35);margin-bottom:1rem;font-weight:600;
+  display:flex;align-items:center;gap:.6rem;
+}
+.section-label::before{content:'';width:20px;height:1px;background:rgba(255,255,255,.3);}
+.section-title{
+  font-size:clamp(2rem,5vw,4rem);font-weight:800;letter-spacing:-.04em;
+  line-height:1.05;margin-bottom:1.25rem;
+}
+.gradient-text{
+  background:linear-gradient(135deg,#22d3ee,#a855f7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.features-header{max-width:560px;margin-bottom:5rem;}
+.features-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;
+}
+@media(max-width:900px){.features-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.features-grid{grid-template-columns:1fr}}
+.feature-card{
+  padding:2rem;border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;background:rgba(255,255,255,.02);
+  position:relative;overflow:hidden;
+  transition:border-color .4s,transform .4s,background .4s;
+}
+.feature-card::before{
+  content:'';position:absolute;inset:0;border-radius:16px;
+  background:linear-gradient(135deg,rgba(34,211,238,.05),rgba(168,85,247,.05));
+  opacity:0;transition:opacity .4s;
+}
+.feature-card:hover{
+  border-color:rgba(34,211,238,.25);
+  transform:translateY(-6px);
+  background:rgba(255,255,255,.04);
+}
+.feature-card:hover::before{opacity:1;}
+.feature-icon{
+  width:48px;height:48px;border-radius:12px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;margin-bottom:1.25rem;
+  transition:border-color .4s;
+}
+.feature-card:hover .feature-icon{border-color:rgba(34,211,238,.3);}
+.feature-title{font-size:.975rem;font-weight:700;margin-bottom:.6rem;letter-spacing:-.01em;}
+.feature-desc{font-size:.825rem;color:rgba(255,255,255,.4);line-height:1.7;font-weight:300;}
+
+/* ── HOW IT WORKS ── */
+#how{
+  padding:8rem 4rem;
+  border-top:1px solid rgba(255,255,255,.06);
+  text-align:center;
+}
+@media(max-width:768px){#how{padding:5rem 1.5rem}}
+.how-header{margin-bottom:5rem;}
+.steps-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;
+  max-width:1000px;margin:0 auto;
+}
+@media(max-width:768px){.steps-row{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.steps-row{grid-template-columns:1fr}}
+.step-item{position:relative;padding:2rem 1.5rem;text-align:left;}
+.step-num{
+  font-size:4rem;font-weight:900;letter-spacing:-.04em;
+  color:rgba(255,255,255,.04);line-height:1;margin-bottom:.75rem;
+  background:linear-gradient(135deg,rgba(34,211,238,.15),rgba(168,85,247,.15));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.step-title{font-size:.95rem;font-weight:700;margin-bottom:.5rem;}
+.step-desc{font-size:.8rem;color:rgba(255,255,255,.4);line-height:1.65;font-weight:300;}
+.step-connector{
+  position:absolute;top:3.25rem;right:-1rem;
+  width:2rem;height:1px;
+  background:linear-gradient(90deg,rgba(34,211,238,.3),rgba(168,85,247,.3));
+}
+@media(max-width:768px){.step-connector{display:none}}
+
+/* ── DEMO SECTION ── */
+#demo{
+  padding:8rem 4rem;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+@media(max-width:768px){#demo{padding:5rem 1.5rem}}
+.demo-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;
+}
+@media(max-width:900px){.demo-grid{grid-template-columns:1fr;gap:3rem}}
+.demo-canvas-wrap{
+  aspect-ratio:4/3;border-radius:20px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);
+  background:#000;position:relative;
+}
+.demo-canvas-inner{
+  position:relative;width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+}
+#mini-canvas{width:100%;height:100%;display:block;}
+.demo-badge{
+  position:absolute;bottom:1rem;right:1rem;
+  font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;
+  color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);
+  padding:.3rem .75rem;border-radius:9999px;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+}
+.demo-content{display:flex;flex-direction:column;gap:1.5rem;}
+.demo-title{font-size:clamp(1.75rem,3.5vw,3rem);font-weight:800;letter-spacing:-.04em;line-height:1.1;}
+.demo-body{font-size:.9375rem;color:rgba(255,255,255,.5);line-height:1.8;font-weight:300;}
+.demo-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:.5rem;}
+.demo-stat{padding:1.25rem;border:1px solid rgba(255,255,255,.07);border-radius:12px;text-align:center;}
+.demo-stat-num{
+  font-size:1.75rem;font-weight:800;letter-spacing:-.04em;
+  background:linear-gradient(135deg,#22d3ee,#a855f7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.demo-stat-label{font-size:.7rem;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;font-weight:500;}
+
+/* ── TECH SECTION ── */
+#tech{
+  padding:8rem 4rem;
+  border-top:1px solid rgba(255,255,255,.06);
+  text-align:center;
+}
+@media(max-width:768px){#tech{padding:5rem 1.5rem}}
+.tech-marquee{overflow:hidden;margin-top:3rem;padding:1.5rem 0;}
+.tech-track{
+  display:flex;gap:3rem;
+  animation:marquee 20s linear infinite;
+  width:max-content;
+}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tech-chip{
+  display:flex;align-items:center;gap:.6rem;
+  padding:.6rem 1.25rem;border-radius:9999px;
+  border:1px solid rgba(255,255,255,.1);
+  font-size:.8rem;font-weight:500;color:rgba(255,255,255,.55);
+  white-space:nowrap;background:rgba(255,255,255,.03);
+}
+.tech-chip span{font-size:1.1rem;}
+
+/* ── TESTIMONIALS ── */
+#testimonials{
+  padding:8rem 4rem;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+@media(max-width:768px){#testimonials{padding:5rem 1.5rem}}
+.testi-header{text-align:center;margin-bottom:4rem;}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;}
+@media(max-width:900px){.testi-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.testi-grid{grid-template-columns:1fr}}
+.testi-card{
+  padding:2rem;border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;background:rgba(255,255,255,.02);
+  transition:border-color .3s,transform .3s;
+}
+.testi-card:hover{border-color:rgba(168,85,247,.25);transform:translateY(-4px);}
+.testi-stars{font-size:.85rem;margin-bottom:1rem;letter-spacing:.1em;}
+.testi-quote{font-size:.875rem;color:rgba(255,255,255,.65);line-height:1.8;font-weight:300;margin-bottom:1.5rem;}
+.testi-sep{width:1.5rem;height:1px;background:linear-gradient(90deg,#22d3ee,#a855f7);margin-bottom:1rem;}
+.testi-name{font-size:.875rem;font-weight:600;}
+.testi-role{font-size:.75rem;color:rgba(255,255,255,.35);font-weight:300;margin-top:.2rem;}
+
+/* ── CTA SECTION ── */
+#cta-section{
+  padding:8rem 4rem;
+  border-top:1px solid rgba(255,255,255,.06);
+  text-align:center;position:relative;overflow:hidden;
+}
+@media(max-width:768px){#cta-section{padding:5rem 1.5rem}}
+.cta-glow{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:600px;height:600px;
+  background:radial-gradient(circle,rgba(34,211,238,.07) 0%,rgba(168,85,247,.04) 40%,transparent 70%);
+  pointer-events:none;
+}
+.cta-title{
+  font-size:clamp(2.5rem,7vw,6rem);font-weight:900;letter-spacing:-.04em;
+  line-height:.95;text-transform:uppercase;margin-bottom:1.5rem;
+  background:linear-gradient(135deg,#fff 0%,#22d3ee 40%,#a855f7 70%,#ec4899 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.cta-sub{font-size:1.05rem;color:rgba(255,255,255,.45);max-width:40ch;margin:0 auto 3rem;line-height:1.7;font-weight:300;}
+.cta-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;}
+
+/* ── FOOTER ── */
+footer{
+  padding:2.5rem 4rem;
+  border-top:1px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:1rem;
+}
+@media(max-width:768px){footer{padding:2rem 1.5rem}}
+.footer-brand{
+  font-size:.9rem;font-weight:900;letter-spacing:.2em;text-transform:uppercase;
+  background:linear-gradient(90deg,#22d3ee,#a855f7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.footer-copy{font-size:.75rem;color:rgba(255,255,255,.25);font-weight:300;}
+.footer-links{display:flex;gap:1.5rem;}
+.footer-links a{font-size:.75rem;color:rgba(255,255,255,.3);text-decoration:none;font-weight:300;transition:color .2s;}
+.footer-links a:hover{color:#fff;}
+
+/* ── GSAP INIT STATES ── */
+.gsap-up{opacity:0;transform:translateY(50px);}
+.gsap-fade{opacity:0;}
+.gsap-left{opacity:0;transform:translateX(-50px);}
+.gsap-right{opacity:0;transform:translateX(50px);}
+.gsap-scale{opacity:0;transform:scale(0.9);}
+</style>
+</head>
+<body>
+
+<!-- CANVAS BG -->
+<canvas id="ribbon-canvas"></canvas>
+
+<!-- CUSTOM CURSOR -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<div class="content">
+
+<!-- ════════════════════ NAVBAR ════════════════════ -->
+<nav class="navbar" id="navbar">
+  <div class="nav-logo">NeonRibbon</div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How It Works</a>
+    <a href="#demo">Demo</a>
+    <a href="#tech">Tech</a>
+  </div>
+  <button class="nav-btn">Get Started</button>
+</nav>
+
+<!-- ════════════════════ HERO ════════════════════ -->
+<section id="hero">
+  <div class="hero-tag" id="hero-tag">
+    <span class="hero-tag-dot"></span>
+    Canvas API · Real-time Generative Art
+  </div>
+  <h1 class="hero-title" id="hero-title">NEON RIBBON</h1>
+  <p class="hero-sub" id="hero-sub">
+    Move your cursor to <b>paint with light.</b><br>
+    Next.js + Tailwind + Canvas API — a mesmerizing neon ribbon that follows your every move.
+  </p>
+  <div class="hero-btns" id="hero-btns">
+    <button class="btn-primary">Get Started</button>
+    <button class="btn-secondary">View Source</button>
+  </div>
+  <div class="hero-scroll">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- ════════════════════ FEATURES ════════════════════ -->
+<section id="features">
+  <div class="features-header">
+    <div class="section-label gsap-fade">What Makes It Special</div>
+    <h2 class="section-title gsap-up">Built for <span class="gradient-text">beauty</span> and performance</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card gsap-up" data-delay="0">
+      <div class="feature-icon">✦</div>
+      <div class="feature-title">Smooth Bezier Curves</div>
+      <p class="feature-desc">Quadratic Bezier interpolation between mouse points creates silky-smooth ribbon trails that feel natural and fluid.</p>
+    </div>
+    <div class="feature-card gsap-up" data-delay=".08">
+      <div class="feature-icon">🎨</div>
+      <div class="feature-title">Dynamic Color Cycling</div>
+      <p class="feature-desc">Sine-wave driven RGB color oscillation produces an ever-changing spectrum across the full visible range.</p>
+    </div>
+    <div class="feature-card gsap-up" data-delay=".16">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">60fps Performance</div>
+      <p class="feature-desc">requestAnimationFrame loop with efficient canvas clear strategy keeps every interaction buttery at full frame rate.</p>
+    </div>
+    <div class="feature-card gsap-up" data-delay=".04">
+      <div class="feature-icon">🌊</div>
+      <div class="feature-title">Trail Fade Effect</div>
+      <p class="feature-desc">Semi-transparent black fill creates a persistent trail ghost — giving the ribbon its luminous, glowing appearance.</p>
+    </div>
+    <div class="feature-card gsap-up" data-delay=".12">
+      <div class="feature-icon">💫</div>
+      <div class="feature-title">Additive Blending</div>
+      <p class="feature-desc">WebGL-style additive compositing (lighter blend mode) makes overlapping ribbons bloom with HDR-like neon glow.</p>
+    </div>
+    <div class="feature-card gsap-up" data-delay=".2">
+      <div class="feature-icon">📱</div>
+      <div class="feature-title">Touch Support</div>
+      <p class="feature-desc">Full touchmove event handling means the ribbon works on any device — mobile, tablet, or desktop.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ HOW IT WORKS ════════════════════ -->
+<section id="how">
+  <div class="how-header">
+    <div class="section-label gsap-fade" style="justify-content:center;margin-bottom:1rem">The Algorithm</div>
+    <h2 class="section-title gsap-up">How the <span class="gradient-text">ribbon</span> works</h2>
+    <p class="gsap-fade" style="color:rgba(255,255,255,.4);font-size:.9375rem;max-width:44ch;margin:.75rem auto 0;line-height:1.7;font-weight:300">Four elegant steps that turn raw mouse coordinates into generative neon art.</p>
+  </div>
+  <div class="steps-row">
+    <div class="step-item gsap-up" data-delay="0">
+      <div class="step-num">01</div>
+      <div class="step-title">Track Position</div>
+      <p class="step-desc">Every mousemove captures clientX/Y and diffs against the previous frame to compute velocity vectors.</p>
+      <div class="step-connector"></div>
+    </div>
+    <div class="step-item gsap-up" data-delay=".1">
+      <div class="step-num">02</div>
+      <div class="step-title">Push Points</div>
+      <p class="step-desc">New point objects with position, velocity, size, and color are pushed onto a capped FIFO array of 120 entries.</p>
+      <div class="step-connector"></div>
+    </div>
+    <div class="step-item gsap-up" data-delay=".2">
+      <div class="step-num">03</div>
+      <div class="step-title">Draw Curves</div>
+      <p class="step-desc">Triplets of consecutive points drive quadratic Bezier curves with opacity fading toward the tail end.</p>
+      <div class="step-connector"></div>
+    </div>
+    <div class="step-item gsap-up" data-delay=".3">
+      <div class="step-num">04</div>
+      <div class="step-title">Composite & Glow</div>
+      <p class="step-desc">Lighter blend mode draws lines three times per frame, creating an additive glow where the ribbon overlaps itself.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ DEMO ════════════════════ -->
+<section id="demo">
+  <div class="demo-grid">
+    <div class="gsap-scale">
+      <div class="demo-canvas-wrap">
+        <div class="demo-canvas-inner">
+          <canvas id="mini-canvas"></canvas>
+        </div>
+        <div class="demo-badge">Interactive Preview</div>
+      </div>
+    </div>
+    <div class="demo-content">
+      <div class="section-label gsap-fade">Live Interaction</div>
+      <h2 class="demo-title gsap-up">Move your cursor <span class="gradient-text">inside</span> the box</h2>
+      <p class="demo-body gsap-up">The canvas to the left is a live instance of the exact same ribbon algorithm. Every pixel is painted in real time by your cursor movement — no pre-recorded animation, no video file.</p>
+      <div class="demo-stats gsap-up">
+        <div class="demo-stat">
+          <div class="demo-stat-num">120</div>
+          <div class="demo-stat-label">Max Points</div>
+        </div>
+        <div class="demo-stat">
+          <div class="demo-stat-num">60fps</div>
+          <div class="demo-stat-label">Frame Rate</div>
+        </div>
+        <div class="demo-stat">
+          <div class="demo-stat-num">3×</div>
+          <div class="demo-stat-label">Draw Passes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ TECH ════════════════════ -->
+<section id="tech">
+  <div class="section-label gsap-fade" style="justify-content:center;margin-bottom:1rem">Built With</div>
+  <h2 class="section-title gsap-up">The <span class="gradient-text">technology</span> stack</h2>
+  <p class="gsap-fade" style="color:rgba(255,255,255,.4);font-size:.9rem;max-width:40ch;margin:.75rem auto 0;line-height:1.7;font-weight:300">Zero external rendering dependencies. Pure browser APIs doing all the heavy lifting.</p>
+  <div class="tech-marquee" id="tech-marquee">
+    <div class="tech-track" id="tech-track">
+      <div class="tech-chip"><span>⚡</span> Canvas 2D API</div>
+      <div class="tech-chip"><span>🔁</span> requestAnimationFrame</div>
+      <div class="tech-chip"><span>🎨</span> Composite Blending</div>
+      <div class="tech-chip"><span>📐</span> Bezier Curves</div>
+      <div class="tech-chip"><span>🌈</span> RGB Sine Waves</div>
+      <div class="tech-chip"><span>⚛️</span> React Hooks</div>
+      <div class="tech-chip"><span>🔷</span> TypeScript</div>
+      <div class="tech-chip"><span>🎯</span> Tailwind CSS</div>
+      <div class="tech-chip"><span>▲</span> Next.js 14</div>
+      <div class="tech-chip"><span>🖱️</span> Pointer Events</div>
+      <div class="tech-chip"><span>📱</span> Touch API</div>
+      <div class="tech-chip"><span>⚡</span> Canvas 2D API</div>
+      <div class="tech-chip"><span>🔁</span> requestAnimationFrame</div>
+      <div class="tech-chip"><span>🎨</span> Composite Blending</div>
+      <div class="tech-chip"><span>📐</span> Bezier Curves</div>
+      <div class="tech-chip"><span>🌈</span> RGB Sine Waves</div>
+      <div class="tech-chip"><span>⚛️</span> React Hooks</div>
+      <div class="tech-chip"><span>🔷</span> TypeScript</div>
+      <div class="tech-chip"><span>🎯</span> Tailwind CSS</div>
+      <div class="tech-chip"><span>▲</span> Next.js 14</div>
+      <div class="tech-chip"><span>🖱️</span> Pointer Events</div>
+      <div class="tech-chip"><span>📱</span> Touch API</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ TESTIMONIALS ════════════════════ -->
+<section id="testimonials">
+  <div class="testi-header">
+    <div class="section-label gsap-fade" style="justify-content:center;margin-bottom:1rem">Community Love</div>
+    <h2 class="section-title gsap-up">Developers <span class="gradient-text">love</span> it</h2>
+  </div>
+  <div class="testi-grid">
+    <div class="testi-card gsap-up" data-delay="0">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">"This is the most mesmerizing cursor effect I've ever shipped to production. The additive blending trick is genius."</p>
+      <div class="testi-sep"></div>
+      <div class="testi-name">Alex Chen</div>
+      <div class="testi-role">Frontend Engineer, Vercel</div>
+    </div>
+    <div class="testi-card gsap-up" data-delay=".1">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">"Dropped this into my portfolio and the time-on-page went up 3× overnight. Visitors just can't stop drawing with the cursor."</p>
+      <div class="testi-sep"></div>
+      <div class="testi-name">Sofia Mendes</div>
+      <div class="testi-role">Creative Developer</div>
+    </div>
+    <div class="testi-card gsap-up" data-delay=".2">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">"The sine-wave color cycling approach is so elegant. 30 lines of math producing infinite unique gradients — beautiful."</p>
+      <div class="testi-sep"></div>
+      <div class="testi-name">Marcus Okafor</div>
+      <div class="testi-role">Generative Artist & Dev</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ CTA ════════════════════ -->
+<section id="cta-section">
+  <div class="cta-glow"></div>
+  <div class="cta-title gsap-up">PAINT<br>WITH LIGHT</div>
+  <p class="cta-sub gsap-up">Open source. Zero dependencies. Drop it into any project and watch your users become artists.</p>
+  <div class="cta-btns gsap-up">
+    <button class="btn-primary">Get Started Free</button>
+    <button class="btn-secondary">View on GitHub</button>
+  </div>
+</section>
+
+<!-- ════════════════════ FOOTER ════════════════════ -->
+<footer>
+  <div>
+    <div class="footer-brand">NeonRibbon</div>
+    <div class="footer-copy" style="margin-top:.35rem">Canvas API · Generative Art · Open Source</div>
+  </div>
+  <span class="footer-copy">© 2026 NeonRibbon. MIT License.</span>
+  <div class="footer-links">
+    <a href="#">GitHub</a>
+    <a href="#">npm</a>
+    <a href="#">Docs</a>
+  </div>
+</footer>
+
+</div><!-- /content -->
+
+<script>
+/* ═══════════════════════════════════════
+   RIBBON CANVAS — FULL SCREEN
+═══════════════════════════════════════ */
+const CONFIG = {
+  SPEED_X: 0.15, SPEED_Y: 0.15, MAX_LENGTH: 120,
+  RED_STEP: 0.02, GREEN_STEP: 0.015, BLUE_STEP: 0.025,
+  SPREAD_LIMIT: 20,
+};
+
+const canvas = document.getElementById('ribbon-canvas');
+const ctx = canvas.getContext('2d');
+let points = [];
+let mouse = { x: window.innerWidth/2, y: window.innerHeight/2 };
+let prevMouse = { x: window.innerWidth/2, y: window.innerHeight/2 };
+let colorState = { red: 0, green: 255, blue: 255, size: 0 };
+
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function spreadPoint(p){ p.x += p.dx; p.y += p.dy; }
+
+function drawLines(c, pts){
+  const total = pts.length;
+  if(total < 3) return;
+  for(let i = total-1; i > 1; i--){
+    const p0 = pts[i], p1 = pts[i-1], p2 = pts[i-2];
+    c.beginPath();
+    c.strokeStyle = p0.color;
+    c.lineWidth = p0.size;
+    c.globalAlpha = i / total;
+    c.moveTo((p1.x+p0.x)/2,(p1.y+p0.y)/2);
+    c.quadraticCurveTo(p1.x,p1.y,(p1.x+p2.x)/2,(p1.y+p2.y)/2);
+    c.stroke();
+    spreadPoint(p0);
+  }
+  if(pts[0]) spreadPoint(pts[0]);
+  if(pts[total-1]) spreadPoint(pts[total-1]);
+}
+
+function ribbonDraw(){
+  let dx = (mouse.x - prevMouse.x) * CONFIG.SPEED_X;
+  let dy = (mouse.y - prevMouse.y) * CONFIG.SPEED_Y;
+  const lim = CONFIG.SPREAD_LIMIT;
+  dx = Math.max(-lim, Math.min(lim, dx));
+  dy = Math.max(-lim, Math.min(lim, dy));
+  prevMouse.x = mouse.x; prevMouse.y = mouse.y;
+
+  colorState.size += 0.125;
+  colorState.red += CONFIG.RED_STEP;
+  colorState.green += CONFIG.GREEN_STEP;
+  colorState.blue += CONFIG.BLUE_STEP;
+
+  const size = Math.abs(Math.sin(colorState.size) * 10) + 1;
+  const r = Math.floor(Math.sin(colorState.red) * 128 + 128);
+  const g = Math.floor(Math.sin(colorState.green) * 128 + 128);
+  const b = Math.floor(Math.sin(colorState.blue) * 128 + 128);
+
+  points.push({ x: mouse.x, y: mouse.y, dx, dy, size, color: `rgb(${r},${g},${b})` });
+  if(points.length > CONFIG.MAX_LENGTH) points.shift();
+
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(0,0,0,0.05)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.globalCompositeOperation = 'lighter';
+  drawLines(ctx, points);
+  drawLines(ctx, points);
+  drawLines(ctx, points);
+
+  requestAnimationFrame(ribbonDraw);
+}
+
+window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+window.addEventListener('touchmove', e => {
+  e.preventDefault();
+  mouse.x = e.touches[0].clientX;
+  mouse.y = e.touches[0].clientY;
+}, { passive: false });
+
+ribbonDraw();
+
+/* ═══════════════════════════════════════
+   MINI CANVAS — DEMO SECTION
+═══════════════════════════════════════ */
+const miniCanvas = document.getElementById('mini-canvas');
+const mCtx = miniCanvas.getContext('2d');
+let mPoints = [];
+let mMouse = { x: 0, y: 0 };
+let mPrevMouse = { x: 0, y: 0 };
+let mColor = { red: 100, green: 200, blue: 50, size: 0 };
+let miniActive = false;
+
+function resizeMini(){
+  const wrap = miniCanvas.parentElement;
+  miniCanvas.width = wrap.offsetWidth;
+  miniCanvas.height = wrap.offsetHeight;
+  mMouse = { x: miniCanvas.width/2, y: miniCanvas.height/2 };
+  mPrevMouse = { x: miniCanvas.width/2, y: miniCanvas.height/2 };
+}
+
+function miniDraw(){
+  if(miniActive){
+    let dx = (mMouse.x - mPrevMouse.x) * CONFIG.SPEED_X;
+    let dy = (mMouse.y - mPrevMouse.y) * CONFIG.SPEED_Y;
+    const lim = CONFIG.SPREAD_LIMIT;
+    dx = Math.max(-lim,Math.min(lim,dx));
+    dy = Math.max(-lim,Math.min(lim,dy));
+    mPrevMouse.x = mMouse.x; mPrevMouse.y = mMouse.y;
+    mColor.size += 0.125;
+    mColor.red += CONFIG.RED_STEP * 1.5;
+    mColor.green += CONFIG.GREEN_STEP * 1.5;
+    mColor.blue += CONFIG.BLUE_STEP * 1.5;
+    const size = Math.abs(Math.sin(mColor.size)*10)+1;
+    const r = Math.floor(Math.sin(mColor.red)*128+128);
+    const g = Math.floor(Math.sin(mColor.green)*128+128);
+    const b = Math.floor(Math.sin(mColor.blue)*128+128);
+    mPoints.push({ x:mMouse.x,y:mMouse.y,dx,dy,size,color:`rgb(${r},${g},${b})` });
+    if(mPoints.length > CONFIG.MAX_LENGTH) mPoints.shift();
+  }
+
+  mCtx.globalCompositeOperation = 'source-over';
+  mCtx.globalAlpha = 1;
+  mCtx.fillStyle = 'rgba(0,0,0,0.05)';
+  mCtx.fillRect(0,0,miniCanvas.width,miniCanvas.height);
+
+  if(mPoints.length >= 3){
+    mCtx.globalCompositeOperation = 'lighter';
+    drawLines(mCtx, mPoints);
+    drawLines(mCtx, mPoints);
+    drawLines(mCtx, mPoints);
+  }
+
+  requestAnimationFrame(miniDraw);
+}
+
+miniCanvas.addEventListener('mousemove', e => {
+  const rect = miniCanvas.getBoundingClientRect();
+  mMouse.x = e.clientX - rect.left;
+  mMouse.y = e.clientY - rect.top;
+  miniActive = true;
+});
+miniCanvas.addEventListener('mouseleave', () => { miniActive = false; });
+miniCanvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const rect = miniCanvas.getBoundingClientRect();
+  mMouse.x = e.touches[0].clientX - rect.left;
+  mMouse.y = e.touches[0].clientY - rect.top;
+  miniActive = true;
+}, { passive: false });
+
+window.addEventListener('load', () => { resizeMini(); miniDraw(); });
+window.addEventListener('resize', resizeMini);
+
+/* ═══════════════════════════════════════
+   CUSTOM CURSOR
+═══════════════════════════════════════ */
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let cursorX = 0, cursorY = 0, ringX = 0, ringY = 0;
+
+document.addEventListener('mousemove', e => {
+  cursorX = e.clientX; cursorY = e.clientY;
+  cursor.style.left = cursorX + 'px';
+  cursor.style.top  = cursorY + 'px';
+});
+
+function animateCursor(){
+  ringX += (cursorX - ringX) * 0.12;
+  ringY += (cursorY - ringY) * 0.12;
+  ring.style.left = ringX + 'px';
+  ring.style.top  = ringY + 'px';
+  requestAnimationFrame(animateCursor);
+}
+animateCursor();
+
+document.querySelectorAll('button, a, .feature-card, .testi-card').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    ring.style.width = '52px'; ring.style.height = '52px';
+    ring.style.borderColor = 'rgba(34,211,238,.6)';
+  });
+  el.addEventListener('mouseleave', () => {
+    ring.style.width = '32px'; ring.style.height = '32px';
+    ring.style.borderColor = 'rgba(255,255,255,.4)';
+  });
+});
+
+/* ═══════════════════════════════════════
+   GSAP SCROLL ANIMATIONS
+═══════════════════════════════════════ */
+gsap.registerPlugin(ScrollTrigger);
+
+/* hero entrance */
+window.addEventListener('DOMContentLoaded', () => {
+  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+  tl.to('#hero-tag',   { opacity:1, y:0, duration:.6 }, .4)
+    .to('#hero-title', { opacity:1, y:0, duration:.8 }, .55)
+    .to('#hero-sub',   { opacity:1, y:0, duration:.7 }, .75)
+    .to('#hero-btns',  { opacity:1, y:0, duration:.6 }, .9);
+  document.querySelectorAll('#hero-tag,#hero-title,#hero-sub,#hero-btns').forEach(el => {
+    el.style.opacity = '0'; el.style.transform = 'translateY(30px)';
+  });
+});
+
+/* generic scroll triggers */
+gsap.utils.toArray('.gsap-fade').forEach(el => {
+  gsap.to(el, { opacity:1, duration:.9, ease:'power2.out',
+    scrollTrigger:{ trigger:el, start:'top 88%', toggleActions:'play none none none' } });
+});
+
+gsap.utils.toArray('.gsap-up').forEach(el => {
+  const delay = parseFloat(el.dataset.delay || 0);
+  gsap.to(el, { opacity:1, y:0, duration:.75, delay, ease:'power3.out',
+    scrollTrigger:{ trigger:el, start:'top 88%', toggleActions:'play none none none' } });
+});
+
+gsap.utils.toArray('.gsap-left').forEach(el => {
+  gsap.to(el, { opacity:1, x:0, duration:.75, ease:'power3.out',
+    scrollTrigger:{ trigger:el, start:'top 88%', toggleActions:'play none none none' } });
+});
+
+gsap.utils.toArray('.gsap-right').forEach(el => {
+  gsap.to(el, { opacity:1, x:0, duration:.75, ease:'power3.out',
+    scrollTrigger:{ trigger:el, start:'top 88%', toggleActions:'play none none none' } });
+});
+
+gsap.utils.toArray('.gsap-scale').forEach(el => {
+  gsap.to(el, { opacity:1, scale:1, duration:.9, ease:'power2.out',
+    scrollTrigger:{ trigger:el, start:'top 88%', toggleActions:'play none none none' } });
+});
+
+/* NAVBAR glass on scroll */
+ScrollTrigger.create({
+  start:'top -80px',
+  onUpdate(self){
+    document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 80);
+  }
+});
+
+/* HERO TITLE parallax */
+gsap.to('#hero-title', {
+  yPercent: -20, ease:'none',
+  scrollTrigger:{ trigger:'#hero', start:'top top', end:'bottom top', scrub:true }
+});
+
+/* FEATURES stagger reveal */
+gsap.from('.feature-card', {
+  opacity:0, y:40, stagger:.08, duration:.7, ease:'power3.out',
+  scrollTrigger:{ trigger:'.features-grid', start:'top 80%', toggleActions:'play none none none' }
+});
+
+/* STEPS stagger */
+gsap.from('.step-item', {
+  opacity:0, x:-30, stagger:.12, duration:.6, ease:'power2.out',
+  scrollTrigger:{ trigger:'.steps-row', start:'top 82%', toggleActions:'play none none none' }
+});
+
+/* TESTI cards hover */
+document.querySelectorAll('.testi-card,.feature-card').forEach(card => {
+  card.addEventListener('mouseenter', () => gsap.to(card, { y:-6, duration:.3, ease:'power2.out' }));
+  card.addEventListener('mouseleave', () => gsap.to(card, { y:0, duration:.3, ease:'power2.out' }));
+});
+
+/* CTA GLOW parallax */
+gsap.to('.cta-glow', {
+  yPercent: -30, ease:'none',
+  scrollTrigger:{ trigger:'#cta-section', start:'top bottom', end:'bottom top', scrub:true }
+});
+
+/* TECH MARQUEE - pause on hover */
+const track = document.getElementById('tech-track');
+document.getElementById('tech-marquee').addEventListener('mouseenter', () => track.style.animationPlayState = 'paused');
+document.getElementById('tech-marquee').addEventListener('mouseleave', () => track.style.animationPlayState = 'running');
+</script>
+</body>
+</html>

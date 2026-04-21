@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ARCHIVE — Visual Poetry</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #050505;
+    --white: #ffffff;
+    --neutral-200: #e5e5e5;
+    --neutral-400: #a3a3a3;
+    --neutral-500: #737373;
+    --neutral-600: #525252;
+    --neutral-800: #262626;
+    --neutral-900: #171717;
+    --neutral-950: #0a0a0a;
+  }
+
+  html { scroll-behavior: auto; }
+
+  body {
+    background: var(--black);
+    color: var(--neutral-200);
+    font-family: 'Georgia', serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed;
+    width: 12px; height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: difference;
+  }
+  .cursor-follower {
+    position: fixed;
+    width: 36px; height: 36px;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+  }
+
+  /* Grain Overlay */
+  .grain {
+    pointer-events: none;
+    position: fixed; inset: 0; z-index: 50;
+    opacity: 0.04; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Header */
+  header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.5rem 2rem;
+    mix-blend-mode: difference;
+    transform: translateY(-100%);
+  }
+  .logo {
+    font-family: Georgia, serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.2em;
+    color: #fff;
+    text-decoration: none;
+  }
+  nav { display: flex; gap: 2rem; }
+  nav a {
+    font-family: 'Arial', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    transition: opacity 0.3s;
+  }
+  nav a:hover { opacity: 1; color: #fff; }
+  .header-icons { display: flex; align-items: center; gap: 1rem; }
+  .live-dot {
+    width: 8px; height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Hero */
+  .hero {
+    min-height: 80vh;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 8rem 2rem 5rem;
+    position: relative;
+  }
+  .hero h1 {
+    font-size: clamp(4rem, 10vw, 12rem);
+    line-height: 0.85;
+    color: #fff;
+    font-weight: normal;
+    overflow: hidden;
+  }
+  .hero h1 .italic-line {
+    margin-left: 10vw;
+    font-style: italic;
+    color: var(--neutral-500);
+    display: block;
+  }
+  .hero-bottom {
+    margin-top: 3rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 2rem;
+  }
+  .hero-bottom p {
+    font-family: Arial, sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--neutral-400);
+    max-width: 28rem;
+    line-height: 1.8;
+  }
+  .spin-ring {
+    width: 6rem; height: 6rem;
+    border-radius: 50%;
+    border: 1px dashed rgba(255,255,255,0.3);
+    padding: 0.5rem;
+    animation: spin 10s linear infinite;
+    flex-shrink: 0;
+  }
+  .spin-ring-inner {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: var(--neutral-800);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Masonry Grid */
+  .masonry-section {
+    padding: 4rem 1rem;
+    min-height: 100vh;
+  }
+  .masonry-grid {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+  .col { width: 33.333%; display: flex; flex-direction: column; gap: 2rem; }
+  .col-label {
+    font-family: Arial, sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--neutral-500);
+    border-bottom: 1px solid var(--neutral-800);
+    padding-bottom: 0.5rem;
+    margin-bottom: 2rem;
+  }
+  .img-card {
+    position: relative;
+    overflow: hidden;
+    cursor: none;
+    filter: grayscale(1);
+    transition: filter 0.7s ease;
+  }
+  .img-card:hover { filter: grayscale(0); }
+  .img-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.7s ease;
+  }
+  .img-card:hover img { transform: scale(1.08); }
+  .img-card-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .img-card:hover .img-card-overlay { opacity: 1; }
+  .img-card-info {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 1.5rem;
+    opacity: 0;
+    transform: translateY(1rem);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+  .img-card:hover .img-card-info { opacity: 1; transform: translateY(0); }
+  .img-card-info-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid rgba(255,255,255,0.5);
+    padding-top: 1rem;
+  }
+  .img-card-info-inner span {
+    font-style: italic; font-size: 1.2rem; color: #fff;
+  }
+  .quote-box {
+    background: var(--neutral-900);
+    display: flex; align-items: center; justify-content: center;
+    height: 400px; text-align: center; padding: 2rem;
+  }
+  .quote-box h3 { font-size: 1.875rem; color: var(--neutral-400); line-height: 1.3; }
+  .quote-box h3 em { color: #fff; }
+
+  /* Horizontal Scroll */
+  .horizontal-wrap {
+    position: relative;
+    height: 300vh;
+    background: #000;
+  }
+  .horizontal-sticky {
+    position: sticky; top: 0;
+    height: 100vh;
+    display: flex; align-items: center;
+    overflow: hidden;
+  }
+  .horizontal-track {
+    display: flex; gap: 3rem; padding: 0 2rem;
+    will-change: transform;
+  }
+  .h-card {
+    position: relative;
+    height: 60vh; width: 400px;
+    flex-shrink: 0;
+    overflow: hidden;
+    cursor: none;
+  }
+  @media (min-width: 768px) { .h-card { width: 600px; } }
+  .h-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    filter: grayscale(1);
+    transition: filter 0.7s, transform 0.7s;
+    display: block;
+  }
+  .h-card:hover img { filter: grayscale(0); transform: scale(1.05); }
+  .h-card-caption {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 50%);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 3rem;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .h-card:hover .h-card-caption { opacity: 1; }
+  .h-card-category {
+    font-family: monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: var(--neutral-400);
+    margin-bottom: 0.5rem;
+  }
+  .h-card-title {
+    font-size: 3rem; font-style: italic; color: #fff;
+  }
+
+  /* Philosophy */
+  .philosophy { background: #fff; color: #000; padding: 12rem 2rem; }
+  .philosophy-header {
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    padding-bottom: 2rem; margin-bottom: 6rem;
+  }
+  .philosophy-header span {
+    font-family: monospace; font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.2em;
+  }
+  .philosophy-header span:last-child { color: #999; }
+  .philosophy h2 {
+    font-size: clamp(2.5rem, 6vw, 8rem);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    max-width: 75rem;
+  }
+  .philosophy h2 em { font-style: italic; color: #000; }
+  .philosophy h2 .muted { color: #999; font-style: normal; }
+  .philosophy-grid {
+    margin-top: 6rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+  }
+  .philosophy-grid p {
+    font-size: 1.25rem; font-weight: 300; line-height: 1.8;
+    color: #555; align-self: center;
+    font-family: Arial, sans-serif;
+  }
+  .philosophy-img {
+    aspect-ratio: 4/5; overflow: hidden; border-radius: 2px;
+  }
+  .philosophy-img img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Sticky Reveal */
+  .sticky-reveal { position: relative; height: 200vh; }
+  .sticky-reveal-inner {
+    position: sticky; top: 0; height: 100vh; overflow: hidden;
+  }
+  .sticky-reveal-bg {
+    position: absolute; inset: 0;
+  }
+  .sticky-reveal-bg img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    filter: grayscale(1) brightness(0.5);
+  }
+  .sticky-reveal-content {
+    position: relative; z-index: 10;
+    height: 100%;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+  }
+  .sticky-reveal-content .eyebrow {
+    display: block; margin-bottom: 1rem;
+    font-family: monospace; font-size: 0.8rem;
+    text-transform: uppercase; letter-spacing: 0.5em; color: #fff;
+  }
+  .sticky-reveal-content h2 {
+    font-size: clamp(4rem, 12vw, 12rem);
+    font-style: italic; color: #fff; font-weight: normal;
+  }
+
+  /* Stats */
+  .stats { background: var(--neutral-950); padding: 8rem 2rem; color: #fff; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3rem;
+    max-width: 80rem; margin: 0 auto;
+  }
+  @media (min-width: 1024px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+  .stat-item { border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem; }
+  .stat-value { font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 300; color: #fff; }
+  .stat-label {
+    margin-top: 1rem;
+    font-family: monospace; font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.2em; color: var(--neutral-500);
+  }
+
+  /* Archive */
+  .archive { background: #fff; color: #000; padding: 12rem 2rem; border-bottom: 1px solid rgba(0,0,0,0.1); }
+  .archive h2 { font-size: 3.75rem; margin-bottom: 4rem; font-weight: normal; }
+  .archive-list { display: flex; flex-direction: column; }
+  .archive-item {
+    position: relative;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid rgba(0,0,0,0.1);
+    padding: 3rem 0;
+    cursor: none;
+    transition: padding 0.4s ease;
+  }
+  .archive-item:hover { padding-left: 2rem; padding-right: 2rem; }
+  .archive-item-left { display: flex; align-items: baseline; gap: 2rem; }
+  .archive-item-num {
+    font-family: monospace; font-size: 0.75rem; color: #999;
+  }
+  .archive-item-title {
+    font-size: clamp(2rem, 5vw, 4.5rem);
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    font-weight: normal;
+    transition: font-style 0.2s;
+  }
+  .archive-item:hover .archive-item-title { font-style: italic; }
+  .archive-item-year { font-style: italic; color: #999; font-size: 1.2rem; }
+  .archive-item-arrow {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .archive-item:hover .archive-item-arrow { opacity: 1; }
+  .archive-item-arrow svg { width: 40px; height: 40px; stroke: #000; stroke-width: 1; fill: none; }
+
+  /* Footer */
+  footer { position: relative; z-index: 10; background: #fff; color: #000; }
+  .footer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 3rem 2rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    transition: background 0.3s;
+  }
+  .footer-header:hover { background: #f5f5f5; }
+  .footer-header h2 { font-size: clamp(3rem, 8vw, 6rem); font-weight: normal; }
+  .footer-toggle {
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 50%;
+    padding: 1rem;
+    transition: transform 0.4s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .footer-toggle svg { width: 32px; height: 32px; }
+  .footer-body {
+    overflow: hidden; height: 0;
+    background: #000; color: #fff;
+    transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .footer-body-inner {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 3rem; padding: 6rem 2rem;
+  }
+  .footer-body p {
+    font-size: 1.5rem; font-weight: 300; color: #666; margin-bottom: 2rem;
+    font-family: Arial, sans-serif; line-height: 1.6;
+  }
+  .footer-links { display: flex; flex-direction: column; gap: 1rem; }
+  .footer-links a {
+    font-family: Arial, sans-serif;
+    font-size: 0.75rem; text-transform: uppercase;
+    letter-spacing: 0.2em; color: #555;
+    text-decoration: none; transition: color 0.2s;
+  }
+  .footer-links a:hover { color: #fff; }
+  .footer-end { padding: 0 2rem 2rem; }
+  .footer-end-word {
+    font-size: clamp(5rem, 18vw, 12rem);
+    font-weight: bold; color: var(--neutral-900);
+    line-height: 1;
+  }
+
+  /* Magnetic Button */
+  .magnetic-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 9999px;
+    padding: 1rem 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-family: Arial, sans-serif; font-size: 0.8rem;
+    color: #fff;
+    background: transparent;
+    cursor: none;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .magnetic-btn:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
+
+  /* Utility */
+  .container { max-width: 80rem; margin: 0 auto; }
+  .overflow-clip { overflow: hidden; }
+
+  /* GSAP hidden states */
+  .gsap-fade-up { opacity: 0; transform: translateY(60px); }
+  .gsap-fade-in { opacity: 0; }
+  .gsap-scale-in { opacity: 0; transform: scale(0.9); }
+
+  @media (max-width: 767px) {
+    .masonry-grid { flex-direction: column; }
+    .col { width: 100%; }
+    .philosophy-grid { grid-template-columns: 1fr; }
+    .footer-body-inner { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-follower" id="cursor-follower"></div>
+
+<!-- Grain -->
+<div class="grain"></div>
+
+<!-- Header -->
+<header id="header">
+  <a href="#" class="logo">ARCHIVE.</a>
+  <nav>
+    <a href="#">Index</a>
+    <a href="#">Curated</a>
+    <a href="#">About</a>
+  </nav>
+  <div class="header-icons">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <div class="live-dot"></div>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero" id="hero">
+  <div>
+    <div class="overflow-clip">
+      <h1 class="hero-title gsap-fade-up">
+        VISUAL <br />
+        <span class="italic-line">POETRY</span>
+      </h1>
+    </div>
+  </div>
+  <div class="hero-bottom">
+    <p class="gsap-fade-up" style="transition-delay: 0.2s">
+      A curated collection of moments frozen in time. Exploring the relationship between nature, light, and the human condition.
+    </p>
+    <div class="spin-ring gsap-fade-in">
+      <div class="spin-ring-inner"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Masonry Grid -->
+<section class="masonry-section" id="masonry">
+  <div class="masonry-grid" id="masonry-grid">
+    <!-- Column 1 -->
+    <div class="col" id="col1">
+      <div class="col-label">01 — Nature</div>
+      <div class="img-card gsap-fade-up" style="height:400px">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000&auto=format&fit=crop" alt="Raw Portrait" loading="lazy" />
+        <div class="img-card-overlay"></div>
+        <div class="img-card-info">
+          <div class="img-card-info-inner">
+            <span>Raw Portrait</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="img-card gsap-fade-up" style="height:600px">
+        <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1000&auto=format&fit=crop" alt="Yosemite Mist" loading="lazy" />
+        <div class="img-card-overlay"></div>
+        <div class="img-card-info">
+          <div class="img-card-info-inner">
+            <span>Yosemite Mist</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="img-card gsap-fade-up" style="height:450px">
+        <img src="https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?q=80&w=1000&auto=format&fit=crop" alt="Warm Knit" loading="lazy" />
+        <div class="img-card-overlay"></div>
+        <div class="img-card-info">
+          <div class="img-card-info-inner">
+            <span>Warm Knit</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 2 (offset) -->
+    <div class="col" id="col2" style="margin-top: -6rem;">
+      <div class="col-label">02 — Abstract</div>
+      <div class="img-card gsap-fade-up" style="height:500px">
+        <img src="https://images.unsplash.com/photo-1605517021366-1b0393fdb50a?q=80&w=764&auto=format&fit=crop" alt="Dark Nebula" loading="lazy" />
+        <div class="img-card-overlay"></div>
+        <div class="img-card-info">
+          <div class="img-card-info-inner">
+            <span>Dark Nebula</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="img-card gsap-fade-up" style="height:400px">
+        <img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=1000&auto=format&fit=crop" alt="Open Fields" loading="lazy" />
+        <div class="img-card-overlay"></div>
+        <div class="img-card-info">
+          <div class="img-card-info-inner">
+            <span>Open Fields</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="img-card gsap-fade-up" style="height:600px">
+        <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop" alt="Ocean Calm" loading="lazy" />
+        <div class="img-card-overlay"></div>
+        <div class="img-card-info">
+          <div class="img-card-info-inner">
+            <span>Ocean Calm</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="quote-box gsap-fade-up">
+        <h3>"Form follows <br/><em>Motion</em>"</h3>
+      </div>
+    </div>
+
+    <!-- Column 3 -->
+    <div class="col" id="col3">
+      <div class="col-label">03 — Life</div>
+      <div class="img-card gsap-fade-up" style="height:450px">
+        <img src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=1000&auto=format&fit=crop" alt="Alpine Lake" loading="lazy" />
+        <div class="img-card-overlay"></div>
+        <div class="img-card-info">
+          <div class="img-card-info-inner">
+            <span>Alpine Lake</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="img-card gsap-fade-up" style="height:550px">
+        <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1000&auto=format&fit=crop" alt="Night Sky" loading="lazy" />
+        <div class="img-card-overlay"></div>
+        <div class="img-card-info">
+          <div class="img-card-info-inner">
+            <span>Night Sky</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="img-card gsap-fade-up" style="height:400px">
+        <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=1000&auto=format&fit=crop" alt="Forest Path" loading="lazy" />
+        <div class="img-card-overlay"></div>
+        <div class="img-card-info">
+          <div class="img-card-info-inner">
+            <span>Forest Path</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Horizontal Scroll -->
+<div class="horizontal-wrap" id="horizontal-wrap">
+  <div class="horizontal-sticky">
+    <div class="horizontal-track" id="horizontal-track">
+      <div class="h-card">
+        <img src="https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&q=80" alt="Nordic Winter" loading="lazy" />
+        <div class="h-card-caption">
+          <div class="h-card-category">Nature</div>
+          <div class="h-card-title">Nordic Winter</div>
+        </div>
+      </div>
+      <div class="h-card">
+        <img src="https://images.unsplash.com/photo-1453989799106-bbad8d7b5191?w=600&auto=format&fit=crop&q=60" alt="Urban Decay" loading="lazy" />
+        <div class="h-card-caption">
+          <div class="h-card-category">Architecture</div>
+          <div class="h-card-title">Urban Decay</div>
+        </div>
+      </div>
+      <div class="h-card">
+        <img src="https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80" alt="Ethereal Bloom" loading="lazy" />
+        <div class="h-card-caption">
+          <div class="h-card-category">Macro</div>
+          <div class="h-card-title">Ethereal Bloom</div>
+        </div>
+      </div>
+      <div class="h-card">
+        <img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80" alt="Shadow Play" loading="lazy" />
+        <div class="h-card-caption">
+          <div class="h-card-category">Abstract</div>
+          <div class="h-card-title">Shadow Play</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Philosophy -->
+<section class="philosophy" id="philosophy">
+  <div class="container">
+    <div class="philosophy-header">
+      <span>Philosophy</span>
+      <span>/// ARCHIVE_04</span>
+    </div>
+    <div class="overflow-clip">
+      <h2 class="gsap-fade-up">
+        We believe in <em>Uilora</em> — the pursuit of digital resonance. Where <span class="muted">minimalism</span> meets <em>extraordinary</em> detail.
+      </h2>
+    </div>
+    <div class="philosophy-grid">
+      <div>
+        <p class="gsap-fade-up">
+          Our architecture is designed to breathe. We prioritize the white space as much as the content, ensuring every interaction feels deliberate and weighted.
+        </p>
+      </div>
+      <div class="philosophy-img gsap-scale-in">
+        <img src="https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&q=80" alt="Philosophy" loading="lazy" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Sticky Reveal -->
+<section class="sticky-reveal" id="sticky-reveal">
+  <div class="sticky-reveal-inner">
+    <div class="sticky-reveal-bg" id="sticky-bg">
+      <img src="https://images.unsplash.com/photo-1547036967-23d11aacaee0?auto=format&fit=crop&q=80" alt="Essence" loading="lazy" />
+    </div>
+    <div class="sticky-reveal-content">
+      <div class="gsap-fade-up" id="essence-text">
+        <span class="eyebrow">Curated Collection</span>
+        <h2>ESSENCE</h2>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section class="stats" id="stats">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item gsap-fade-up">
+        <div class="stat-value">140+</div>
+        <div class="stat-label">Refined Projects</div>
+      </div>
+      <div class="stat-item gsap-fade-up">
+        <div class="stat-value">24</div>
+        <div class="stat-label">Global Partners</div>
+      </div>
+      <div class="stat-item gsap-fade-up">
+        <div class="stat-value">08</div>
+        <div class="stat-label">Years of Craft</div>
+      </div>
+      <div class="stat-item gsap-fade-up">
+        <div class="stat-value">99.9</div>
+        <div class="stat-label">Uilora Credits</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Archive -->
+<section class="archive" id="archive">
+  <div class="container">
+    <h2 class="gsap-fade-up">THE ARCHIVE</h2>
+    <div class="archive-list">
+      <div class="archive-item gsap-fade-up">
+        <div class="archive-item-left">
+          <span class="archive-item-num">01</span>
+          <span class="archive-item-title">Kinetic Void</span>
+        </div>
+        <span class="archive-item-year">2024</span>
+        <div class="archive-item-arrow">
+          <svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+        </div>
+      </div>
+      <div class="archive-item gsap-fade-up">
+        <div class="archive-item-left">
+          <span class="archive-item-num">02</span>
+          <span class="archive-item-title">Silent Echo</span>
+        </div>
+        <span class="archive-item-year">2023</span>
+        <div class="archive-item-arrow">
+          <svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+        </div>
+      </div>
+      <div class="archive-item gsap-fade-up">
+        <div class="archive-item-left">
+          <span class="archive-item-num">03</span>
+          <span class="archive-item-title">Mineral Flow</span>
+        </div>
+        <span class="archive-item-year">2023</span>
+        <div class="archive-item-arrow">
+          <svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+        </div>
+      </div>
+      <div class="archive-item gsap-fade-up">
+        <div class="archive-item-left">
+          <span class="archive-item-num">04</span>
+          <span class="archive-item-title">Uilora Systems</span>
+        </div>
+        <span class="archive-item-year">2022</span>
+        <div class="archive-item-arrow">
+          <svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer id="footer">
+  <div class="footer-header" id="footer-toggle-btn">
+    <h2>Contact</h2>
+    <div class="footer-toggle" id="footer-plus">
+      <svg viewBox="0 0 32 32" fill="none" stroke="black" stroke-width="1.5">
+        <line x1="16" y1="4" x2="16" y2="28" id="vert-line"/>
+        <line x1="4" y1="16" x2="28" y2="16"/>
+      </svg>
+    </div>
+  </div>
+  <div class="footer-body" id="footer-body">
+    <div class="footer-body-inner">
+      <div>
+        <p>Available for freelance work and collaborations. Let's create something timeless.</p>
+        <button class="magnetic-btn" id="magnetic-btn">Send Email</button>
+      </div>
+      <div class="footer-links">
+        <a href="#">Instagram</a>
+        <a href="#">Twitter / X</a>
+        <a href="#">Awwwards</a>
+        <a href="#">LinkedIn</a>
+      </div>
+    </div>
+    <div class="footer-end">
+      <div class="footer-end-word">END.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// ── Cursor ──────────────────────────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+const follower = document.getElementById('cursor-follower');
+let mouseX = 0, mouseY = 0, followerX = 0, followerY = 0;
+
+document.addEventListener('mousemove', e => {
+  mouseX = e.clientX; mouseY = e.clientY;
+  gsap.to(cursor, { x: mouseX, y: mouseY, duration: 0.1 });
+});
+
+(function updateFollower() {
+  followerX += (mouseX - followerX) * 0.1;
+  followerY += (mouseY - followerY) * 0.1;
+  follower.style.left = followerX + 'px';
+  follower.style.top = followerY + 'px';
+  requestAnimationFrame(updateFollower);
+})();
+
+// ── Header animate in ───────────────────────────────────────────────────────
+gsap.to('#header', {
+  y: 0, duration: 1, delay: 0.3,
+  ease: 'cubic-bezier(0.16, 1, 0.3, 1)'
+});
+
+// ── Hero ─────────────────────────────────────────────────────────────────────
+const heroTl = gsap.timeline({ delay: 0.5 });
+heroTl
+  .to('.hero-title', { opacity: 1, y: 0, duration: 1.2, ease: 'power4.out' })
+  .to('.hero-bottom p', { opacity: 1, y: 0, duration: 1, ease: 'power3.out' }, '-=0.6')
+  .to('.spin-ring', { opacity: 1, duration: 0.8 }, '-=0.8');
+
+// ── Masonry Parallax Columns ─────────────────────────────────────────────────
+gsap.to('#col1', {
+  y: -200,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#masonry',
+    start: 'top bottom',
+    end: 'bottom top',
+    scrub: true
+  }
+});
+gsap.to('#col2', {
+  y: -400,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#masonry',
+    start: 'top bottom',
+    end: 'bottom top',
+    scrub: true
+  }
+});
+gsap.to('#col3', {
+  y: -100,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#masonry',
+    start: 'top bottom',
+    end: 'bottom top',
+    scrub: true
+  }
+});
+
+// ── Masonry Image Cards fade in ──────────────────────────────────────────────
+gsap.utils.toArray('#masonry .img-card').forEach((card, i) => {
+  gsap.to(card, {
+    opacity: 1, y: 0, scale: 1,
+    duration: 0.9,
+    delay: i * 0.06,
+    ease: 'power3.out',
+    scrollTrigger: {
+      trigger: card,
+      start: 'top 90%',
+      toggleActions: 'play none none none'
+    }
+  });
+});
+
+// ── Horizontal Scroll ────────────────────────────────────────────────────────
+const track = document.getElementById('horizontal-track');
+const cards = track.querySelectorAll('.h-card');
+const totalWidth = cards.length * (600 + 48);
+const scrollDistance = totalWidth - window.innerWidth;
+
+gsap.to(track, {
+  x: () => -scrollDistance,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#horizontal-wrap',
+    start: 'top top',
+    end: () => '+=' + (scrollDistance + window.innerWidth),
+    scrub: 1,
+    pin: true,
+    anticipatePin: 1,
+    invalidateOnRefresh: true
+  }
+});
+
+// ── Philosophy ───────────────────────────────────────────────────────────────
+gsap.to('#philosophy .gsap-fade-up', {
+  opacity: 1, y: 0, duration: 1.2, ease: 'power3.out',
+  scrollTrigger: { trigger: '#philosophy', start: 'top 70%', toggleActions: 'play none none none' }
+});
+gsap.to('#philosophy .gsap-scale-in', {
+  opacity: 1, scale: 1, duration: 1.5, ease: 'cubic-bezier(0.16, 1, 0.3, 1)',
+  scrollTrigger: { trigger: '#philosophy .gsap-scale-in', start: 'top 80%', toggleActions: 'play none none none' }
+});
+
+// ── Sticky Reveal ────────────────────────────────────────────────────────────
+gsap.to('#sticky-bg', {
+  scale: 1.2,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#sticky-reveal',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: true
+  }
+});
+gsap.to('#sticky-bg', {
+  opacity: 0.5,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#sticky-reveal',
+    start: '50% top',
+    end: 'bottom top',
+    scrub: true
+  }
+});
+gsap.to('#essence-text', {
+  opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.5,
+  scrollTrigger: { trigger: '#sticky-reveal', start: 'top 60%', toggleActions: 'play none none none' }
+});
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+gsap.utils.toArray('.stat-item').forEach((el, i) => {
+  gsap.to(el, {
+    opacity: 1, y: 0, duration: 0.8, delay: i * 0.12, ease: 'power3.out',
+    scrollTrigger: { trigger: '#stats', start: 'top 75%', toggleActions: 'play none none none' }
+  });
+});
+
+// ── Archive ──────────────────────────────────────────────────────────────────
+gsap.utils.toArray('.archive-item').forEach((el, i) => {
+  gsap.to(el, {
+    opacity: 1, y: 0, duration: 0.9, delay: i * 0.12, ease: 'power3.out',
+    scrollTrigger: { trigger: '#archive', start: 'top 75%', toggleActions: 'play none none none' }
+  });
+});
+gsap.to('#archive h2', {
+  opacity: 1, y: 0, duration: 1, ease: 'power3.out',
+  scrollTrigger: { trigger: '#archive', start: 'top 80%', toggleActions: 'play none none none' }
+});
+
+// ── Footer accordion ─────────────────────────────────────────────────────────
+let footerOpen = false;
+const footerBody = document.getElementById('footer-body');
+const plusBtn = document.getElementById('footer-plus');
+
+document.getElementById('footer-toggle-btn').addEventListener('click', () => {
+  footerOpen = !footerOpen;
+  if (footerOpen) {
+    footerBody.style.height = footerBody.scrollHeight + 'px';
+    plusBtn.style.transform = 'rotate(45deg)';
+  } else {
+    footerBody.style.height = '0';
+    plusBtn.style.transform = 'rotate(0deg)';
+  }
+});
+
+// ── Magnetic Button ──────────────────────────────────────────────────────────
+const magBtn = document.getElementById('magnetic-btn');
+magBtn.addEventListener('mousemove', e => {
+  const rect = magBtn.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  gsap.to(magBtn, {
+    x: (e.clientX - cx) * 0.25,
+    y: (e.clientY - cy) * 0.25,
+    duration: 0.4, ease: 'power2.out'
+  });
+});
+magBtn.addEventListener('mouseleave', () => {
+  gsap.to(magBtn, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.4)' });
+});
+
+// ── Scroll-triggered text reveals (quote box, generic fade-ups) ───────────────
+gsap.utils.toArray('.quote-box').forEach(el => {
+  gsap.from(el, {
+    opacity: 0, y: 40, duration: 1, ease: 'power3.out',
+    scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' }
+  });
+});
+
+// ── Header hide/show on scroll ───────────────────────────────────────────────
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+  const current = window.scrollY;
+  if (current > lastScroll && current > 100) {
+    gsap.to('#header', { y: -100, duration: 0.4, ease: 'power2.in' });
+  } else {
+    gsap.to('#header', { y: 0, duration: 0.4, ease: 'power2.out' });
+  }
+  lastScroll = current;
+});
+
+// ── Smooth scroll polyfill for anchor links ──────────────────────────────────
+document.querySelectorAll('a[href="#"]').forEach(a => {
+  a.addEventListener('click', e => e.preventDefault());
+});
+</script>
+</body>
+</html>

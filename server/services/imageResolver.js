@@ -24,7 +24,8 @@ const searchCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 // ── Track SerpAPI usage to avoid burning free quota ──
-let serpApiCallsThisSession = 0;
+// NOTE: This is a per-call local variable (see resolveImages) — NOT a module global.
+// Using a module global would cause concurrent generation requests to share/race on the counter.
 const SERP_MAX_PER_SESSION = 15; // Conservative: max 15 Google searches per generation session
 
 // ─────────────────────────────────────────────────────────
@@ -69,11 +70,11 @@ async function searchPexels(query, width = 800, height = 600) {
 // ─────────────────────────────────────────────────────────
 // TIER 2: SerpAPI (Google Images) — Fallback for niche queries
 // ─────────────────────────────────────────────────────────
-async function searchGoogle(query, width = 800, height = 600) {
+async function searchGoogle(query, width = 800, height = 600, sessionState) {
   if (!SERP_API_KEY) return null;
 
-  // Protect free quota
-  if (serpApiCallsThisSession >= SERP_MAX_PER_SESSION) {
+  // Protect free quota — use per-call local counter, not global
+  if (sessionState.serpCalls >= SERP_MAX_PER_SESSION) {
     console.warn(`[ImageResolver] SerpAPI session limit reached (${SERP_MAX_PER_SESSION}). Skipping Google search.`);
     return null;
   }
@@ -87,7 +88,7 @@ async function searchGoogle(query, width = 800, height = 600) {
   try {
     const url = `${SERP_BASE}?engine=google_images&q=${encodeURIComponent(query)}&api_key=${SERP_API_KEY}&num=10&safe=active`;
     const response = await fetch(url);
-    serpApiCallsThisSession++;
+    sessionState.serpCalls++; // Increment per-call local counter (thread-safe)
 
     if (!response.ok) {
       console.warn(`[ImageResolver] SerpAPI error: ${response.status}`);
@@ -128,13 +129,13 @@ async function searchGoogle(query, width = 800, height = 600) {
 // ─────────────────────────────────────────────────────────
 // WATERFALL: Try Pexels → Google → keep Pollinations
 // ─────────────────────────────────────────────────────────
-async function findImage(query, width = 800, height = 600) {
+async function findImage(query, width = 800, height = 600, sessionState) {
   // Tier 1: Pexels
   const pexelsResult = await searchPexels(query, width, height);
   if (pexelsResult) return { url: pexelsResult, tier: 'pexels' };
 
   // Tier 2: Google Images via SerpAPI
-  const googleResult = await searchGoogle(query, width, height);
+  const googleResult = await searchGoogle(query, width, height, sessionState);
   if (googleResult) return { url: googleResult, tier: 'google' };
 
   // Tier 3: Keep the Pollinations URL (AI-generated, works but slower)
@@ -158,8 +159,8 @@ async function resolveImages(html, businessContext = '') {
     return html;
   }
 
-  // Reset session counter for this generation
-  serpApiCallsThisSession = 0;
+  // Per-call session state — isolated from concurrent requests (fixes race condition)
+  const sessionState = { serpCalls: 0 };
 
   let pexelsCount = 0;
   let googleCount = 0;
@@ -216,18 +217,19 @@ async function resolveImages(html, businessContext = '') {
     if (heightMatch) height = parseInt(heightMatch[1]);
 
     // ── Waterfall search ──
-    const result = await findImage(searchQuery, width, height);
+    const result = await findImage(searchQuery, width, height, sessionState);
 
     if (result && !usedUrls.has(result.url)) {
-      html = html.replace(originalSrc, result.url);
+      // replaceAll: fix EVERY occurrence of this src, not just the first one
+      html = html.replaceAll(originalSrc, result.url);
       usedUrls.add(result.url);
       if (result.tier === 'pexels') pexelsCount++;
       else if (result.tier === 'google') googleCount++;
     } else if (result && usedUrls.has(result.url)) {
       // Duplicate — try with modified query to get a different image
-      const altResult = await findImage(searchQuery + ' high quality photo', width, height);
+      const altResult = await findImage(searchQuery + ' high quality photo', width, height, sessionState);
       if (altResult && !usedUrls.has(altResult.url)) {
-        html = html.replace(originalSrc, altResult.url);
+        html = html.replaceAll(originalSrc, altResult.url);
         usedUrls.add(altResult.url);
         if (altResult.tier === 'pexels') pexelsCount++;
         else if (altResult.tier === 'google') googleCount++;
@@ -240,12 +242,13 @@ async function resolveImages(html, businessContext = '') {
   }
 
   // ── STEP 2: Fix broken background-image URLs in CSS ──
-  const bgRegex = /url\(\s*['"]?(https?:\/\/(?:source\.unsplash\.com|placehold\.co|placeholder\.com|via\.placeholder\.com|dummyimage\.com)[^'"\)]+)['"]?\s*\)/gi;
+  // Also catches Pollinations AI URLs in CSS (image.pollinations.ai)
+  const bgRegex = /url\(\s*['"]?(https?:\/\/(?:source\.unsplash\.com|placehold\.co|placeholder\.com|via\.placeholder\.com|dummyimage\.com|image\.pollinations\.ai)[^'"\)]+)['"]?\s*\)/gi;
   const bgMatches = [...html.matchAll(bgRegex)];
   
   for (const bgMatch of bgMatches) {
     const brokenUrl = bgMatch[1];
-    const result = await findImage(businessContext || 'abstract background', 1200, 800);
+    const result = await findImage(businessContext || 'abstract background', 1200, 800, sessionState);
     if (result) {
       html = html.replace(brokenUrl, result.url);
       if (result.tier === 'pexels') pexelsCount++;
@@ -256,7 +259,7 @@ async function resolveImages(html, businessContext = '') {
   // ── STEP 3: Fix empty src="" ──
   const emptySrcCount = (html.match(/src\s*=\s*""\s*/g) || []).length;
   if (emptySrcCount > 0) {
-    const result = await findImage(businessContext || 'modern business', 800, 600);
+    const result = await findImage(businessContext || 'modern business', 800, 600, sessionState);
     if (result) {
       html = html.replace(/src\s*=\s*""\s*/g, `src="${result.url}" `);
       if (result.tier === 'pexels') pexelsCount += emptySrcCount;
@@ -266,8 +269,8 @@ async function resolveImages(html, businessContext = '') {
 
   const total = pexelsCount + googleCount;
   console.log(`[ImageResolver] ✅ Resolved ${total} image(s) — Pexels: ${pexelsCount}, Google: ${googleCount}, Unchanged: ${unchangedCount}`);
-  if (serpApiCallsThisSession > 0) {
-    console.log(`[ImageResolver] 📊 SerpAPI calls this session: ${serpApiCallsThisSession}/${SERP_MAX_PER_SESSION}`);
+  if (sessionState.serpCalls > 0) {
+    console.log(`[ImageResolver] 📊 SerpAPI calls this session: ${sessionState.serpCalls}/${SERP_MAX_PER_SESSION}`);
   }
 
   return html;

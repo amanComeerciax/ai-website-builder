@@ -126,7 +126,7 @@ router.post("/", async (req, res, next) => {
             existingFiles,
             messageId: assistantMessageId,
             model: model || 'mistral',
-            userId: "local_test_user",
+            userId: req.auth?.userId || null,
             // Attachment data
             images: images || [],
             fileContents: fileContents || [],
