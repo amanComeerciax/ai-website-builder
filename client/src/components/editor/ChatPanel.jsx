@@ -29,20 +29,14 @@ export default function ChatPanel() {
         isVisualEditMode, toggleVisualEditMode,
         selectedElements, removeSelectedElement, clearSelectedElements,
         thinkingMessage, isEditMode, memberRole,
-        cancelGeneration
+        cancelGeneration,
+        configStep, setConfigStep,
+        styleOptions, setStyleOptions
     } = useChatStore()
     const { getToken } = useAuth()
     
     const [input, setInput] = useState('')
     const [isThoughtExpanded, setIsThoughtExpanded] = useState(false)
-    const [configStep, setConfigStep] = useState(0)
-    const [styleOptions, setStyleOptions] = useState({ 
-        theme: 'modern-dark', 
-        websiteName: '', 
-        description: '', 
-        category: '',
-        templateId: '' 
-    })
     const [attachments, setAttachments] = useState([])
     const [showAttachMenu, setShowAttachMenu] = useState(false)
     const [isDragOver, setIsDragOver] = useState(false)

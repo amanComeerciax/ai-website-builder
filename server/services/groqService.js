@@ -8,10 +8,16 @@
  * Extremely fast — typically <2s response time
  */
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const groqKeys = [
+  process.env.GROQ_API_KEY,
+  process.env.GROQ_API_KEY_2,
+  process.env.GROQ_API_KEY_3
+].filter(Boolean);
+let currentGroqKeyIndex = 0;
+
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MAX_RETRIES = 2;
+const GROQ_MAX_RETRIES = parseInt(process.env.GROQ_MAX_RETRIES) || 3;
 
 /**
  * Generate a response from Groq Cloud API (OpenAI-compatible).
@@ -24,8 +30,8 @@ const GROQ_MAX_RETRIES = 2;
  * @returns {{ content: string, model: string, durationMs: number }}
  */
 async function callGroq(systemPrompt, userMessage, options = {}, history = []) {
-  if (!GROQ_API_KEY) {
-    throw new Error('GROQ_API_KEY is not configured.');
+  if (groqKeys.length === 0) {
+    throw new Error('No GROQ_API_KEY configured.');
   }
 
   const { jsonMode = false, temperature = 0.2, tools = undefined } = options;
@@ -33,7 +39,8 @@ async function callGroq(systemPrompt, userMessage, options = {}, history = []) {
 
   for (let attempt = 1; attempt <= GROQ_MAX_RETRIES; attempt++) {
     try {
-      console.log(`[Groq Service] Attempt ${attempt}/${GROQ_MAX_RETRIES} — model: ${GROQ_MODEL}${tools ? ' (with tools)' : ''}`);
+      const currentKey = groqKeys[currentGroqKeyIndex];
+      console.log(`[Groq Service] Attempt ${attempt}/${GROQ_MAX_RETRIES} — model: ${GROQ_MODEL}${tools ? ' (with tools)' : ''} [Key ${currentGroqKeyIndex + 1}/${groqKeys.length}]`);
 
       const messages = history.length > 0 ? history : [
         { role: 'system', content: systemPrompt },
@@ -44,7 +51,7 @@ async function callGroq(systemPrompt, userMessage, options = {}, history = []) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`
+          'Authorization': `Bearer ${currentKey}`
         },
         body: JSON.stringify({
           model: GROQ_MODEL,
@@ -57,13 +64,16 @@ async function callGroq(systemPrompt, userMessage, options = {}, history = []) {
         })
       });
 
-      if (response.status === 429) {
+      if (response.status === 429 || response.status === 401) {
+        // Rotate key and retry
+        console.warn(`[Groq Service] API Key ${currentGroqKeyIndex + 1} hit Error ${response.status}. Rotating key...`);
+        currentGroqKeyIndex = (currentGroqKeyIndex + 1) % groqKeys.length;
+        
         if (attempt < GROQ_MAX_RETRIES) {
-          console.warn(`[Groq Service] 429 Rate limited — backing off 5s...`);
-          await new Promise(r => setTimeout(r, 5000));
+          await new Promise(r => setTimeout(r, 1000));
           continue;
         }
-        throw new Error('Groq rate limited after all retries');
+        throw new Error(`Groq exhausted after ${GROQ_MAX_RETRIES} retries with ${groqKeys.length} keys`);
       }
 
       if (!response.ok) {

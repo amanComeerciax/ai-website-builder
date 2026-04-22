@@ -185,6 +185,56 @@ function extractSectionMap(html) {
   }
   return sections;
 }
+
+/**
+ * Extract a compact summary from a version's HTML for AI context injection.
+ * Reuses extractSectionMap + extractDesignSystem but keeps output under ~500 chars.
+ * Also extracts video URLs and background-video patterns the AI might need to reference.
+ */
+function extractVersionSummary(html) {
+  if (!html || html.length < 50) return '(empty)';
+
+  const sections = extractSectionMap(html);
+  const design = extractDesignSystem(html);
+
+  // Extract video sources (<video> tags and CSS background-video patterns)
+  const videoUrls = [];
+  const videoRegex = /<video[^>]*>\s*<source[^>]*src\s*=\s*["']([^"']+)["']/gi;
+  let vm;
+  while ((vm = videoRegex.exec(html)) !== null) {
+    videoUrls.push(vm[1]);
+  }
+  // Also catch inline video src directly on <video>
+  const videoSrcRegex = /<video[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi;
+  while ((vm = videoSrcRegex.exec(html)) !== null) {
+    videoUrls.push(vm[1]);
+  }
+
+  // Extract background-image URLs from CSS
+  const bgUrls = [];
+  const bgRegex = /background(?:-image)?\s*:\s*url\(["']?([^"')]+)["']?\)/gi;
+  while ((vm = bgRegex.exec(html)) !== null) {
+    bgUrls.push(vm[1]);
+  }
+
+  // Build compact summary
+  const parts = [];
+  if (sections.length > 0) {
+    parts.push(`Sections: ${sections.map(s => {
+      let d = `<${s.tag}>`;
+      if (s.id) d += `#${s.id}`;
+      if (s.contentPreview) d += ` "${s.contentPreview.substring(0, 30)}..."`;
+      return d;
+    }).join(', ')}`);
+  }
+  if (design.fonts.length > 0) parts.push(`Fonts: ${design.fonts.slice(0, 3).join(', ')}`);
+  if (design.colors.length > 0) parts.push(`Colors: ${design.colors.slice(0, 6).join(', ')}`);
+  if (videoUrls.length > 0) parts.push(`Videos: ${videoUrls.join(', ')}`);
+  if (bgUrls.length > 0) parts.push(`Background images: ${bgUrls.slice(0, 3).join(', ')}`);
+
+  return parts.join(' | ').substring(0, 600) || '(minimal content)';
+}
+
 /**
  * Post-processing: Fix image alignment for images already in the template.
  *
@@ -509,7 +559,7 @@ function applyPatches(originalHtml, patches) {
   return { result, appliedCount, totalPatches: patches.length };
 }
 
-async function editExistingHtml(existingHtml, userPrompt, enrichedSpec, onProgress, requestModel) {
+async function editExistingHtml(existingHtml, userPrompt, enrichedSpec, onProgress, requestModel, versionHistory = null) {
   onProgress({ event: 'thinking', message: 'Analyzing your edit request...' });
   onProgress({ event: 'log', type: 'Reading', file: 'current website', message: 'Reviewing your existing website code' });
 
@@ -676,6 +726,12 @@ ${sectionMapDesc}
 
 ═══ EXISTING DESIGN SYSTEM (use these values for any CSS changes/additions) ═══
 ${designSystem.summary || '(Could not extract — analyze the HTML inline styles and <style> blocks)'}
+${versionHistory ? `
+═══ VERSION HISTORY (previous generations of this website — use when user references "previous version", "old", "2nd version", etc.) ═══
+${versionHistory}
+
+IMPORTANT: When the user references a past version (e.g. "use the video from the old footer", "use the font from version 2"), find the matching version above and extract the EXACT code/styles/URLs they are referencing. Then create patches to apply those specific elements to the CURRENT HTML.
+` : ''}
 
 ╔══════════════════════════════════════════════════════════════════╗
 ║  ZERO TOLERANCE RULES — VIOLATING ANY = TOTAL FAILURE           ║
@@ -1315,7 +1371,7 @@ CRITICAL RULES:
 // ─────────────────────────────────────────────────────────
 // PUBLIC API — Called by aiWorker.js
 // ─────────────────────────────────────────────────────────
-async function generateRawHtml(enrichedSpec, onProgress, existingHtml = null, requestModel = null, originalPrompt = null) {
+async function generateRawHtml(enrichedSpec, onProgress, existingHtml = null, requestModel = null, originalPrompt = null, versionHistory = null) {
   let finalHtml;
   let internalTemplateName = 'custom';
 
@@ -1333,7 +1389,7 @@ async function generateRawHtml(enrichedSpec, onProgress, existingHtml = null, re
     } else {
       // ── MODE 2: CONTEXTUAL EDIT (general) ──
       console.log(`[Generator] ✏️ EDIT MODE — modifying existing website (${existingHtml.length} chars)`);
-      finalHtml = await editExistingHtml(existingHtml, editPrompt, enrichedSpec, onProgress, requestModel);
+      finalHtml = await editExistingHtml(existingHtml, editPrompt, enrichedSpec, onProgress, requestModel, versionHistory);
     }
   } else {
     // ── MODE 1: FRESH GENERATION ──
@@ -1355,4 +1411,4 @@ async function generateRawHtml(enrichedSpec, onProgress, existingHtml = null, re
   };
 }
 
-module.exports = { generateRawHtml };
+module.exports = { generateRawHtml, extractVersionSummary };

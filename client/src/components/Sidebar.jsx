@@ -319,8 +319,8 @@ export default function Sidebar() {
                     <span>Search</span>
                     <div className="lv-badge">⌘K</div>
                 </button>
-                <NavLink to="/resources" className={({ isActive }) => `lv-nav-link ${isActive ? 'lv-nav-link-active' : ''}`}>
-                    <Book size={14} />
+                <NavLink to="/templates" className={({ isActive }) => `lv-nav-link ${isActive ? 'lv-nav-link-active' : ''}`}>
+                    <LayoutTemplate size={14} />
                     <span>Resources</span>
                 </NavLink>
             </nav>

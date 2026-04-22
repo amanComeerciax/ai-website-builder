@@ -194,7 +194,7 @@ export default function TemplatesPage() {
                     setIsVisible(true);
                     observer.disconnect(); // fetch only once
                 }
-            }, { rootMargin: '200px' });
+            }, { rootMargin: '50px' });
 
             if (wrapperRef.current) {
                 observer.observe(wrapperRef.current);
@@ -231,6 +231,7 @@ export default function TemplatesPage() {
                         srcDoc={html}
                         frameBorder="0"
                         scrolling="no"
+                        loading="lazy"
                         title={template.title}
                         onLoad={() => setIsLoaded(true)}
                     />

@@ -56,21 +56,34 @@ const deployProject = async (netlifySiteId, fileTree) => {
             endpointUrl = `https://api.netlify.com/api/v1/sites/${netlifySiteId}/deploys`;
         }
 
+        const makeDeployRequest = async (token) => {
+            const res = await fetch(endpointUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/zip',
+                },
+                body: zipBuffer
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || `Netlify deploy failed with status: ${res.status}`);
+            }
+            return data;
+        };
+
         console.log(`[DeployService] Uploading zip to Netlify API...`);
-        const response = await fetch(endpointUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${NETLIFY_TOKEN}`,
-                'Content-Type': 'application/zip',
-            },
-            body: zipBuffer
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error("[DeployService] Netlify API Error:", data);
-            throw new Error(data.message || `Netlify deploy failed with status: ${response.status}`);
+        let data;
+        try {
+            data = await makeDeployRequest(NETLIFY_TOKEN);
+        } catch (err) {
+            const fallbackToken = process.env.NETLIFY_ACCESS_TOKEN_2;
+            if (fallbackToken) {
+                console.warn(`[DeployService] Primary Netlify deploy failed (${err.message}). Attempting fallback token...`);
+                data = await makeDeployRequest(fallbackToken);
+            } else {
+                throw err;
+            }
         }
 
         console.log(`[DeployService] ✅ Netlify deploy successful: ${data.url || data.deploy_url}`);

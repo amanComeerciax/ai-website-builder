@@ -26,19 +26,21 @@ router.post("/suggest-category", async (req, res) => {
 
         const ALLOWED_CATEGORIES = [
             "blog", "coffee-shop", "fashion", "landing", 
-            "portfolio", "restaurant", "saas", "service", "wellness"
+            "portfolio", "restaurant", "saas", "service", "wellness", "all"
         ];
 
         // We use Llama via Groq for high-speed simple matching (or Gem fast fallback)
         const systemPrompt = `You are an expert intent classifier for a website builder. Map the user's prompt to EXACTLY ONE of the following precise template categories to ensure they get the best layout structure: ${ALLOWED_CATEGORIES.join(", ")}.
 
 Rules:
-1. If the user mentions 'shop', 'cart', 'buy', or 'store', classify as: ecommerce (if available) or landing.
-2. If the user mentions 'dashboard', 'app', 'software', or 'login', classify as: saas
-3. If they mention their own work, 'gallery', 'resume', or 'showcase', classify as: portfolio
-4. If they mention food, cake, cafe, dining, bakery, classify as: coffee-shop or restaurant
-5. DO NOT explain your reasoning.
-6. ONLY reply with the single exact word from the list above.`;
+1. If the user mentions 'shop', 'cart', 'buy', or 'store', classify as: landing.
+2. If the user mentions 'dashboard', 'SaaS', 'platform', or 'login software', classify as: saas.
+3. If the user mentions a simple promotional page for an app, tool, or product (like an 'AI VOICE cloner' or 'waitlist'), classify as: landing.
+4. If they mention their own work, 'gallery', 'resume', or 'showcase', classify as: portfolio.
+5. If they mention food, cake, cafe, dining, bakery, classify as: coffee-shop or restaurant.
+6. If the request is generic, completely vague, or spans multiple categories, return: all.
+7. DO NOT explain your reasoning.
+8. ONLY reply with the single exact word from the list above.`;
 
         const { callModel } = require('../services/modelRouter.js');
         const response = await callModel('template_selector', prompt, systemPrompt, { forceModel: 'groq' });

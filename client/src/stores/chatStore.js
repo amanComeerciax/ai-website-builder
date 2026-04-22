@@ -33,6 +33,9 @@ export const useChatStore = create(
 
             // RBAC: the user's role in the current workspace for this project
             memberRole: 'owner',
+            
+            configStep: 0,
+            styleOptions: { websiteName: '', description: '', category: '', templateId: '' },
 
             // Helper to automatically sync project-specific state to projectData
             _sync: (updater) => set((state) => {
@@ -47,11 +50,20 @@ export const useChatStore = create(
                         generationTaskName: nextState.generationTaskName,
                         generationTheme: nextState.generationTheme,
                         generationSiteType: nextState.generationSiteType,
-                        isConfigured: nextState.isConfigured
+                        isConfigured: nextState.isConfigured,
+                        configStep: nextState.configStep,
+                        styleOptions: nextState.styleOptions
                     };
                     updates.projectData = newProjectData;
                 }
                 return updates;
+            }),
+            
+            setConfigStep: (step) => get()._sync((state) => ({ configStep: typeof step === 'function' ? step(state.configStep) : step })),
+            
+            setStyleOptions: (updater) => get()._sync((state) => {
+                const newOpts = typeof updater === 'function' ? updater(state.styleOptions) : updater;
+                return { styleOptions: newOpts };
             }),
             
             loadProject: async (projectId, token) => {
@@ -65,7 +77,9 @@ export const useChatStore = create(
                             generationLogs: state.generationLogs,
                             generationPhase: state.generationPhase,
                             generationSummary: state.generationSummary,
-                            generationTaskName: state.generationTaskName
+                            generationTaskName: state.generationTaskName,
+                            configStep: state.configStep,
+                            styleOptions: state.styleOptions
                         };
                     }
 
@@ -83,6 +97,8 @@ export const useChatStore = create(
                             generationTheme: data.generationTheme || '',
                             generationSiteType: data.generationSiteType || '',
                             isConfigured: data.isConfigured || false,
+                            configStep: data.configStep || 0,
+                            styleOptions: data.styleOptions || { websiteName: '', description: '', category: '', templateId: '' },
                             isGenerating: false
                         };
                     } else {
@@ -100,6 +116,8 @@ export const useChatStore = create(
                             generationTheme: '',
                             generationSiteType: '',
                             isConfigured: false,
+                            configStep: 0,
+                            styleOptions: { websiteName: '', description: '', category: '', templateId: '' },
                             isGenerating: false
                         };
                     }

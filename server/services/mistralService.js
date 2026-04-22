@@ -10,11 +10,20 @@
 
 const { Mistral } = require('@mistralai/mistralai');
 
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
-const MISTRAL_MODEL = process.env.MISTRAL_MODEL || 'mistral-small-latest';
-const MISTRAL_MAX_RETRIES = parseInt(process.env.MISTRAL_MAX_RETRIES) || 2;
+const mistralKeys = [
+  process.env.MISTRAL_API_KEY,
+  process.env.MISTRAL_API_KEY_2,
+  process.env.MISTRAL_API_KEY_3
+].filter(Boolean);
+let currentMistralKeyIndex = 0;
 
-const client = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY }) : null;
+const MISTRAL_MODEL = process.env.MISTRAL_MODEL || 'mistral-small-latest';
+const MISTRAL_MAX_RETRIES = parseInt(process.env.MISTRAL_MAX_RETRIES) || Math.max(3, mistralKeys.length);
+
+function getMistralClient() {
+  if (mistralKeys.length === 0) return null;
+  return new Mistral({ apiKey: mistralKeys[currentMistralKeyIndex] });
+}
 
 /**
  * Generate a response from Mistral Cloud API.
@@ -27,8 +36,8 @@ const client = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY }) : null
  * @returns {{ content: string, model: string, durationMs: number }}
  */
 async function callMistral(systemPrompt, userMessage, options = {}, history = []) {
-  if (!client) {
-    throw new Error('MISTRAL_API_KEY is not configured.');
+  if (mistralKeys.length === 0) {
+    throw new Error('No MISTRAL_API_KEY configured.');
   }
 
   const { jsonMode = false, temperature = 0.3, tools = undefined } = options;
@@ -39,7 +48,8 @@ async function callMistral(systemPrompt, userMessage, options = {}, history = []
 
   for (let attempt = 1; attempt <= MISTRAL_MAX_RETRIES; attempt++) {
     try {
-      console.log(`[Mistral Service] Attempt ${attempt}/${MISTRAL_MAX_RETRIES} — model: ${MISTRAL_MODEL}${tools ? ' (with tools)' : ''}`);
+      const client = getMistralClient();
+      console.log(`[Mistral Service] Attempt ${attempt}/${MISTRAL_MAX_RETRIES} — model: ${MISTRAL_MODEL}${tools ? ' (with tools)' : ''} [Key ${currentMistralKeyIndex + 1}/${mistralKeys.length}]`);
 
       const messages = history.length > 0 ? history : [
         { role: 'system', content: systemPrompt },
@@ -82,8 +92,13 @@ async function callMistral(systemPrompt, userMessage, options = {}, history = []
       }
 
     } catch (error) {
+      if (error.status === 429 || error.status === 401 || (error.message && error.message.includes('429'))) {
+        console.warn(`[Mistral Service] API Key ${currentMistralKeyIndex + 1} hit Error ${error.status || '429'}. Rotating key...`);
+        currentMistralKeyIndex = (currentMistralKeyIndex + 1) % mistralKeys.length;
+      }
+      
       if (attempt === MISTRAL_MAX_RETRIES) throw error;
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
 }
