@@ -3,6 +3,7 @@ import { apiClient } from '../lib/api'
 
 export const useProjectStore = create((set, get) => ({
     projects: [],
+    isLoading: false,
     
     // Clear all projects (for workspace switching)
     clearProjects: () => set({ projects: [] }),
@@ -10,6 +11,7 @@ export const useProjectStore = create((set, get) => ({
     // Create a new project via API — returns a real MongoDB ObjectId
     // templateId is optional — when provided, the backend pre-populates currentFileTree with the template HTML
     createProject: async (prompt, token, folderId = null, templateId = null, workspaceId = null) => {
+        set({ isLoading: true });
         try {
             const payload = { 
                 prompt: prompt,
@@ -33,12 +35,14 @@ export const useProjectStore = create((set, get) => ({
             };
             
             set((state) => ({
-                projects: [newProject, ...state.projects]
+                projects: [newProject, ...state.projects],
+                isLoading: false
             }));
             
             return newProject.id;
         } catch (err) {
             console.error('[ProjectStore] Failed to create project via API:', err);
+            set({ isLoading: false });
             return null; // Don't fallback to local-only, we need the DB record
         }
     },
@@ -49,6 +53,7 @@ export const useProjectStore = create((set, get) => ({
 
     // Fetch all projects from DB
     fetchProjects: async (token, workspaceId = null) => {
+        set({ isLoading: true });
         try {
             const data = await apiClient.getProjects(token, workspaceId);
             const projects = (data.projects || []).map(p => ({
@@ -67,9 +72,10 @@ export const useProjectStore = create((set, get) => ({
                 websiteName: p.websiteName || null,
                 description: p.description || null
             }));
-            set({ projects });
+            set({ projects, isLoading: false });
         } catch (err) {
             console.error('[ProjectStore] Failed to fetch projects:', err);
+            set({ isLoading: false });
         }
     },
 

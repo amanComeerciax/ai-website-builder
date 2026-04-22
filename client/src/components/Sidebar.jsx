@@ -140,7 +140,7 @@ export default function Sidebar() {
         // Clear hover preview immediately
         setHoveredProject(null)
         
-        if (isLoaded && isSignedIn && activeWorkspaceId) {
+        if (isLoaded && isSignedIn) {
             const load = async () => {
                 const token = await getToken();
                 fetchProjects(token, activeWorkspaceId)

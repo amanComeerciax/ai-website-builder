@@ -284,7 +284,7 @@ export default function DashboardPage() {
 
   const textareaRef = useRef(null);
 
-  const { projects, createProject } = useProjectStore();
+  const { projects, createProject, fetchProjects, isLoading: isProjectsLoading } = useProjectStore();
   const { recentItems } = useRecentlyViewedStore();
 
   // Tab state
@@ -292,6 +292,16 @@ export default function DashboardPage() {
 
   // Templates
   const [templates, setTemplates] = useState([]);
+
+  // Fetch projects on mount if empty
+  useEffect(() => {
+    if (isLoaded && isSignedIn && projects.length === 0 && !isProjectsLoading) {
+      getToken().then(token => {
+        const { activeWorkspaceId } = useWorkspaceStore.getState();
+        fetchProjects(token, activeWorkspaceId);
+      });
+    }
+  }, [isLoaded, isSignedIn, projects.length, isProjectsLoading, fetchProjects, getToken]);
 
   useEffect(() => {
     if (isLoaded && isSignedIn && !userData) {
@@ -521,7 +531,12 @@ export default function DashboardPage() {
 
         {/* ── My Projects ── */}
         {activeTab === "projects" &&
-          (projects.length > 0 ? (
+          (isProjectsLoading && projects.length === 0 ? (
+            <div className="lv-empty-tab">
+               <div className="lv-loading-spinner" />
+               <div className="lv-empty-tab-text">Loading your projects...</div>
+            </div>
+          ) : projects.length > 0 ? (
             <div className="lv-cards-grid" key="projects">
               {projects.slice(0, 4).map((proj) => (
                 <div
