@@ -188,6 +188,15 @@
     .form-group.row {
         grid-template-columns: 1fr;
     }
+    .admin-templates-page {
+        padding: 30px 16px;
+    }
+    .admin-container {
+        padding: 20px 16px;
+    }
+    .admin-brand h1 {
+        font-size: 24px;
+    }
 }
 
 /* ── Chunking Result Panel ── */

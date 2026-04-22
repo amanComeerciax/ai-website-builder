@@ -59,8 +59,8 @@ export default defineConfig({
       },
     },
 
-    hmr: {
-      clientPort: 443, // 🔥 important for ngrok (https)
-    },
+    // hmr: {
+    //   clientPort: 443, // 🔥 important for ngrok (https)
+    // },
   },
 })

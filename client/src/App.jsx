@@ -10,7 +10,7 @@ import TemplatesPage from './pages/TemplatesPage'
 import AuthPage from './pages/AuthPage'
 import SuccessPage from './pages/SuccessPage'
 import SettingsPage from './pages/SettingsPage'
-import AdminTemplatesPage from './pages/AdminTemplatesPage'
+import NotFoundPage from './pages/NotFoundPage'
 import { Toaster } from 'react-hot-toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -96,11 +96,7 @@ function App() {
             element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
           />
 
-          {/* Admin route */}
-          <Route
-            path="/admin/templates"
-            element={<ProtectedRoute><AdminTemplatesPage /></ProtectedRoute>}
-          />
+
 
           {/* Editor route */}
           <Route
@@ -113,7 +109,7 @@ function App() {
           <Route path="/signup/*" element={<PublicRoute><AuthPage mode="sign-up" /></PublicRoute>} />
 
           {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </ClerkLoaded>
     </>

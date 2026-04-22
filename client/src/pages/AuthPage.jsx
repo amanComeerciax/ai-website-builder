@@ -94,6 +94,8 @@ const clerkAppearance = {
 
 // AuthVideoBackground component removed in favor of SeamlessVideoLayer
 
+import "./AuthPage.css";
+
 export default function AuthPage({ mode = "sign-up" }) {
   const [placeholder, setPlaceholder] = useState("");
   const [suggestionIndex, setSuggestionIndex] = useState(0);
@@ -128,10 +130,10 @@ export default function AuthPage({ mode = "sign-up" }) {
   }, [charIndex, isDeleting, suggestionIndex]);
 
   return (
-    <div style={styles.wrapper}>
+    <div className="ap-wrapper">
       {/* ─── LEFT PANEL: Dark Auth Form ─── */}
-      <div style={styles.leftPanel}>
-        <div style={styles.leftInner}>
+      <div className="ap-left-panel">
+        <div className="ap-left-inner">
           {/* Clerk Auth Form */}
           <div style={{ minHeight: "600px" }}>
             {mode === "sign-up" ? (
@@ -154,9 +156,9 @@ export default function AuthPage({ mode = "sign-up" }) {
           </div>
 
           {/* SSO Note */}
-          <p style={styles.ssoNote}>
+          <p className="ap-sso-note">
             🔒 SSO available on{" "}
-            <Link to="/pricing" style={styles.ssoLink}>
+            <Link to="/pricing" className="ap-sso-link">
               Business and Enterprise
             </Link>{" "}
             plans
@@ -164,23 +166,23 @@ export default function AuthPage({ mode = "sign-up" }) {
         </div>
 
         {/* Logo at bottom-left */}
-        <Link to="/" style={styles.bottomLogo}>
+        <Link to="/" className="ap-bottom-logo">
           <Wind size={20} />
           <span>STACKFORGE</span>
         </Link>
       </div>
 
       {/* ─── RIGHT PANEL: Video background with floating prompt ─── */}
-      <div style={styles.rightPanel}>
-        <SeamlessVideoLayer 
-          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260406_133058_0504132a-0cf3-4450-a370-8ea3b05c95d4.mp4" 
+      <div className="ap-right-panel">
+        <SeamlessVideoLayer
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260406_133058_0504132a-0cf3-4450-a370-8ea3b05c95d4.mp4"
           style={{ opacity: 0.8 }} // Matching landing/dashboard dimming
         />
-        <div style={styles.promptContainer}>
-          <div style={styles.promptBar}>
-            <span style={styles.promptText}>{placeholder}</span>
-            <span style={styles.promptCursor}>|</span>
-            <button style={styles.promptButton}>
+        <div className="ap-prompt-container">
+          <div className="ap-prompt-bar">
+            <span className="ap-prompt-text">{placeholder}</span>
+            <span className="ap-prompt-cursor">|</span>
+            <button className="ap-prompt-button">
               <ArrowUp size={18} strokeWidth={2.5} />
             </button>
           </div>
@@ -189,106 +191,3 @@ export default function AuthPage({ mode = "sign-up" }) {
     </div>
   );
 }
-
-const styles = {
-  wrapper: {
-    display: "flex",
-    minHeight: "100vh",
-    fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif",
-  },
-  leftPanel: {
-    flex: "0 0 50%",
-    maxWidth: "50%",
-    background: "#0a0a0a",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "3rem",
-    position: "relative",
-  },
-  leftInner: {
-    width: "100%",
-    maxWidth: "380px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "2rem",
-  },
-  bottomLogo: {
-    position: "absolute",
-    bottom: "2rem",
-    left: "2.5rem",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    fontWeight: "700",
-    fontSize: "0.9375rem",
-    letterSpacing: "-0.03em",
-    color: "rgba(255, 255, 255, 0.4)",
-    textDecoration: "none",
-    transition: "color 0.3s",
-  },
-  ssoNote: {
-    marginTop: "0.5rem",
-    fontSize: "0.8125rem",
-    color: "#52525b",
-    textAlign: "center",
-  },
-  ssoLink: {
-    color: "#60a5fa",
-    textDecoration: "underline",
-    textUnderlineOffset: "2px",
-  },
-  rightPanel: {
-    flex: "0 0 50%",
-    maxWidth: "50%",
-    background: "#0a0a0a",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    overflow: "hidden",
-  },
-  promptContainer: {
-    position: "relative",
-    zIndex: 2,
-    width: "80%",
-    maxWidth: "400px",
-  },
-  promptBar: {
-    display: "flex",
-    alignItems: "center",
-    background: "rgba(255, 255, 255, 0.95)",
-    borderRadius: "1rem",
-    padding: "0.875rem 1rem",
-    boxShadow:
-      "0 10px 40px rgba(0, 0, 0, 0.15), 0 2px 10px rgba(0, 0, 0, 0.08)",
-    gap: "0.5rem",
-  },
-  promptText: {
-    flex: 1,
-    fontSize: "0.9375rem",
-    color: "#18181b",
-    fontWeight: "400",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
-  promptCursor: {
-    color: "#18181b",
-    fontWeight: "300",
-    animation: "blink 1s step-end infinite",
-  },
-  promptButton: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    background: "#18181b",
-    color: "#ffffff",
-    border: "none",
-    cursor: "pointer",
-    flexShrink: 0,
-  },
-};

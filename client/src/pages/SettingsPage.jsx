@@ -3,7 +3,8 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Users, CreditCard, Cloud, Lock, User, Beaker, FileText, 
   Plug, Github, Search, ChevronDown, Check, MoreHorizontal, Settings,
-  Pencil, Info, X, ExternalLink, Activity, FolderPlus, ShieldAlert
+  Pencil, Info, X, ExternalLink, Activity, FolderPlus, ShieldAlert, LayoutTemplate,
+  Loader2, Layers, Zap, FileCode, Shield, ShieldCheck, Upload
 } from 'lucide-react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useAuthStore } from '../stores/authStore';
@@ -25,10 +26,16 @@ const Toggle = ({ isOn, onToggle }) => (
   </button>
 );
 
-const MutedDropdown = ({ options, value }) => (
+const MutedDropdown = ({ options, value, onChange, disabled }) => (
   <div className="sp-select-wrapper">
-    <select className="sp-select" value={value} onChange={() => {}}>
-      {options.map(opt => <option key={opt}>{opt}</option>)}
+    <select 
+      className="sp-select" 
+      value={value} 
+      onChange={(e) => onChange && onChange(e.target.value)}
+      disabled={disabled}
+      style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+    >
+      {options.map(opt => <option key={typeof opt === 'object' ? opt.value : opt} value={typeof opt === 'object' ? opt.value : opt}>{typeof opt === 'object' ? opt.label : opt}</option>)}
     </select>
     <ChevronDown size={14} className="sp-select-icon" />
   </div>
@@ -1199,26 +1206,173 @@ const CloudPage = () => {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PAGE: PRIVACY
+// PAGE: PRIVACY (Dynamic per-workspace settings)
 // ─────────────────────────────────────────────────────────────────────────────
 const PrivacyPage = () => {
-  const [toggles, setToggles] = useState({});
-  const toggle = (k) => setToggles(p => ({...p, [k]: !p[k]}));
+  const { getToken } = useAuth();
+  const { activeWorkspaceId } = useWorkspaceStore();
+  const [settings, setSettings] = useState(null);
+  const [memberRole, setMemberRole] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch privacy settings on mount
+  useEffect(() => {
+    if (!activeWorkspaceId) return;
+    let cancelled = false;
+    setIsLoading(true);
+    (async () => {
+      try {
+        const token = await getToken();
+        const data = await apiClient.getWorkspacePrivacy(activeWorkspaceId, token);
+        if (!cancelled) {
+          setSettings(data.settings);
+          setMemberRole(data.memberRole);
+        }
+      } catch (err) {
+        console.error('[PrivacyPage] Failed to load settings:', err);
+        toast.error('Failed to load privacy settings');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeWorkspaceId, getToken]);
+
+  const canEdit = memberRole === 'owner' || memberRole === 'admin';
+
+  // Auto-save a single setting change
+  const updateSetting = async (key, value) => {
+    if (!canEdit) return;
+    // Optimistic update
+    setSettings(prev => ({ ...prev, [key]: value }));
+    setIsSaving(true);
+    try {
+      const token = await getToken();
+      await apiClient.updateWorkspacePrivacy(activeWorkspaceId, { [key]: value }, token);
+      toast.success('Setting saved', { duration: 1500, style: { background: '#1a1a1a', color: '#fff', fontSize: '13px' } });
+    } catch (err) {
+      console.error('[PrivacyPage] Failed to save:', err);
+      toast.error('Failed to save setting');
+      // Revert on failure
+      setSettings(prev => ({ ...prev, [key]: key.includes('enabled') || key.includes('allow') || key.includes('cross') ? !value : value }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleSetting = (key) => {
+    if (!settings) return;
+    updateSetting(key, !settings[key]);
+  };
+
+  // Loading skeleton
+  if (isLoading || !settings) {
+    return (
+      <div className="sp-content">
+        <div className="sp-page-header">
+          <div>
+            <h1 className="sp-page-title">Privacy & Security</h1>
+            <p className="sp-page-subtitle">Loading settings...</p>
+          </div>
+        </div>
+        <div className="sp-card-no-padding">
+          {[...Array(8)].map((_, i) => (
+            <div className="sp-row" key={i} style={{ opacity: 0.3 }}>
+              <div className="sp-row-info">
+                <h4 className="sp-row-title" style={{ width: '60%', height: 14, background: '#333', borderRadius: 4 }}>&nbsp;</h4>
+                <p className="sp-row-desc" style={{ width: '40%', height: 12, background: '#2a2a2a', borderRadius: 4, marginTop: 6 }}>&nbsp;</p>
+              </div>
+              <div style={{ width: 44, height: 24, background: '#333', borderRadius: 12 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const rows = [
-    { label: 'Default project visibility', desc: 'Who can see projects by default.', right: <MutedDropdown options={['Workspace', 'Private', 'Public']} value="Workspace" /> },
-    { label: 'Default website access', desc: 'Who can view published sites.', badge: 'Business', badgeClass: 'sp-badge-business', right: <MutedDropdown options={['Anyone', 'Workspace only']} value="Anyone" /> },
-    { label: 'MCP servers access', desc: 'Allow Model Context Protocol servers.', badge: 'Business', badgeClass: 'sp-badge-business', t: 'mcp' },
-    { label: 'Data collection opt out', desc: 'Prevent training on your code.', badge: 'Business', badgeClass: 'sp-badge-business', t: 'data' },
-    { label: 'Restrict workspace invitations', desc: 'Only admins can invite.', badge: 'Enterprise', badgeClass: 'sp-badge-enterprise', t: 'inv' },
-    { label: 'Allow editors to transfer projects', desc: 'Let editors move projects out.', badge: 'Enterprise', badgeClass: 'sp-badge-enterprise', t: 'transfer' },
-    { label: 'Invite links', desc: 'Enable joining via secret link.', t: 'links', def: true },
-    { label: 'Who can publish externally', desc: 'Restrict external deploys.', badge: 'Enterprise', badgeClass: 'sp-badge-enterprise', right: <MutedDropdown options={['Editors and above', 'Owners only']} value="Editors and above" /> },
-    { label: 'Block publishing with critical findings', desc: 'Require passing security scans.', t: 'block' },
-    { label: 'Require security scan before first publish', desc: 'Mandatory pentest.', t: 'scan' },
-    { label: 'Allow public preview links sharing', desc: 'Share unpublished previews.', badge: 'Enterprise', badgeClass: 'sp-badge-enterprise', t: 'prev', def: true },
-    { label: 'Cross-project sharing', desc: 'Allow component reuse.', t: 'cross', def: true },
-    { label: 'Workspace discovery', desc: 'Users with matching domains can ask to join.', badge: 'Business', badgeClass: 'sp-badge-business', t: 'discover', def: true },
+    {
+      label: 'Default project visibility',
+      desc: 'Who can see new projects by default.',
+      right: (
+        <MutedDropdown
+          options={[
+            { value: 'workspace', label: 'Workspace' },
+            { value: 'private', label: 'Private' },
+            { value: 'public', label: 'Public' }
+          ]}
+          value={settings.defaultProjectVisibility}
+          onChange={(v) => updateSetting('defaultProjectVisibility', v)}
+          disabled={!canEdit}
+        />
+      )
+    },
+    {
+      label: 'Default website access',
+      desc: 'Who can view published sites.',
+      badge: 'Business',
+      badgeClass: 'sp-badge-business',
+      right: (
+        <MutedDropdown
+          options={[
+            { value: 'anyone', label: 'Anyone' },
+            { value: 'workspace', label: 'Workspace only' }
+          ]}
+          value={settings.defaultWebsiteAccess}
+          onChange={(v) => updateSetting('defaultWebsiteAccess', v)}
+          disabled={!canEdit}
+        />
+      )
+    },
+    {
+      label: 'Restrict workspace invitations',
+      desc: 'Only owners and admins can invite new members.',
+      badge: 'Enterprise',
+      badgeClass: 'sp-badge-enterprise',
+      key: 'restrictInvitations'
+    },
+    {
+      label: 'Allow editors to transfer projects',
+      desc: 'Let editors move projects out of this workspace.',
+      badge: 'Enterprise',
+      badgeClass: 'sp-badge-enterprise',
+      key: 'allowEditorsTransfer'
+    },
+    {
+      label: 'Invite links',
+      desc: 'Enable joining this workspace via a secret link.',
+      key: 'inviteLinksEnabled'
+    },
+    {
+      label: 'Who can publish externally',
+      desc: 'Restrict who can deploy sites to public URLs.',
+      badge: 'Enterprise',
+      badgeClass: 'sp-badge-enterprise',
+      right: (
+        <MutedDropdown
+          options={[
+            { value: 'editors', label: 'Editors and above' },
+            { value: 'owners', label: 'Owners only' }
+          ]}
+          value={settings.whoCanPublish}
+          onChange={(v) => updateSetting('whoCanPublish', v)}
+          disabled={!canEdit}
+        />
+      )
+    },
+    {
+      label: 'Allow public preview links sharing',
+      desc: 'Share unpublished site previews with external users.',
+      badge: 'Enterprise',
+      badgeClass: 'sp-badge-enterprise',
+      key: 'allowPreviewSharing'
+    },
+    {
+      label: 'Cross-project sharing',
+      desc: 'Allow reusing components and styles across projects.',
+      key: 'crossProjectSharing'
+    }
   ];
 
   return (
@@ -1226,8 +1380,13 @@ const PrivacyPage = () => {
       <div className="sp-page-header">
         <div>
           <h1 className="sp-page-title">Privacy & Security</h1>
-          <p className="sp-page-subtitle">Configure privacy, security, and data access.</p>
+          <p className="sp-page-subtitle">Configure privacy, security, and data access for this workspace.</p>
         </div>
+        {!canEdit && (
+          <div style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12, fontWeight: 500 }}>
+            View only — contact a workspace admin to change settings
+          </div>
+        )}
       </div>
 
       <div className="sp-card-no-padding">
@@ -1241,9 +1400,9 @@ const PrivacyPage = () => {
               <p className="sp-row-desc">{r.desc}</p>
             </div>
             {r.right ? r.right : (
-              <Toggle 
-                isOn={toggles[r.t] !== undefined ? toggles[r.t] : r.def} 
-                onToggle={() => toggle(r.t)} 
+              <Toggle
+                isOn={settings[r.key]}
+                onToggle={() => canEdit && toggleSetting(r.key)}
               />
             )}
           </div>
@@ -1335,6 +1494,51 @@ const ProjectSettingsPage = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [toggles, setToggles] = useState({ badge: false, sharing: true });
   const { userData } = useAuthStore();
+
+  // Share as Template
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareForm, setShareForm] = useState({ themeName: '', themeTagline: '', categories: [], description: '' });
+  const [isSubmittingShare, setIsSubmittingShare] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
+
+  const SHARE_CATEGORIES = [
+    'saas', 'portfolio', 'landing', 'blog', 'ecommerce', 'restaurant',
+    'wellness', 'coffee-shop', 'fashion', 'service', 'agency', 'education', 'custom'
+  ];
+
+  const toggleShareCategory = (cat) => {
+    setShareForm(prev => ({
+      ...prev,
+      categories: prev.categories.includes(cat)
+        ? prev.categories.filter(c => c !== cat)
+        : [...prev.categories, cat]
+    }));
+  };
+
+  const handleShareSubmit = async () => {
+    if (!shareForm.themeName || shareForm.categories.length === 0) return;
+    setIsSubmittingShare(true);
+    try {
+      const token = await getToken();
+      const res = await fetch('/api/templates/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ projectId, ...shareForm })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShareSuccess(true);
+        setShowShareModal(false);
+        toast.success('Template submitted for admin review!');
+      } else {
+        toast.error(data.error || 'Failed to submit template');
+      }
+    } catch {
+      toast.error('Network error');
+    } finally {
+      setIsSubmittingShare(false);
+    }
+  };
 
   // Fetch project data
   useEffect(() => {
@@ -1578,6 +1782,104 @@ const ProjectSettingsPage = () => {
         </div>
       </div>
 
+      {/* ── Share as Template ── */}
+      <div className="sp-card-no-padding">
+        <div className="sp-row">
+          <div className="sp-row-info">
+            <h4 className="sp-row-title">Share as Template</h4>
+            <p className="sp-row-desc">
+              {shareSuccess
+                ? '✓ Your template was submitted! An admin will review it shortly.'
+                : 'Submit your website as a community template. After admin approval, others can remix it.'}
+            </p>
+          </div>
+          <button
+            className="sp-btn sp-btn-outline"
+            onClick={() => { setShowShareModal(true); setShareSuccess(false); }}
+            disabled={shareSuccess}
+          >
+            {shareSuccess ? 'Submitted' : 'Share as Template'}
+          </button>
+        </div>
+      </div>
+
+      {/* Share as Template Modal */}
+      {showShareModal && (
+        <div className="sp-remix-overlay" onClick={() => setShowShareModal(false)}>
+          <div className="sp-remix-modal" onClick={e => e.stopPropagation()} style={{maxWidth: '480px'}}>
+            <button className="sp-remix-close" onClick={() => setShowShareModal(false)}><X size={20} /></button>
+
+            <div className="sp-remix-icon-wrap">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="url(#shareGrad)" stroke="none">
+                <defs><linearGradient id="shareGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#6366f1" />
+                  <stop offset="100%" stopColor="#a855f7" />
+                </linearGradient></defs>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+
+            <h2 className="sp-remix-title">Share as Template</h2>
+            <p className="sp-remix-desc">Give your website a theme name so others can discover and remix it.</p>
+
+            <div className="sp-remix-field">
+              <label>Theme Name *</label>
+              <input
+                type="text"
+                placeholder='e.g. "Aurora", "Velocity"'
+                value={shareForm.themeName}
+                onChange={e => setShareForm(p => ({...p, themeName: e.target.value}))}
+                className="sp-input"
+                style={{width: '100%', marginTop: '6px'}}
+              />
+            </div>
+
+            <div className="sp-remix-field" style={{marginTop: '12px'}}>
+              <label>Tagline (optional)</label>
+              <input
+                type="text"
+                placeholder='e.g. "Sleek & minimal"'
+                value={shareForm.themeTagline}
+                onChange={e => setShareForm(p => ({...p, themeTagline: e.target.value}))}
+                className="sp-input"
+                style={{width: '100%', marginTop: '6px'}}
+              />
+            </div>
+
+            <div className="sp-remix-field" style={{marginTop: '12px'}}>
+              <label>Categories * <span style={{fontWeight:400, color:'#888'}}>(pick all that apply)</span></label>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', marginTop:'8px'}}>
+                {SHARE_CATEGORIES.map(cat => {
+                  const on = shareForm.categories.includes(cat);
+                  return (
+                    <button key={cat} type="button" onClick={() => toggleShareCategory(cat)} style={{
+                      padding: '6px 10px', borderRadius: '8px', cursor: 'pointer',
+                      fontSize: '11px', fontWeight: 500, fontFamily: 'inherit',
+                      background: on ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${on ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                      color: on ? '#a5b4fc' : '#888', transition: 'all 0.2s',
+                    }}>
+                      {cat.replace(/-/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="sp-remix-actions" style={{marginTop: '20px'}}>
+              <button className="sp-btn sp-btn-outline" onClick={() => setShowShareModal(false)}>Cancel</button>
+              <button
+                className="sp-btn sp-btn-white"
+                onClick={handleShareSubmit}
+                disabled={isSubmittingShare || !shareForm.themeName || shareForm.categories.length === 0}
+              >
+                {isSubmittingShare ? 'Submitting...' : 'Submit for Review'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Danger Zone ── */}
       <div className="sp-card sp-card-danger">
         <h4 className="sp-row-title" style={{marginBottom: '8px'}}>Delete project</h4>
@@ -1752,6 +2054,764 @@ const GithubPage = () => (
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PAGE: TEMPLATES MANAGER (Admin)
+// ─────────────────────────────────────────────────────────────────────────────
+const TemplatesManagerPage = () => {
+  const { getToken } = useAuth();
+
+  const categories = [
+    'saas', 'portfolio', 'landing', 'blog', 'ecommerce', 
+    'restaurant', 'wellness', 'coffee-shop', 'fashion', 'service', 'sports',
+    'agency', 'automotive', 'education', 'entertainment', 'fitness',
+    'legal', 'medical', 'nonprofit', 'real-estate', 'travel', 'wedding', 'custom'
+  ];
+
+  const emptyTemplate = () => ({
+    id: Date.now() + Math.random(),
+    title: '',
+    categories: [],
+    description: '',
+    themeName: '',
+    themeTagline: '',
+    htmlContent: '',
+    htmlFile: null,
+    status: 'pending', // pending | uploading | success | error
+    error: '',
+  });
+
+  const [queue, setQueue] = useState([emptyTemplate()]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+  const [results, setResults] = useState([]); // { id, status, message, chunking }
+
+  // ── Manage Templates State ──
+  const [activeTab, setActiveTab] = useState('upload'); // 'upload' | 'manage'
+  const [adminTemplates, setAdminTemplates] = useState([]);
+  const [manageLoading, setManageLoading] = useState(false);
+
+  const fetchAdminTemplates = async () => {
+    setManageLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch('/api/templates/admin', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.templates) {
+        setAdminTemplates(data.templates);
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin templates', err);
+    } finally {
+      setManageLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'manage') {
+      fetchAdminTemplates();
+    }
+  }, [activeTab]);
+
+  const toggleVisibility = async (tmplId, field, currentVal) => {
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/templates/${tmplId}/visibility`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: !currentVal })
+      });
+      if (res.ok) {
+        setAdminTemplates(prev => prev.map(t => t.id === tmplId ? { ...t, [field]: !currentVal } : t));
+        toast.success('Visibility updated');
+      }
+    } catch (err) {
+      toast.error('Failed to update visibility');
+    }
+  };
+
+  const handleApprove = async (tmplId, publishToBrowse) => {
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/templates/${tmplId}/approve`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publishToBrowse })
+      });
+      if (res.ok) {
+        fetchAdminTemplates();
+        toast.success('Template approved');
+      }
+    } catch (err) {
+      toast.error('Failed to approve template');
+    }
+  };
+
+  const handleReject = async (tmplId) => {
+    if (!window.confirm('Reject this community submission?')) return;
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/templates/${tmplId}/reject`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) fetchAdminTemplates();
+    } catch (err) {
+      toast.error('Failed to reject template');
+    }
+  };
+
+  const handleDeleteTemplate = async (tmplId, name) => {
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/templates/${tmplId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setAdminTemplates(prev => prev.filter(t => t.id !== tmplId));
+        toast.success('Template archived limit-lessly');
+      }
+    } catch (err) {
+      toast.error('Failed to delete template');
+    }
+  };
+
+  const categoryLabel = (cat) => cat.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+  // ── Queue management ──
+  const addToQueue = () => setQueue(prev => [...prev, emptyTemplate()]);
+
+  const removeFromQueue = (id) => {
+    if (queue.length === 1) return; // keep at least one
+    setQueue(prev => prev.filter(t => t.id !== id));
+  };
+
+  const updateItem = (id, updates) => {
+    setQueue(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+
+  const toggleCategory = (id, cat) => {
+    setQueue(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      const exists = t.categories.includes(cat);
+      return { ...t, categories: exists ? t.categories.filter(c => c !== cat) : [...t.categories, cat] };
+    }));
+  };
+
+  const handleFileChange = (id, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      updateItem(id, { htmlFile: file, htmlContent: ev.target.result });
+    };
+    reader.readAsText(file);
+  };
+
+  const clearFile = (id) => {
+    updateItem(id, { htmlFile: null, htmlContent: '' });
+  };
+
+  // ── Batch upload ──
+  const handleBatchUpload = async () => {
+    const valid = queue.filter(t => t.title && t.categories.length > 0 && (t.htmlContent || t.htmlFile));
+    if (valid.length === 0) return;
+
+    setIsUploading(true);
+    setUploadProgress({ current: 0, total: valid.length });
+    setResults([]);
+
+    const token = await getToken();
+
+    for (let i = 0; i < valid.length; i++) {
+      const t = valid[i];
+      setUploadProgress({ current: i + 1, total: valid.length });
+      updateItem(t.id, { status: 'uploading' });
+
+      try {
+        const fd = new FormData();
+        fd.append('title', t.title);
+        fd.append('description', t.description);
+        fd.append('categories', JSON.stringify(t.categories));
+        fd.append('themeName', t.themeName);
+        fd.append('themeTagline', t.themeTagline);
+
+        if (t.htmlFile) {
+          fd.append('htmlFile', t.htmlFile);
+        } else {
+          fd.append('htmlContent', t.htmlContent);
+        }
+
+        const res = await fetch('/api/templates', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: fd,
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          updateItem(t.id, { status: 'success' });
+          setResults(prev => [...prev, { id: t.id, status: 'success', message: `${t.title} — uploaded to ${t.categories.length} categor${t.categories.length === 1 ? 'y' : 'ies'}`, chunking: data.chunking }]);
+        } else {
+          updateItem(t.id, { status: 'error', error: data.error || 'Failed' });
+          setResults(prev => [...prev, { id: t.id, status: 'error', message: `${t.title} — ${data.error || 'Failed'}` }]);
+        }
+      } catch (err) {
+        updateItem(t.id, { status: 'error', error: 'Network error' });
+        setResults(prev => [...prev, { id: t.id, status: 'error', message: `${t.title} — Network error` }]);
+      }
+    }
+
+    setIsUploading(false);
+  };
+
+  const allDone = queue.every(t => t.status === 'success' || t.status === 'error');
+  const hasValid = queue.some(t => t.title && t.categories.length > 0 && (t.htmlContent || t.htmlFile));
+
+  const resetAll = () => {
+    setQueue([emptyTemplate()]);
+    setResults([]);
+    setUploadProgress({ current: 0, total: 0 });
+  };
+
+  // ── Collapsible template item ──
+  const [expandedId, setExpandedId] = useState(null);
+
+  return (
+    <div className="sp-content" style={{maxWidth: '1000px'}}>
+      <div className="sp-page-header" style={{flexDirection: 'column', gap: '4px', marginBottom: '24px'}}>
+        <h1 className="sp-page-title">Templates Manager</h1>
+        <p className="sp-page-subtitle">Upload templates or manage existing ones.</p>
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1px' }}>
+        <button
+          onClick={() => setActiveTab('upload')}
+          style={{
+            background: 'none', border: 'none', padding: '10px 16px', cursor: 'pointer',
+            color: activeTab === 'upload' ? '#fff' : '#888', fontSize: '13px', fontWeight: 600,
+            borderBottom: `2px solid ${activeTab === 'upload' ? '#818cf8' : 'transparent'}`,
+            transition: 'all 0.2s'
+          }}
+        >
+          Upload Templates
+        </button>
+        <button
+          onClick={() => setActiveTab('manage')}
+          style={{
+            background: 'none', border: 'none', padding: '10px 16px', cursor: 'pointer',
+            color: activeTab === 'manage' ? '#fff' : '#888', fontSize: '13px', fontWeight: 600,
+            borderBottom: `2px solid ${activeTab === 'manage' ? '#818cf8' : 'transparent'}`,
+            transition: 'all 0.2s'
+          }}
+        >
+          Manage Templates
+        </button>
+      </div>
+
+      {activeTab === 'upload' && (
+        <>
+          {/* Upload Results */}
+          {results.length > 0 && (
+            <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {results.map((r, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px',
+              background: r.status === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+              border: `1px solid ${r.status === 'success' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+              fontSize: '12px', color: r.status === 'success' ? '#4ade80' : '#f87171',
+            }}>
+              {r.status === 'success' ? <Check size={14} /> : <X size={14} />}
+              <span>{r.message}</span>
+            </div>
+          ))}
+          <button onClick={resetAll} style={{
+            alignSelf: 'flex-start', marginTop: '8px', padding: '6px 14px',
+            background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
+            borderRadius: '8px', color: '#a5b4fc', fontSize: '12px', fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            + Upload more templates
+          </button>
+        </div>
+      )}
+
+      {/* Upload Progress */}
+      {isUploading && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px',
+          background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8', fontSize: '13px',
+        }}>
+          <Loader2 size={16} style={{animation: 'spin 1s linear infinite'}} />
+          <span>Uploading {uploadProgress.current} of {uploadProgress.total}...</span>
+        </div>
+      )}
+
+      {/* Template Queue */}
+      {!allDone && queue.map((item, idx) => {
+        const isExpanded = expandedId === item.id || queue.length === 1;
+        const hasContent = item.htmlContent || item.htmlFile;
+        const lineCount = item.htmlContent ? item.htmlContent.split('\n').length : (item.htmlFile ? '—' : 0);
+        const byteCount = item.htmlContent ? new Blob([item.htmlContent]).size : (item.htmlFile ? item.htmlFile.size : 0);
+        const sizeKB = (byteCount / 1024).toFixed(1);
+
+        return (
+          <div key={item.id} style={{
+            marginBottom: '12px', borderRadius: '14px',
+            border: `1px solid ${item.status === 'success' ? 'rgba(34,197,94,0.3)' : item.status === 'error' ? 'rgba(239,68,68,0.3)' : item.status === 'uploading' ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.08)'}`,
+            background: item.status === 'uploading' ? 'rgba(99,102,241,0.04)' : 'rgba(255,255,255,0.02)',
+            overflow: 'hidden', transition: 'all 0.2s',
+          }}>
+            {/* Header — always visible */}
+            <div
+              onClick={() => setExpandedId(isExpanded ? null : item.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px',
+                cursor: 'pointer', transition: 'background 0.15s',
+              }}
+            >
+              <div style={{
+                width: '28px', height: '28px', borderRadius: '8px',
+                background: item.status === 'success' ? 'rgba(34,197,94,0.15)' : item.status === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                {item.status === 'uploading' ? <Loader2 size={14} style={{color: '#818cf8', animation: 'spin 1s linear infinite'}} />
+                  : item.status === 'success' ? <Check size={14} style={{color: '#4ade80'}} />
+                  : item.status === 'error' ? <X size={14} style={{color: '#f87171'}} />
+                  : <FileCode size={14} style={{color: '#818cf8'}} />}
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {item.title || `Template ${idx + 1}`}
+                </div>
+                <div style={{ fontSize: '11px', color: '#666', display: 'flex', gap: '8px', marginTop: '1px' }}>
+                  {item.categories.length > 0 && <span>{item.categories.length} categor{item.categories.length === 1 ? 'y' : 'ies'}</span>}
+                  {hasContent && <span>{sizeKB} KB</span>}
+                  {item.themeName && <span style={{color: '#818cf8'}}>"{item.themeName}"</span>}
+                </div>
+              </div>
+
+              {queue.length > 1 && item.status === 'pending' && (
+                <button onClick={(e) => { e.stopPropagation(); removeFromQueue(item.id); }} style={{
+                  background: 'rgba(239,68,68,0.1)', border: 'none', borderRadius: '6px',
+                  padding: '4px 8px', cursor: 'pointer', color: '#f87171', fontSize: '11px',
+                  display: 'flex', alignItems: 'center', gap: '3px', fontFamily: 'inherit',
+                }}>
+                  <X size={10} /> Remove
+                </button>
+              )}
+
+              <ChevronDown size={14} style={{
+                color: '#555', transition: 'transform 0.2s',
+                transform: isExpanded ? 'rotate(180deg)' : 'none',
+              }} />
+            </div>
+
+            {/* Expanded Body */}
+            {isExpanded && item.status === 'pending' && (
+              <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Title + Theme Name */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', color: '#888', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Template Title *</label>
+                    <input className="sp-input" placeholder="e.g. Modern SaaS Hero" value={item.title}
+                      onChange={e => updateItem(item.id, { title: e.target.value })}
+                      style={{ width: '100%', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', color: '#888', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Theme Name (user sees)</label>
+                    <input className="sp-input" placeholder="e.g. Aurora" value={item.themeName}
+                      onChange={e => updateItem(item.id, { themeName: e.target.value })}
+                      style={{ width: '100%', fontSize: '13px' }} />
+                  </div>
+                </div>
+
+                {/* Tagline + Description */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', color: '#888', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Theme Tagline</label>
+                    <input className="sp-input" placeholder="e.g. Sleek & minimal" value={item.themeTagline}
+                      onChange={e => updateItem(item.id, { themeTagline: e.target.value })}
+                      style={{ width: '100%', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', color: '#888', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Description (internal)</label>
+                    <input className="sp-input" placeholder="Brief description..." value={item.description}
+                      onChange={e => updateItem(item.id, { description: e.target.value })}
+                      style={{ width: '100%', fontSize: '13px' }} />
+                  </div>
+                </div>
+
+                {/* Categories */}
+                <div>
+                  <label style={{ fontSize: '11px', color: '#888', fontWeight: 500, marginBottom: '6px', display: 'block' }}>Categories * — select one or more</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {categories.map(cat => {
+                      const isChecked = item.categories.includes(cat);
+                      return (
+                        <button key={cat} type="button" onClick={() => toggleCategory(item.id, cat)} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '6px',
+                          background: isChecked ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${isChecked ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                          color: isChecked ? '#a5b4fc' : '#777', fontSize: '11px', fontWeight: 500,
+                          cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
+                        }}>
+                          {isChecked && <Check size={10} strokeWidth={3} />}
+                          {categoryLabel(cat)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* HTML Upload / Paste */}
+                <div>
+                  <label style={{ fontSize: '11px', color: '#888', fontWeight: 500, marginBottom: '6px', display: 'block' }}>HTML Content * — upload file or paste</label>
+
+                  {item.htmlFile ? (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px',
+                      borderRadius: '10px', border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.06)',
+                    }}>
+                      <FileCode size={16} style={{ color: '#818cf8' }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#fff' }}>{item.htmlFile.name}</div>
+                        <div style={{ fontSize: '10px', color: '#888' }}>{sizeKB} KB · {lineCount} lines</div>
+                      </div>
+                      <button onClick={() => clearFile(item.id)} style={{
+                        background: 'rgba(239,68,68,0.12)', border: 'none', borderRadius: '6px',
+                        padding: '3px 8px', cursor: 'pointer', color: '#f87171', fontSize: '10px',
+                        display: 'flex', alignItems: 'center', gap: '3px', fontFamily: 'inherit',
+                      }}>
+                        <X size={10} /> Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        padding: '16px', borderRadius: '10px', marginBottom: '8px',
+                        border: '1.5px dashed rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)',
+                        cursor: 'pointer', transition: 'all 0.2s',
+                      }}
+                        onClick={() => document.getElementById(`file-input-${item.id}`)?.click()}
+                        onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#6366f1'; }}
+                        onDragLeave={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+                        onDrop={e => {
+                          e.preventDefault(); e.stopPropagation();
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                          const file = e.dataTransfer?.files?.[0];
+                          if (file && (file.name.endsWith('.html') || file.name.endsWith('.htm'))) handleFileChange(item.id, file);
+                        }}
+                      >
+                        <Upload size={18} style={{ color: '#555' }} />
+                        <span style={{ fontSize: '12px', color: '#888' }}>
+                          Drop .html or <span style={{ color: '#818cf8', textDecoration: 'underline' }}>browse</span>
+                        </span>
+                      </div>
+                      <input id={`file-input-${item.id}`} type="file" accept=".html,.htm"
+                        onChange={e => handleFileChange(item.id, e.target.files?.[0])}
+                        style={{ display: 'none' }} />
+                      <textarea
+                        placeholder="Or paste raw HTML here..."
+                        value={item.htmlContent}
+                        onChange={e => updateItem(item.id, { htmlContent: e.target.value, htmlFile: null })}
+                        style={{
+                          width: '100%', minHeight: '120px', background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid #2a2a2a', borderRadius: '10px', padding: '12px',
+                          color: '#ccc', fontSize: '12px', fontFamily: 'monospace', resize: 'vertical',
+                          outline: 'none', transition: 'border-color 0.2s',
+                        }}
+                        onFocus={e => e.target.style.borderColor = '#4f6ef7'}
+                        onBlur={e => e.target.style.borderColor = '#2a2a2a'}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Add + Upload buttons */}
+      {!allDone && (
+        <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+          <button onClick={addToQueue} disabled={isUploading} style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '10px 18px', borderRadius: '10px',
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            color: '#aaa', fontSize: '13px', fontWeight: 500, cursor: isUploading ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s', fontFamily: 'inherit',
+            opacity: isUploading ? 0.4 : 1,
+          }}>
+            <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span> Add Another Template
+          </button>
+
+          <button onClick={handleBatchUpload} disabled={isUploading || !hasValid} style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            padding: '10px 24px', borderRadius: '10px',
+            background: hasValid && !isUploading ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'rgba(255,255,255,0.06)',
+            border: 'none', color: hasValid && !isUploading ? '#fff' : 'rgba(255,255,255,0.3)',
+            fontSize: '13px', fontWeight: 600, cursor: hasValid && !isUploading ? 'pointer' : 'not-allowed',
+            boxShadow: hasValid && !isUploading ? '0 4px 20px rgba(99,102,241,0.3)' : 'none',
+            transition: 'all 0.25s', fontFamily: 'inherit',
+          }}>
+            {isUploading ? (
+              <><Loader2 size={16} style={{animation: 'spin 1s linear infinite'}} /> Uploading {uploadProgress.current}/{uploadProgress.total}...</>
+            ) : (
+              <><Upload size={16} /> Upload {queue.length > 1 ? `All ${queue.length} Templates` : 'Template'}</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Queue count indicator */}
+      {queue.length > 1 && !allDone && (
+        <div style={{ fontSize: '11px', color: '#666', marginTop: '10px', textAlign: 'center' }}>
+          {queue.length} template{queue.length > 1 ? 's' : ''} in queue · {queue.filter(t => t.title && t.categories.length > 0 && (t.htmlContent || t.htmlFile)).length} ready to upload
+        </div>
+      )}
+        </>
+      )}
+
+      {activeTab === 'manage' && (
+        <div className="sp-card">
+          {manageLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}><Loader2 size={24} className="spinning" color="#666" style={{margin:'auto'}}/></div>
+          ) : adminTemplates.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>No templates found.</div>
+          ) : (
+            <div className="sp-users-table-wrap">
+              <table className="sp-users-table">
+                <thead>
+                  <tr>
+                    <th>Template</th>
+                    <th>Source</th>
+                    <th>Categories</th>
+                    <th>Theme Picker</th>
+                    <th>Browse Gallery</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminTemplates.map(t => {
+                    const isPending = t.approvalStatus === 'pending';
+                    const isRejected = t.approvalStatus === 'rejected';
+                    return (
+                      <tr key={t.id} style={{ opacity: isRejected ? 0.5 : 1 }}>
+                        <td>
+                          <div style={{fontWeight:500, color:'#fff'}}>{t.name}</div>
+                          <div style={{fontSize:'11px', color:'#888', marginTop:'2px'}}>{(t.sizeBytes/1024).toFixed(1)} KB</div>
+                        </td>
+                        <td>
+                          {t.source === 'community' ? (
+                            <div>
+                              <span className="sp-role-badge sp-role-user">Community</span>
+                              <div style={{fontSize:'10px', color:'#666', marginTop:'2px'}}>by {t.submittedBy?.name || 'User'}</div>
+                            </div>
+                          ) : (
+                            <span className="sp-role-badge sp-role-admin">Admin</span>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{display:'flex', gap:'4px', flexWrap:'wrap', maxWidth:'140px'}}>
+                            {t.categories.slice(0, 2).map(c => <span key={c} style={{fontSize:'10px', padding:'2px 6px', background:'rgba(255,255,255,0.05)', borderRadius:'4px'}}>{c}</span>)}
+                            {t.categories.length > 2 && <span style={{fontSize:'10px', color:'#888'}}>+{t.categories.length - 2}</span>}
+                          </div>
+                        </td>
+                        <td>
+                          <Toggle isOn={t.isVisibleInThemes} onToggle={() => toggleVisibility(t.id, 'isVisibleInThemes', t.isVisibleInThemes)} disabled={isPending || isRejected} />
+                        </td>
+                        <td>
+                          <Toggle isOn={t.isVisible} onToggle={() => toggleVisibility(t.id, 'isVisible', t.isVisible)} disabled={isPending || isRejected} />
+                        </td>
+                        <td>
+                          <div style={{display:'flex', gap:'6px'}}>
+                            {isPending && (
+                              <>
+                                <button onClick={() => handleApprove(t.id, false)} className="sp-btn sp-btn-outline" style={{padding:'4px 8px', fontSize:'11px', color:'#4ade80', borderColor:'rgba(74,222,128,0.3)'}}>Approve</button>
+                                <button onClick={() => handleReject(t.id)} className="sp-btn sp-btn-outline" style={{padding:'4px 8px', fontSize:'11px', color:'#f87171', borderColor:'rgba(248,113,113,0.3)'}}>Reject</button>
+                              </>
+                            )}
+                            {isRejected && <span style={{fontSize:'11px', color:'#f87171'}}>Rejected</span>}
+                            {!isPending && (
+                              <button onClick={() => handleDeleteTemplate(t.id, t.name)} style={{background:'none', border:'none', color:'#f87171', cursor:'pointer', padding:'4px'}} title="Archive Template">
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE: USERS MANAGER (Admin)
+// ─────────────────────────────────────────────────────────────────────────────
+const UsersManagerPage = () => {
+  const { getToken } = useAuth();
+  const { userData } = useAuthStore();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [actionLoading, setActionLoading] = useState(null);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const token = await getToken();
+      const res = await fetch('/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) setUsers(data.users);
+    } catch (err) {
+      console.error('Failed to fetch users', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleRole = async (clerkId, currentRole) => {
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    if (!window.confirm(`Are you sure you want to change this user to ${newRole}?`)) return;
+    setActionLoading(clerkId);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/admin/users/${clerkId}/role`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole })
+      });
+      if (res.ok) {
+        setUsers(prev => prev.map(u => u.clerkId === clerkId ? { ...u, role: newRole } : u));
+        toast.success('Role updated');
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to update role');
+      }
+    } catch (err) {
+      console.error('Action failed', err);
+      toast.error('Action failed');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const filteredUsers = users.filter(u =>
+    u.email?.toLowerCase().includes(search.toLowerCase()) ||
+    u.name?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="sp-content" style={{maxWidth: '1000px'}}>
+      <div className="sp-page-header" style={{flexDirection: 'column', gap: '4px', marginBottom: '32px'}}>
+        <h1 className="sp-page-title">Users Manager</h1>
+        <p className="sp-page-subtitle">Manage system roles and permissions for all registered users.</p>
+      </div>
+
+      <div className="sp-filter-bar" style={{marginBottom: '20px'}}>
+        <div className="sp-search-bar">
+          <Search size={14} />
+          <input
+            type="text"
+            className="sp-input"
+            placeholder="Search by name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{textAlign: 'center', padding: '80px 0'}}>
+          <Loader2 size={32} style={{animation: 'spin 1s linear infinite', color: '#4f6ef7'}} />
+          <p style={{marginTop: '12px', color: '#666', fontSize: '13px'}}>Fetching users...</p>
+        </div>
+      ) : (
+        <div className="sp-table-wrapper">
+          <table className="sp-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Status/Tier</th>
+                <th>Role</th>
+                <th style={{textAlign: 'right'}}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map(user => (
+                <tr key={user.clerkId}>
+                  <td>
+                    <div className="sp-table-user">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt="" style={{width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover'}} />
+                      ) : (
+                        <div className="sp-avatar-sm blue">{(user.name || user.email || '?')[0].toUpperCase()}</div>
+                      )}
+                      <div>
+                        <div style={{fontWeight: 600, color: '#fff'}}>{user.name || 'Anonymous'}</div>
+                        <div style={{color: '#666', fontSize: '12px'}}>{user.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span style={{
+                      fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
+                      background: user.subscription?.tier === 'pro' ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.06)',
+                      color: user.subscription?.tier === 'pro' ? '#a78bfa' : '#888'
+                    }}>
+                      {user.subscription?.tier || 'free'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: user.role === 'admin' ? '#10b981' : '#888'}}>
+                      {user.role === 'admin' ? <ShieldCheck size={14} /> : <Shield size={14} style={{opacity: 0.4}} />}
+                      <span style={{textTransform: 'capitalize'}}>{user.role || 'user'}</span>
+                    </div>
+                  </td>
+                  <td style={{textAlign: 'right'}}>
+                    <button
+                      className="sp-btn sp-btn-outline"
+                      onClick={() => toggleRole(user.clerkId, user.role || 'user')}
+                      disabled={actionLoading === user.clerkId || user.clerkId === userData?.clerkId}
+                      style={{
+                        height: '30px', padding: '0 12px', fontSize: '12px',
+                        color: user.role === 'admin' ? '#ef4444' : '#10b981',
+                        borderColor: user.role === 'admin' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)',
+                        opacity: (actionLoading === user.clerkId || user.clerkId === userData?.clerkId) ? 0.5 : 1
+                      }}
+                    >
+                      {actionLoading === user.clerkId ? 'Processing...' : (user.role === 'admin' ? 'Revoke Admin' : 'Make Admin')}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="sp-table-footer">Showing {filteredUsers.length} of {users.length} users</div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN SHELL COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
@@ -1759,6 +2819,7 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const hash = location.hash || '#workspace';
   const { user } = useUser();
+  const { userData } = useAuthStore();
   const { workspaces, activeWorkspaceId } = useWorkspaceStore();
   
   const activeWorkspace = workspaces?.find(w => w._id === activeWorkspaceId) || workspaces?.[0];
@@ -1769,6 +2830,7 @@ export default function SettingsPage() {
   
   const searchParams = new URLSearchParams(location.search);
   const projectId = searchParams.get('id');
+  const isAdmin = userData?.role === 'admin';
 
   // Render Profile Page without sidebar
   if (hash === '#profile') {
@@ -1789,6 +2851,8 @@ export default function SettingsPage() {
       case '#labs': return <LabsPage />;
       case '#connectors': return <ConnectorsPage />;
       case '#github': return <GithubPage />;
+      case '#templates': return isAdmin ? <TemplatesManagerPage /> : <WorkspacePage />;
+      case '#users': return isAdmin ? <UsersManagerPage /> : <WorkspacePage />;
       default: return <WorkspacePage />;
     }
   };
@@ -1845,22 +2909,17 @@ export default function SettingsPage() {
         </div>
 
         <div className="sp-section-label">Connectors</div>
-        <div className="sp-nav-group" style={{marginBottom: user?.primaryEmailAddress?.emailAddress === 'kingamaan14@gmail.com' ? '0' : '24px'}}>
+        <div className="sp-nav-group" style={{marginBottom: isAdmin ? '0' : '24px'}}>
           <NavItem to="#connectors" icon={Plug} label="Connectors" />
           <NavItem to="#github" icon={Github} label="GitHub" />
         </div>
 
-        {user?.primaryEmailAddress?.emailAddress === 'kingamaan14@gmail.com' && (
+        {isAdmin && (
           <>
             <div className="sp-section-label" style={{marginTop: '24px'}}>Admin</div>
             <div className="sp-nav-group" style={{marginBottom: '24px'}}>
-              <button 
-                className="sp-nav-item" 
-                onClick={() => navigate('/admin/templates')}
-              >
-                <div className="sp-icon-wrap"><ShieldAlert size={16} /></div>
-                <div className="sp-nav-label-main">Template Admin</div>
-              </button>
+              <NavItem to="#templates" icon={LayoutTemplate} label="Templates Manager" />
+              <NavItem to="#users" icon={ShieldAlert} label="Users Manager" />
             </div>
           </>
         )}

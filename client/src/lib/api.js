@@ -146,6 +146,12 @@ class ApiClient {
         }, token)
     }
 
+    deleteVersion(projectId, versionId, token) {
+        return this.request(`/projects/${projectId}/versions/${versionId}`, {
+            method: 'DELETE',
+        }, token)
+    }
+
     // ── Folders ──
     getFolders(token, workspaceId = null) {
         const url = workspaceId ? `/folders?workspaceId=${workspaceId}` : '/folders';
@@ -266,6 +272,18 @@ class ApiClient {
         return this.request(`/workspaces/${id}/avatar`, {
             method: 'POST',
             body: JSON.stringify({ avatar }),
+        }, token)
+    }
+
+    // ── Workspace Privacy Settings ──
+    getWorkspacePrivacy(workspaceId, token) {
+        return this.request(`/workspaces/${workspaceId}/privacy`, {}, token)
+    }
+
+    updateWorkspacePrivacy(workspaceId, settings, token) {
+        return this.request(`/workspaces/${workspaceId}/privacy`, {
+            method: 'PUT',
+            body: JSON.stringify(settings),
         }, token)
     }
 

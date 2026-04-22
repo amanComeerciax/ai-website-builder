@@ -18,6 +18,47 @@ router.get("/themes", (req, res) => {
     res.json({ themes: getThemeList() });
 })
 
+// ── POST /api/generate/suggest-category — AI inference for matching prompts to template categories ──
+router.post("/suggest-category", async (req, res) => {
+    try {
+        const { prompt } = req.body;
+        if (!prompt) return res.status(400).json({ error: "prompt is required" });
+
+        const ALLOWED_CATEGORIES = [
+            "blog", "coffee-shop", "fashion", "landing", 
+            "portfolio", "restaurant", "saas", "service", "wellness"
+        ];
+
+        // We use Llama via Groq for high-speed simple matching (or Gem fast fallback)
+        const systemPrompt = `You are an expert intent classifier for a website builder. Map the user's prompt to EXACTLY ONE of the following precise template categories to ensure they get the best layout structure: ${ALLOWED_CATEGORIES.join(", ")}.
+
+Rules:
+1. If the user mentions 'shop', 'cart', 'buy', or 'store', classify as: ecommerce (if available) or landing.
+2. If the user mentions 'dashboard', 'app', 'software', or 'login', classify as: saas
+3. If they mention their own work, 'gallery', 'resume', or 'showcase', classify as: portfolio
+4. If they mention food, cake, cafe, dining, bakery, classify as: coffee-shop or restaurant
+5. DO NOT explain your reasoning.
+6. ONLY reply with the single exact word from the list above.`;
+
+        const { callModel } = require('../services/modelRouter.js');
+        const response = await callModel('template_selector', prompt, systemPrompt, { forceModel: 'groq' });
+        const responseText = response.content;
+        
+        let predictedCategory = "all"; // fallback
+        // Clean response but keep hyphens to allow 'coffee-shop'
+        const cleanResponse = responseText.toLowerCase().replace(/[^a-z-]/g, "");
+        if (ALLOWED_CATEGORIES.includes(cleanResponse)) {
+            predictedCategory = cleanResponse;
+        }
+
+        res.json({ category: predictedCategory });
+    } catch (err) {
+        console.error("[generate /suggest-category]", err);
+        // Fallback to "all" if the AI call fails or rate limits
+        res.json({ category: "all" });
+    }
+});
+
 // ── POST /api/generate — Start AI generation ──
 router.post("/", async (req, res, next) => {
     try {
@@ -85,7 +126,7 @@ router.post("/", async (req, res, next) => {
             existingFiles,
             messageId: assistantMessageId,
             model: model || 'mistral',
-            userId: "local_test_user",
+            userId: req.auth?.userId || null,
             // Attachment data
             images: images || [],
             fileContents: fileContents || [],

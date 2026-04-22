@@ -21,12 +21,13 @@ const CATEGORY_META = {
 const STEP_INFO = [
   { icon: Type, label: 'Name', color: '#8b5cf6' },
   { icon: Layout, label: 'About', color: '#a855f7' },
-  { icon: Grid3X3, label: 'Template', color: '#f59e0b' },
+  { icon: Grid3X3, label: 'Theme', color: '#f59e0b' },
 ];
 
 export default function WebsiteStylePicker({ step = 0, value, onChange }) {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [analyzingPrompt, setAnalyzingPrompt] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(value.templateId || null);
 
@@ -45,7 +46,8 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
       try {
         const res = await fetch('/api/templates');
         const data = await res.json();
-        setTemplates(data.templates || []);
+        const activeThemes = (data.templates || []).filter(t => t.isVisibleInThemes);
+        setTemplates(activeThemes);
       } catch (err) {
         console.error('[StylePicker] Failed to fetch templates:', err);
       } finally {
@@ -55,16 +57,56 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
     fetchTemplates();
   }, []);
 
-  // Group templates by categoryId
+  // AI Categorization Effect for Step 2
+  useEffect(() => {
+    if (step === 2 && !selectedCategory) {
+      const promptToAnalyze = value.initialPrompt || value.description || value.websiteName;
+      if (!promptToAnalyze) {
+        setSelectedCategory('all');
+        return;
+      }
+      
+      setAnalyzingPrompt(true);
+      fetch('/api/generate/suggest-category', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptToAnalyze })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.category && data.category !== 'all') {
+          setSelectedCategory(data.category);
+          onChange({ ...value, category: data.category });
+        } else {
+          setSelectedCategory('all');
+        }
+      })
+      .catch(err => {
+        setSelectedCategory('all');
+      })
+      .finally(() => {
+        setAnalyzingPrompt(false);
+      });
+    }
+  }, [step, selectedCategory, value.initialPrompt, value.description, value.websiteName]);
+
+  // Group templates by every category in allCategories (one card per template per category view)
   const categoriesMap = {};
   templates.forEach(t => {
-    const cid = t.categoryId;
-    if (!categoriesMap[cid]) categoriesMap[cid] = [];
-    categoriesMap[cid].push(t);
+    const cats = t.allCategories && t.allCategories.length > 0 ? t.allCategories : [t.categoryId || 'custom'];
+    cats.forEach(cid => {
+      if (!categoriesMap[cid]) categoriesMap[cid] = [];
+      // Avoid adding same template twice to same category bucket (slug-dedup)
+      if (!categoriesMap[cid].find(x => x.slug === t.slug)) {
+        categoriesMap[cid].push(t);
+      }
+    });
   });
 
   const categories = Object.keys(categoriesMap).sort();
-  const filteredTemplates = selectedCategory ? (categoriesMap[selectedCategory] || []) : [];
+  const filteredTemplates = selectedCategory === 'all' 
+    ? templates 
+    : (selectedCategory ? (categoriesMap[selectedCategory] || []) : []);
 
   const handleDetailChange = (e) => {
     const { name, value: val } = e.target;
@@ -81,6 +123,10 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
     setSelectedTemplate(templateId);
     onChange({ ...value, category: selectedCategory, templateId });
   };
+
+  // Helper: get display name for a template (theme name > title fallback)
+  const getDisplayName = (tmpl) => tmpl.themeName || tmpl.title;
+  const getDisplayDesc = (tmpl) => tmpl.themeTagline || tmpl.description;
 
   // Shared input styles
   const inputStyle = {
@@ -144,7 +190,7 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
           }}>
             {step === 0 && "What's your brand name?"}
             {step === 1 && 'Describe your project'}
-            {step === 2 && (selectedCategory ? 'Choose a template' : 'Pick a category')}
+            {step === 2 && (selectedCategory ? 'Choose a theme' : 'Pick a category')}
           </div>
           <div style={{
             fontSize: '11px', color: 'rgba(255,255,255,0.35)',
@@ -206,137 +252,119 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
         </div>
       )}
 
-      {/* Step 2: Category → Template Selection */}
+      {/* Step 2: Category → Theme Selection */}
       {step === 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {loading ? (
+          {(loading || analyzingPrompt) ? (
             <div style={{
               textAlign: 'center', padding: '32px',
               color: 'rgba(255,255,255,0.4)', fontSize: '13px',
             }}>
-              <Sparkles size={20} style={{ marginBottom: '8px', opacity: 0.5 }} />
-              <div>Loading templates...</div>
-            </div>
-          ) : !selectedCategory ? (
-            /* ──── Part A: Category Grid ──── */
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '8px',
-            }}>
-              {categories.map(catId => {
-                const meta = CATEGORY_META[catId] || { icon: Layers, color: '#888', label: catId };
-                const CatIcon = meta.icon;
-                const count = categoriesMap[catId].length;
-
-                return (
-                  <button
-                    key={catId}
-                    onClick={() => handleCategorySelect(catId)}
-                    style={{
-                      display: 'flex', flexDirection: 'column',
-                      alignItems: 'center', gap: '6px',
-                      padding: '14px 8px',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '14px',
-                      cursor: 'pointer',
-                      transition: 'all 0.25s ease',
-                      color: '#fff',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = meta.color + '55';
-                      e.currentTarget.style.background = meta.color + '10';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = `0 8px 24px ${meta.color}15`;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                      e.currentTarget.style.transform = 'none';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    <div style={{
-                      width: '32px', height: '32px', borderRadius: '10px',
-                      background: `${meta.color}18`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <CatIcon size={16} style={{ color: meta.color }} />
-                    </div>
-                    <div style={{
-                      fontSize: '11px', fontWeight: '600',
-                      textAlign: 'center', lineHeight: '1.3',
-                      letterSpacing: '-0.01em',
-                    }}>
-                      {meta.label}
-                    </div>
-                    <div style={{
-                      fontSize: '9px', 
-                      color: 'rgba(255,255,255,0.3)',
-                      fontWeight: '500',
-                    }}>
-                      {count} {count === 1 ? 'template' : 'templates'}
-                    </div>
-                  </button>
-                );
-              })}
+              <Sparkles size={20} style={{ marginBottom: '8px', opacity: 0.5, animation: 'pulse 1.5s infinite' }} />
+              <div>Analyzing your prompt for blueprints...</div>
             </div>
           ) : (
-            /* ──── Part B: Template Cards ──── */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {/* Back to categories */}
-              <button
-                onClick={() => {
-                  setSelectedCategory(null);
-                  setSelectedTemplate(null);
-                  onChange({ ...value, category: '', templateId: '' });
-                }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '4px',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.4)', fontSize: '11px',
-                  fontWeight: '500', padding: '4px 0',
-                  transition: 'color 0.2s',
-                  fontFamily: 'inherit',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
-              >
-                <ChevronLeft size={12} /> Change category
-              </button>
-
-              {/* Category label */}
-              {(() => {
-                const meta = CATEGORY_META[selectedCategory] || { icon: Layers, color: '#888', label: selectedCategory };
-                return (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    fontSize: '11px', fontWeight: '600',
-                    color: meta.color,
-                    textTransform: 'uppercase', letterSpacing: '0.05em',
-                    marginBottom: '2px',
-                  }}>
-                    <meta.icon size={12} />
-                    {meta.label}
-                  </div>
-                );
-              })()}
-
-              {/* Template list */}
-              {filteredTemplates.map(tmpl => {
-                const isSelected = selectedTemplate === tmpl.id;
-                const meta = CATEGORY_META[selectedCategory] || { color: '#888' };
-
-                return (
+              
+              {selectedCategory && selectedCategory !== 'all' && (
                   <button
-                    key={tmpl.id}
-                    onClick={() => handleTemplateSelect(tmpl.id)}
+                    onClick={() => {
+                      setSelectedCategory('all');
+                      onChange({ ...value, category: 'all', templateId: '' });
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'rgba(255,255,255,0.4)', fontSize: '11px',
+                      fontWeight: '500', padding: '4px 0',
+                      transition: 'color 0.2s',
+                      fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+                  >
+                    <ChevronLeft size={12} /> View all categories
+                  </button>
+              )}
+              {selectedCategory === 'all' ? (
+                // Category Picker Grid
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {categories.map(cid => {
+                    const meta = CATEGORY_META[cid] || { icon: Layers, color: '#888', label: cid.replace('-', ' ') };
+                    return (
+                      <button
+                        key={cid}
+                        onClick={() => handleCategorySelect(cid)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          padding: '12px 14px', background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px',
+                          color: '#fff', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+                          fontFamily: 'inherit'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                      >
+                        <meta.icon size={16} color={meta.color} />
+                        <div style={{ fontSize: '13px', fontWeight: '500', textTransform: 'capitalize' }}>
+                          {meta.label}
+                        </div>
+                      </button>
+                    )
+                  })}
+                  <button
+                    onClick={() => handleTemplateSelect('custom')}
+                    style={{
+                      gridColumn: '1 / -1',
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '14px', background: 'rgba(99, 102, 241, 0.1)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '12px',
+                      color: '#fff', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+                      fontFamily: 'inherit', marginTop: '4px'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99, 102, 241, 0.18)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'; }}
+                  >
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '8px', flexShrink: 0,
+                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(99, 102, 241, 0.1))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <Sparkles size={18} color="#a5b4fc" />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px' }}>Custom AI Build</div>
+                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>Generate from scratch utilizing AI blueprints</div>
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {(() => {
+                    const meta = CATEGORY_META[selectedCategory] || { icon: Layers, color: '#888', label: selectedCategory };
+                    return (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        fontSize: '11px', fontWeight: '600',
+                        color: meta.color,
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                        marginBottom: '4px',
+                      }}>
+                        <meta.icon size={12} />
+                        {meta.label}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Custom AI Option within category */}
+                  <button
+                    key="custom-ai-generation-inner"
+                    onClick={() => handleTemplateSelect('custom')}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '12px',
                       padding: '12px',
-                      background: isSelected ? `${meta.color}12` : 'rgba(255,255,255,0.02)',
-                      border: `1.5px solid ${isSelected ? meta.color : 'rgba(255,255,255,0.06)'}`,
+                      background: selectedTemplate === 'custom' ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255,255,255,0.02)',
+                      border: `1.5px solid ${selectedTemplate === 'custom' ? '#6366f1' : 'rgba(255,255,255,0.06)'}`,
                       borderRadius: '14px',
                       cursor: 'pointer',
                       transition: 'all 0.25s ease',
@@ -345,72 +373,136 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
                       color: '#fff',
                       fontFamily: 'inherit',
                       position: 'relative',
+                      marginBottom: '4px',
                     }}
                     onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = `${meta.color}44`;
-                        e.currentTarget.style.background = `${meta.color}08`;
+                      if (selectedTemplate !== 'custom') {
+                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.44)';
+                        e.currentTarget.style.background = 'rgba(99, 102, 241, 0.08)';
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (!isSelected) {
+                      if (selectedTemplate !== 'custom') {
                         e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
                         e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
                       }
                     }}
                   >
-                    {/* Thumbnail */}
                     <div style={{
                       width: '48px', height: '48px', borderRadius: '10px',
                       overflow: 'hidden', flexShrink: 0,
-                      background: tmpl.image 
-                        ? `url(${tmpl.image}) center/cover` 
-                        : `linear-gradient(135deg, ${meta.color}30, ${meta.color}08)`,
-                    }} />
-
-                    {/* Info */}
+                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(99, 102, 241, 0.1))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <Sparkles size={24} color="#a5b4fc" />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
                         fontSize: '13px', fontWeight: '600',
                         letterSpacing: '-0.01em', lineHeight: '1.3',
                         marginBottom: '2px',
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>
-                        {tmpl.title}
+                        Custom AI Build
                       </div>
                       <div style={{
                         fontSize: '10.5px', color: 'rgba(255,255,255,0.35)',
                         lineHeight: '1.4',
-                        display: '-webkit-box', WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical', overflow: 'hidden',
                       }}>
-                        {tmpl.description}
+                        Generate a completely unique website from scratch using AI blueprints.
                       </div>
                     </div>
-
-                    {/* Check icon */}
-                    {isSelected && (
+                    {selectedTemplate === 'custom' && (
                       <div style={{
                         width: '22px', height: '22px', borderRadius: '50%',
-                        background: meta.color,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0,
                       }}>
                         <Check size={12} color="#fff" strokeWidth={3} />
                       </div>
                     )}
                   </button>
-                );
-              })}
 
-              {filteredTemplates.length === 0 && (
-                <div style={{
-                  textAlign: 'center', padding: '24px',
-                  color: 'rgba(255,255,255,0.3)', fontSize: '12px',
-                }}>
-                  No templates available for this category yet.
+                  {filteredTemplates.map(tmpl => {
+                    const isSelected = selectedTemplate === tmpl.id;
+                    const meta = CATEGORY_META[selectedCategory === 'all' ? (tmpl.categoryId || tmpl.allCategories?.[0] || 'landing') : selectedCategory] || { color: '#888' };
+
+                    return (
+                      <button
+                        key={tmpl.id}
+                        onClick={() => handleTemplateSelect(tmpl.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '12px',
+                          padding: '12px',
+                          background: isSelected ? `${meta.color}12` : 'rgba(255,255,255,0.02)',
+                          border: `1.5px solid ${isSelected ? meta.color : 'rgba(255,255,255,0.06)'}`,
+                          borderRadius: '14px',
+                          cursor: 'pointer',
+                          transition: 'all 0.25s ease',
+                          textAlign: 'left',
+                          width: '100%',
+                          color: '#fff',
+                          fontFamily: 'inherit',
+                          position: 'relative',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.borderColor = `${meta.color}44`;
+                            e.currentTarget.style.background = `${meta.color}08`;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                          }
+                        }}
+                      >
+                        {/* Thumbnail */}
+                        <div style={{
+                          width: '48px', height: '48px', borderRadius: '10px',
+                          overflow: 'hidden', flexShrink: 0,
+                          background: tmpl.image 
+                            ? `url(${tmpl.image}) center/cover` 
+                            : `linear-gradient(135deg, ${meta.color}30, ${meta.color}08)`,
+                        }} />
+
+                        {/* Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontSize: '13px', fontWeight: '600',
+                            letterSpacing: '-0.01em', lineHeight: '1.3',
+                            marginBottom: '2px',
+                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                          }}>
+                            {getDisplayName(tmpl)}
+                          </div>
+                          <div style={{
+                            fontSize: '10.5px', color: 'rgba(255,255,255,0.35)',
+                            lineHeight: '1.4',
+                            display: '-webkit-box', WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                          }}>
+                            {getDisplayDesc(tmpl)}
+                          </div>
+                        </div>
+
+                        {/* Check icon */}
+                        {isSelected && (
+                          <div style={{
+                            width: '22px', height: '22px', borderRadius: '50%',
+                            background: meta.color,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                          }}>
+                            <Check size={12} color="#fff" strokeWidth={3} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
+
             </div>
           )}
 
@@ -419,8 +511,8 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
             textAlign: 'center', paddingTop: '2px',
           }}>
             {selectedTemplate 
-              ? '✓ Template selected — click Build to start!' 
-              : 'Select a template to get started'}
+              ? '✓ Blueprint selected — click Send to start!' 
+              : 'Select a blueprint to get started'}
           </div>
         </div>
       )}

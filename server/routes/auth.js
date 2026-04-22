@@ -32,7 +32,13 @@ router.post('/sync', requireAuth, async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    return res.status(200).json({ success: true, user });
+    return res.status(200).json({ 
+      success: true, 
+      user: {
+        ...user.toObject(),
+        role: user.role || 'user'
+      } 
+    });
   } catch (error) {
     console.error("Auth Sync Error:", error);
     return res.status(500).json({ error: "Failed to sync user data" });
@@ -131,6 +137,7 @@ router.get('/me', requireAuth, async (req, res) => {
       usage: user.usage || { generationsThisMonth: 0 },
       defaultWorkspaceId,
       activeWorkspaceId,
+      role: user.role || 'user',
       workspaces: finalWorkspaces.map(w => ({ _id: w._id, name: w.name, plan: w.plan, createdAt: w.createdAt }))
     });
   } catch (error) {

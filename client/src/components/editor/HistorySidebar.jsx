@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Clock, RotateCcw, X, FileCode } from 'lucide-react';
+import { Clock, RotateCcw, X, FileCode, MoreVertical, Trash2, Share2, Rocket, Settings2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useEditorStore } from '../../stores/editorStore';
 import { useChatStore } from '../../stores/chatStore';
 import { apiClient } from '../../lib/api';
@@ -10,8 +11,15 @@ export default function HistorySidebar({ projectId, onClose }) {
   const [activeVersionId, setActiveVersionId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
   const generationPhase = useChatStore(s => s.generationPhase);
+
+  useEffect(() => {
+    const handleClickOutside = () => setActiveDropdown(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     fetchVersions();
@@ -71,6 +79,20 @@ export default function HistorySidebar({ projectId, onClose }) {
     }
   };
 
+  const handleDeleteVersion = async (e, versionId) => {
+    e.stopPropagation();
+    setActiveDropdown(null);
+    if (!window.confirm("Are you sure you want to delete this version?")) return;
+    
+    try {
+      await apiClient.deleteVersion(projectId, versionId);
+      toast.success("Version deleted");
+      fetchVersions(); // refresh the version list
+    } catch (err) {
+      toast.error("Failed to delete version");
+    }
+  };
+
   const formatTime = (dateStr) => {
     const d = new Date(dateStr);
     const now = new Date();
@@ -123,10 +145,37 @@ export default function HistorySidebar({ projectId, onClose }) {
                   className={`hs-item ${isActive ? 'active' : ''}`}
                   onDoubleClick={() => !isActive && handleRestore(version._id)}
                   title={isActive ? "Current version" : "Double-click to restore this version"}
+                  style={{ position: 'relative' }}
                 >
-                  <div className="hs-item-name">{version.name || `Version ${versions.length - idx}`}</div>
+                  <div className="hs-item-name" style={{ paddingRight: '20px' }}>{version.name || `Version ${versions.length - idx}`}</div>
                   <div className="hs-item-time">{formatTime(version.createdAt)}</div>
-                  {isActive && <div className="hs-item-badge">Current</div>}
+                  {isActive && <div className="hs-item-badge" style={{ right: '35px' }}>Current</div>}
+
+                  <button 
+                    className="hs-more-btn"
+                    onClick={(e) => { e.stopPropagation(); setActiveDropdown(activeDropdown === version._id ? null : version._id); }}
+                    style={{position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center'}}
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+
+                  {activeDropdown === version._id && (
+                    <div className="hs-dropdown" style={{position: 'absolute', right: '8px', top: 'calc(50% + 12px)', background: '#1e293b', border: '1px solid #334155', borderRadius: '6px', padding: '4px', minWidth: '130px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)', zIndex: 50}}>
+                       <button onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); toast('Features settings triggered'); }} style={{display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '6px 8px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer'}} onMouseOver={e=>e.currentTarget.style.background='#334155'} onMouseOut={e=>e.currentTarget.style.background='none'}>
+                          <Settings2 size={13} /> Features
+                       </button>
+                       <button onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); toast('Share functionality triggered'); }} style={{display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '6px 8px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer'}} onMouseOver={e=>e.currentTarget.style.background='#334155'} onMouseOut={e=>e.currentTarget.style.background='none'}>
+                          <Share2 size={13} /> Share
+                       </button>
+                       <button onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); toast('Deploying version...'); }} style={{display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '6px 8px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer'}} onMouseOver={e=>e.currentTarget.style.background='#334155'} onMouseOut={e=>e.currentTarget.style.background='none'}>
+                          <Rocket size={13} /> Deploy
+                       </button>
+                       <div style={{height: '1px', background: '#334155', margin: '2px 0'}}></div>
+                       <button onClick={(e) => handleDeleteVersion(e, version._id)} style={{display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '6px 8px', background: 'none', border: 'none', color: '#fca5a5', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer'}} onMouseOver={e=>e.currentTarget.style.background='rgba(239, 68, 68, 0.15)'} onMouseOut={e=>e.currentTarget.style.background='none'}>
+                          <Trash2 size={13} /> Delete
+                       </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

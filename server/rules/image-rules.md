@@ -107,10 +107,53 @@ https://image.pollinations.ai/prompt/{description}?width=400&height=400&nologo=t
 - ❌ Same image URL used twice on the same page
 - ❌ Generic descriptions that don't match the card content
 
-## MANDATORY
+## MANDATORY CSS FOR EVERY `<img>` (CRITICAL — THIS FIXES IMAGE MISALIGNMENT)
+
+Every `<img>` tag MUST have the correct CSS to fill its container. Missing these styles is the #1 cause of broken layouts.
+
+### Rule: Images inside fixed-height containers
+```html
+<!-- ✅ CORRECT — card/program/feature images -->
+<div style="height:200px;overflow:hidden;border-radius:12px;">
+  <img src="..." alt="..." style="width:100%;height:100%;object-fit:cover;display:block;">
+</div>
+
+<!-- ❌ WRONG — image overflows or collapses -->
+<div style="height:200px;">
+  <img src="..." alt="...">
+</div>
+```
+
+### Rule: Images that fill absolute-position containers (gallery, hero bg)
+```html
+<!-- ✅ CORRECT -->
+<div style="position:relative;height:300px;overflow:hidden;">
+  <img src="..." alt="..." style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
+</div>
+```
+
+### Rule: Avatar / circle images
+```html
+<!-- ✅ CORRECT -->
+<div style="width:80px;height:80px;border-radius:50%;overflow:hidden;">
+  <img src="..." alt="..." style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">
+</div>
+```
+
+### Rule: Sponsor / logo grid images
+```html
+<!-- ✅ CORRECT -->
+<div style="height:120px;overflow:hidden;">
+  <img src="..." alt="..." style="width:100%;height:100%;object-fit:cover;display:block;">
+</div>
+```
+
+## MANDATORY IMAGE ATTRIBUTES
 
 - ✅ Every `<img>` must have a Pollinations URL with a context-specific description
 - ✅ Every `<img>` must have a descriptive `alt` tag
+- ✅ Every `<img>` inside a container MUST have `style="width:100%;height:100%;object-fit:cover;display:block;"`
 - ✅ Hero images use `width=1200&height=800`
 - ✅ Card images use `width=800&height=600`
-- ✅ Thumbnails use `width=400&height=400`
+- ✅ Thumbnails / avatars use `width=400&height=400`
+- ❌ NEVER omit `object-fit:cover` on any `<img>` inside a box with explicit height/width

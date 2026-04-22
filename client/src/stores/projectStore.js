@@ -99,6 +99,12 @@ export const useProjectStore = create((set, get) => ({
             return true;
         } catch (err) {
             console.error('[ProjectStore] Failed to delete project:', err);
+            // Use window.toast if available or alert to surface the error
+            if (window.toast) {
+                window.toast.error("Failed to delete project: " + err.message);
+            } else {
+                alert("Failed to delete project: " + err.message);
+            }
             return false;
         }
     },

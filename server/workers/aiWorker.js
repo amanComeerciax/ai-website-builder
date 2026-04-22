@@ -181,11 +181,13 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
       const visionSpec = await extractVisionContext(images);
       
       if (visionSpec) {
-        enrichedPrompt += `\n\n[USER ATTACHED SCREENSHOT(S) FOR REFERENCE]\n`;
-        enrichedPrompt += `The user attached screenshot(s) for visual layout/style reference. A vision model analyzed the screenshot and extracted the following architectural and design constraints. YOU MUST ADHERE STRICTLY TO THESE EXTRACTED DETAILS:\n\n`;
-        enrichedPrompt += `### VISION EXTRACTION SPEC ###\n${visionSpec}\n##############################\n`;
+        enrichedPrompt += `\n\n=== SCREENSHOT ANALYSIS (attached by user) ===\n`;
+        enrichedPrompt += `The user attached a screenshot of their website. An AI vision model analyzed it and found these SPECIFIC problems:\n\n`;
+        enrichedPrompt += `${visionSpec}\n\n`;
+        enrichedPrompt += `IMPORTANT: The problems listed above are ADDITIONAL TASKS the user wants fixed, alongside their text instructions. Address ALL of them.\n`;
+        enrichedPrompt += `=== END SCREENSHOT ANALYSIS ===\n`;
       } else {
-        enrichedPrompt += `\n\n[User attached ${images.length} image(s) for reference]`;
+        enrichedPrompt += `\n\n[User attached ${images.length} image(s) for reference — analyze the visual problems they're describing]`;
       }
     }
     if (fileContents && fileContents.length > 0) {
@@ -215,10 +217,10 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
   let suggestedActions = ['Change the color scheme', 'Add more sections', 'Update the content', 'Download Next.js project'];
 
   try {
-    const fileNames = Object.keys(result.files);
+    const fileNames = Object.keys(result.files || {});
     const { systemPrompt, userMessage } = buildSummaryPrompt(fileNames, {
       projectGlossary: { AppName: appName },
-      sections: result.layoutSpec.sections.map(s => s.component),
+      sections: result.layoutSpec?.sections?.map(s => s.component) || [],
     }, isModification, prompt);
     const r = await callModel('summarize', userMessage, systemPrompt);
     const s = JSON.parse(r.content);
@@ -229,7 +231,8 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     console.warn(`[Worker] Summary generation failed (non-fatal):`, e.message);
   }
 
-  console.log(`[Worker] Job ${job.id} complete — "${appName}" — ${result.layoutSpec.sections.length} sections`);
+  const sectionCount = result.layoutSpec?.sections?.length ?? '?';
+  console.log(`[Worker] Job ${job.id} complete — "${appName}" — ${sectionCount} sections`);
 
   // ─── PERSIST TO DB ─────────────────────────────────────────────
   const finalFiles = { 'index.html': result.html };

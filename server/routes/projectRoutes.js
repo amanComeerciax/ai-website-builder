@@ -4,6 +4,7 @@ const Project = require("../models/Project")
 const Message = require("../models/Message")
 const Version = require("../models/Version")
 const WorkspaceMember = require("../models/WorkspaceMember")
+const Workspace = require("../models/Workspace")
 const { generateProjectName } = require('../utils/nameGenerator.js');
 
 const { requireAuth } = require('../middleware/requireAuth');
@@ -39,7 +40,7 @@ router.get("/", requireAuth, async (req, res, next) => {
             const member = await WorkspaceMember.findOne({ workspaceId, userId, status: 'active' });
             if (member) {
                 // Return ALL projects in this workspace (not just user's own)
-                const projects = await Project.find({ workspaceId }).sort({ createdAt: -1 });
+                const projects = await Project.find({ workspaceId }).sort({ updatedAt: -1 });
                 return res.json({ projects, memberRole: member.role });
             }
         }
@@ -50,7 +51,7 @@ router.get("/", requireAuth, async (req, res, next) => {
             query.workspaceId = workspaceId;
         }
 
-        const projects = await Project.find(query).sort({ createdAt: -1 });
+        const projects = await Project.find(query).sort({ updatedAt: -1 });
         res.json({ projects, memberRole: 'owner' });
     } catch (error) {
         next(error);
@@ -127,6 +128,19 @@ router.post("/", requireAuth, async (req, res, next) => {
             }
         }
 
+        // Apply workspace default visibility setting if workspace exists
+        let visibility = 'workspace'; // fallback default
+        if (workspaceId) {
+            try {
+                const ws = await Workspace.findById(workspaceId).lean();
+                if (ws?.privacySettings?.defaultProjectVisibility) {
+                    visibility = ws.privacySettings.defaultProjectVisibility;
+                }
+            } catch (e) {
+                console.warn('[ProjectCreate] Could not read workspace privacy settings:', e.message);
+            }
+        }
+
         const project = await Project.create({
             userId,
             workspaceId: workspaceId || null,
@@ -135,10 +149,11 @@ router.post("/", requireAuth, async (req, res, next) => {
             folderId: folderId || null,
             currentFileTree,
             theme,
+            visibility,
             outputTrack: currentFileTree['index.html'] ? 'html' : 'html'
         });
 
-        console.log(`[ProjectCreate] Created project ${project._id}${templateId ? ` (from template: ${templateId})` : ''}`);
+        console.log(`[ProjectCreate] Created project ${project._id} (visibility: ${visibility})${templateId ? ` (from template: ${templateId})` : ''}`);
         res.status(201).json({ project });
     } catch (error) {
         next(error);
@@ -191,7 +206,16 @@ router.post("/:id/deploy", requireAuth, async (req, res, next) => {
         if (access.role === 'viewer') {
             return res.status(403).json({ error: "You don't have permission to deploy this project" });
         }
+
+        // ENFORCE: whoCanPublish — check workspace setting
         const project = access.project;
+        if (project.workspaceId) {
+            const ws = await Workspace.findById(project.workspaceId).lean();
+            const whoCanPublish = ws?.privacySettings?.whoCanPublish || 'editors';
+            if (whoCanPublish === 'owners' && !['owner'].includes(access.role)) {
+                return res.status(403).json({ error: "Publishing is restricted to workspace owners only" });
+            }
+        }
 
         if (!project.currentFileTree || Object.keys(project.currentFileTree).length === 0) {
             return res.status(400).json({ error: "Project has no files to deploy yet." });
@@ -231,8 +255,9 @@ router.put("/:id", requireAuth, async (req, res, next) => {
             updateData.folderId = folderId
         }
  
-        const project = await Project.findOneAndUpdate(
-            { _id: req.params.id },
+        // Use already-validated project document to prevent ID spoofing
+        const project = await Project.findByIdAndUpdate(
+            access.project._id,
             { $set: updateData },
             { new: true, runValidators: true }
         )
@@ -331,7 +356,8 @@ router.post("/:id/remix", requireAuth, async (req, res, next) => {
             userId,
             workspaceId: original.workspaceId,
             name: `${original.name} (copy)`,
-            status: original.status,
+            // Always set a clean status — never inherit 'generating' from original
+            status: original.currentFileTree?.['index.html'] ? 'done' : 'idle',
             folderId: original.folderId || null,
             currentFileTree: original.currentFileTree || {},
             theme: original.theme,
@@ -364,8 +390,9 @@ router.delete("/:id", requireAuth, async (req, res, next) => {
 
         await Project.findByIdAndDelete(req.params.id);
         
-        // Cascade delete messages
+        // Cascade delete messages AND versions (prevent MongoDB orphans)
         await Message.deleteMany({ projectId: req.params.id });
+        await Version.deleteMany({ projectId: req.params.id });
         
         res.json({ message: "Project deleted" })
     } catch (error) {
@@ -429,6 +456,29 @@ router.post("/:id/versions/:versionId/restore", requireAuth, async (req, res, ne
         await project.save();
         
         res.json({ message: "Restored successfully", project });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ── DELETE /api/projects/:id/versions/:versionId — Delete a specific version ──
+router.delete("/:id/versions/:versionId", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const access = await getProjectWithAccess(req.params.id, userId);
+        
+        if (!access) return res.status(404).json({ error: "Project not found" });
+        if (access.role === 'viewer') return res.status(403).json({ error: "Viewers cannot delete versions" });
+        const project = access.project;
+        
+        const version = await Version.findOneAndDelete({ _id: req.params.versionId, projectId: project._id });
+        if (!version) return res.status(404).json({ error: "Version not found" });
+        
+        if (project.activeVersionId && project.activeVersionId.toString() === req.params.versionId) {
+            project.activeVersionId = null;
+            await project.save();
+        }
+        res.json({ message: "Version deleted successfully" });
     } catch (error) {
         next(error);
     }

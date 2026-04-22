@@ -1,4 +1,5 @@
-const { getAuth, verifyToken, createClerkClient } = require('@clerk/express');
+const { getAuth, verifyToken } = require('@clerk/express');
+const User = require('../models/User');
 
 /**
  * Middleware: requireAuth
@@ -60,4 +61,33 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { requireAuth };
+/**
+ * Middleware: requireAdmin
+ * 
+ * Extends requireAuth by verifying the user has the 'admin' role in MongoDB.
+ * Also includes a hardcoded fallback for the primary developer/admin email.
+ */
+const requireAdmin = async (req, res, next) => {
+  // First ensure they are authenticated
+  await requireAuth(req, res, async () => {
+    try {
+      const user = await User.findOne({ clerkId: req.user.clerkId });
+      
+      const isAdmin = user && user.role === 'admin';
+      const isSuperAdmin = user && user.email === 'kingamaan14@gmail.com';
+
+      if (isAdmin || isSuperAdmin) {
+        return next();
+      }
+
+      console.warn(`[Auth] ⛔ Admin access denied: ${user?.email || req.user.clerkId}`);
+      return res.status(403).json({ error: "Forbidden: Admin access only" });
+    } catch (error) {
+      console.error("[Auth] requireAdmin Error:", error.message);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+};
+
+module.exports = { requireAuth, requireAdmin };
+

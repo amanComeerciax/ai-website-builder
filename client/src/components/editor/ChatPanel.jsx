@@ -8,8 +8,10 @@ import {
     Mic, ArrowUp, ArrowRight, ChevronRight, ChevronDown,
     Palette, ExternalLink, Sparkles, Camera, Paperclip, X,
     Eye, Upload, Monitor, ImagePlus, Zap, Copy, Check,
-    Undo2, ThumbsUp, ThumbsDown, MoreHorizontal, Square
+    Undo2, ThumbsUp, ThumbsDown, MoreHorizontal, Square,
+    Trash2, Share2, Rocket, Settings2
 } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import { useChatStore } from '../../stores/chatStore'
 import { useEditorStore } from '../../stores/editorStore'
 import WebsiteStylePicker from './WebsiteStylePicker'
@@ -56,13 +58,31 @@ export default function ChatPanel() {
     const attachMenuRef = useRef(null)
     const panelRef = useRef(null)
 
-    // If navigated from TemplatesPage with templateId in URL, pre-fill it
+    const [isMoreMenuOpen, setMoreMenuOpen] = useState(false)
+    const moreMenuRef = useRef(null)
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
+                setMoreMenuOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    // If navigated from TemplatesPage or Dashboard with prompt/templateId in URL, pre-fill it
     useEffect(() => {
         const params = new URLSearchParams(location.search)
         const urlTemplateId = params.get('templateId')
-        if (urlTemplateId && !styleOptions.templateId) {
-            setStyleOptions(prev => ({ ...prev, templateId: urlTemplateId }))
-        }
+        const urlPrompt = params.get('prompt')
+        
+        setStyleOptions(prev => {
+            const next = { ...prev }
+            if (urlTemplateId && !prev.templateId) next.templateId = urlTemplateId
+            if (urlPrompt && !prev.initialPrompt) next.initialPrompt = urlPrompt
+            return next
+        })
     }, [location.search])
 
     useEffect(() => {
@@ -398,16 +418,16 @@ export default function ChatPanel() {
             if (styleOptions.templateId) {
                 addMessage({ role: 'user', content: userContent })
                 setTimeout(async () => {
-                    addMessage({ role: 'assistant', content: "Perfect! Using your selected template. Let's build! 🚀" })
+                    addMessage({ role: 'assistant', content: "Perfect! Using your selected theme. Let's build! 🚀" })
                     const freshToken = await getToken()
                     completeProjectConfig(projectId, freshToken, styleOptions)
                 }, 600)
                 return
             }
-            assistantNext = "Perfect! Now pick a category and template that matches your vision."
+            assistantNext = "Perfect! Now pick a category and theme that matches your vision."
         } else if (configStep === 2) {
             if (!styleOptions.templateId) {
-                return // Don't proceed without a template selected
+                return // Don't proceed without a theme selected
             }
             completeProjectConfig(projectId, token, styleOptions)
             return
@@ -590,7 +610,40 @@ export default function ChatPanel() {
                                     >
                                         {copiedId === 'edit-summary' ? <Check size={16} /> : <Copy size={16} />}
                                     </button>
-                                    <button className="cp-action-icon" title="More"><MoreHorizontal size={16} /></button>
+                                    <div className="cp-more-menu-wrapper" ref={moreMenuRef} style={{position: 'relative'}}>
+                                        <button 
+                                            className={`cp-action-icon ${isMoreMenuOpen ? 'active' : ''}`} 
+                                            title="More"
+                                            onClick={() => setMoreMenuOpen(!isMoreMenuOpen)}
+                                        >
+                                            <MoreHorizontal size={16} />
+                                        </button>
+                                        {isMoreMenuOpen && (
+                                            <div className="cp-more-dropdown active" style={{position: 'absolute', bottom: 'calc(100% + 8px)', right: 0, background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '4px', minWidth: '140px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)', zIndex: 100, display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                                                <button className="cp-more-item" onClick={() => { setMoreMenuOpen(false); toast('Features settings triggered'); }} style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer', transition: 'background 0.2s'}} onMouseOver={e => e.currentTarget.style.background = '#334155'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                                                    <Settings2 size={14} /> Features
+                                                </button>
+                                                <button className="cp-more-item" onClick={() => { setMoreMenuOpen(false); toast('Share version functionality triggered'); }} style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer', transition: 'background 0.2s'}} onMouseOver={e => e.currentTarget.style.background = '#334155'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                                                    <Share2 size={14} /> Share
+                                                </button>
+                                                <button className="cp-more-item" onClick={() => { setMoreMenuOpen(false); toast('Deploying version...'); }} style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer', transition: 'background 0.2s'}} onMouseOver={e => e.currentTarget.style.background = '#334155'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                                                    <Rocket size={14} /> Deploy
+                                                </button>
+                                                <div className="cp-more-divider" style={{height: '1px', background: '#334155', margin: '2px 0'}}></div>
+                                                <button className="cp-more-item delete" onClick={() => { 
+                                                    setMoreMenuOpen(false); 
+                                                    if(window.confirm('Delete this version?')) {
+                                                        handleUndo();
+                                                        useChatStore.getState().setGenerationPhase('idle');
+                                                        useChatStore.getState().setGenerationSummary('');
+                                                        toast.success('Version deleted successfully');
+                                                    }
+                                                }} style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'none', border: 'none', color: '#ef4444', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer', transition: 'background 0.2s'}} onMouseOver={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                                                    <Trash2 size={14} /> Delete
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </>
                         )}
@@ -614,7 +667,40 @@ export default function ChatPanel() {
                                     >
                                         {copiedId === 'gen-summary' ? <Check size={16} /> : <Copy size={16} />}
                                     </button>
-                                    <button className="cp-action-icon" title="More"><MoreHorizontal size={16} /></button>
+                                    <div className="cp-more-menu-wrapper" ref={moreMenuRef} style={{position: 'relative'}}>
+                                        <button 
+                                            className={`cp-action-icon ${isMoreMenuOpen ? 'active' : ''}`} 
+                                            title="More"
+                                            onClick={() => setMoreMenuOpen(!isMoreMenuOpen)}
+                                        >
+                                            <MoreHorizontal size={16} />
+                                        </button>
+                                        {isMoreMenuOpen && (
+                                            <div className="cp-more-dropdown active" style={{position: 'absolute', bottom: 'calc(100% + 8px)', right: 0, background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '4px', minWidth: '140px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)', zIndex: 100, display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                                                <button className="cp-more-item" onClick={() => { setMoreMenuOpen(false); toast('Features settings triggered'); }} style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer', transition: 'background 0.2s'}} onMouseOver={e => e.currentTarget.style.background = '#334155'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                                                    <Settings2 size={14} /> Features
+                                                </button>
+                                                <button className="cp-more-item" onClick={() => { setMoreMenuOpen(false); toast('Share version functionality triggered'); }} style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer', transition: 'background 0.2s'}} onMouseOver={e => e.currentTarget.style.background = '#334155'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                                                    <Share2 size={14} /> Share
+                                                </button>
+                                                <button className="cp-more-item" onClick={() => { setMoreMenuOpen(false); toast('Deploying version...'); }} style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer', transition: 'background 0.2s'}} onMouseOver={e => e.currentTarget.style.background = '#334155'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                                                    <Rocket size={14} /> Deploy
+                                                </button>
+                                                <div className="cp-more-divider" style={{height: '1px', background: '#334155', margin: '2px 0'}}></div>
+                                                <button className="cp-more-item delete" onClick={() => { 
+                                                    setMoreMenuOpen(false); 
+                                                    if(window.confirm('Delete this version?')) {
+                                                        handleUndo();
+                                                        useChatStore.getState().setGenerationPhase('idle');
+                                                        useChatStore.getState().setGenerationSummary('');
+                                                        toast.success('Version deleted successfully');
+                                                    }
+                                                }} style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'none', border: 'none', color: '#ef4444', fontSize: '13px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer', transition: 'background 0.2s'}} onMouseOver={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                                                    <Trash2 size={14} /> Delete
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="cp-completion-card">
                                     <div className="cp-cc-header">

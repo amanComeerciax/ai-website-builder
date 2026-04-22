@@ -48,6 +48,11 @@ const userSchema = new mongoose.Schema(
             ref: 'Workspace',
             default: null
         },
+        role: {
+            type: String,
+            enum: ['user', 'admin'],
+            default: 'user'
+        },
     },
     {
         timestamps: true,

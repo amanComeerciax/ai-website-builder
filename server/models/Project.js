@@ -70,7 +70,12 @@ const projectSchema = new mongoose.Schema(
     websiteName: { type: String, default: null },
     description: { type: String, default: null },
     logoUrl: { type: String, default: null },
-    brandColors: { type: [String], default: [] }
+    brandColors: { type: [String], default: [] },
+    visibility: {
+      type: String,
+      enum: ['workspace', 'private', 'public'],
+      default: 'workspace'
+    }
   },
   { timestamps: true }
 );

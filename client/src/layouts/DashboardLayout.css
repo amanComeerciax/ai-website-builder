@@ -19,9 +19,13 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    /* Overlay to make content readable while video plays underneath */
-    background: linear-gradient(to top, rgba(0,0,0,0.4), rgba(0,0,0,0.0));
+    /* Ultra-light overlay to keep video vibrant while maintaining readability */
+    background: linear-gradient(to top, rgba(0,0,0,0.15), rgba(0,0,0,0.0));
     overflow: hidden;
+}
+
+.sp-video-bg {
+    filter: brightness(1.2) saturate(1.1);
 }
 
 .lv-sidebar-floater {
@@ -48,8 +52,23 @@
     background: #1a1a1a;
 }
 
+.lv-mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 40;
+    animation: fadeInOverlay 0.2s ease-out forwards;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 @media (max-width: 768px) {
-    .lv-layout {
+    .lv-layout,
+    .lv-layout.collapsed {
         grid-template-columns: 1fr;
     }
 }
