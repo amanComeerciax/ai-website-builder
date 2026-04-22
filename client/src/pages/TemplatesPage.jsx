@@ -184,22 +184,24 @@ export default function TemplatesPage() {
 
         return (
             <div className="lv-template-iframe-wrapper" ref={wrapperRef}>
-                <Skeleton name="template-preview" loading={!isLoaded} style={{ width: '100%', height: '100%', display: 'block' }}>
-                    <div className={`lv-template-iframe ${isLoaded ? 'loaded' : ''}`} style={{ width: '100%', height: '100%', display: html && isLoaded ? 'none' : 'block' }}></div>
-                    {html && (
-                        <iframe 
-                            className={`lv-template-iframe ${isLoaded ? 'loaded' : ''}`}
-                            srcDoc={html}
-                            frameBorder="0"
-                            scrolling="no"
-                            loading="lazy"
-                            title={template.title}
-                            onLoad={() => setIsLoaded(true)}
-                            style={{ display: isLoaded ? 'block' : 'none' }}
-                            sandbox="allow-scripts allow-same-origin"
-                        />
-                    )}
-                </Skeleton>
+                <div style={{ position: 'absolute', inset: 0, zIndex: isLoaded ? -1 : 10, opacity: isLoaded ? 0 : 1, transition: 'opacity 0.4s ease', pointerEvents: 'none' }}>
+                    <Skeleton name="template-preview" loading={true} style={{ width: '100%', height: '100%', display: 'block' }}>
+                        <div style={{ width: '100%', height: '100%' }}></div>
+                    </Skeleton>
+                </div>
+                {html && (
+                    <iframe 
+                        className={`lv-template-iframe ${isLoaded ? 'loaded' : ''}`}
+                        srcDoc={html}
+                        frameBorder="0"
+                        scrolling="no"
+                        loading="lazy"
+                        title={template.title}
+                        onLoad={() => setIsLoaded(true)}
+                        style={{ WebkitTransform: 'scale(0.25)' }} /* Fallback to guarantee scale */
+                        sandbox="allow-scripts allow-same-origin"
+                    />
+                )}
             </div>
         );
     };

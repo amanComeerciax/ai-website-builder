@@ -38,8 +38,8 @@ router.get('/', async (req, res) => {
         }).select('-htmlContent'); // don't send full HTML to list endpoint
 
         const list = templates.map(tmpl => ({
-            id: `${(tmpl.categories[0] || 'custom')}/${tmpl.slug}`,
-            slug: tmpl.slug,
+            id: `${(tmpl.categories[0] || 'custom')}/${tmpl.slug || tmpl._id}`,
+            slug: tmpl.slug || tmpl._id.toString(),
             categoryId: tmpl.categories[0] || 'custom',   // primary category for routing
             allCategories: tmpl.categories,
             title: tmpl.name,
@@ -103,7 +103,16 @@ router.get(['/preview/:templateId', '/preview/:categoryId/:templateId'], async (
         const { templateId } = req.params;
         const slug = templateId.replace('.json', '').replace('.html', '');
 
-        const template = await Template.findOne({ slug, isActive: true });
+        const mongoose = require('mongoose');
+        let query = { isActive: true };
+        
+        if (mongoose.Types.ObjectId.isValid(slug)) {
+            query.$or = [{ _id: slug }, { slug: slug }];
+        } else {
+            query.slug = slug;
+        }
+
+        const template = await Template.findOne(query);
 
         if (!template) {
             return res.status(404).json({ error: 'Preview not available for this template' });
