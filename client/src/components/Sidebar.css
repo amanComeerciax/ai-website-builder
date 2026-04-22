@@ -624,5 +624,12 @@ img.lv-user-avatar {
 }
 
 @media (max-width: 768px) {
-  .lv-sidebar { display: none; }
+  .lv-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 50;
+    box-shadow: 0 0 24px rgba(0,0,0,0.8);
+  }
 }

@@ -372,14 +372,20 @@
 /* ── Responsive ── */
 @media (max-width: 1024px) {
     .ep-workspace {
-        flex-direction: column;
+        position: relative;
     }
     .ep-chat {
+        position: absolute;
+        top: 0; left: 0; bottom: 0;
+        height: 100%;
+        z-index: 20;
+        border-right: none;
+        background: #111;
+    }
+    /* If it doesn't have width: 0px, force it to 100% width on tablet/mobile */
+    .ep-chat:not([style*="width: 0px"]) {
         width: 100% !important;
         max-width: 100% !important;
-        flex: 1;
-        border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .ep-resizer {
         display: none;
@@ -392,6 +398,39 @@
     .ep-workspace.ep-centered .ep-chat {
         border-bottom: none;
         max-width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .ep-toolbar {
+        height: auto;
+        min-height: auto;
+        flex-wrap: wrap;
+        padding: 8px 12px;
+        gap: 8px;
+    }
+    .ep-toolbar-left {
+        width: 100%;
+        justify-content: space-between;
+        margin-bottom: 4px;
+    }
+    .ep-toolbar-right {
+        width: auto;
+        order: 2;
+    }
+    .ep-toolbar-center {
+        width: 100%;
+        order: 3;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+    .ep-history-nav, .ep-back-latest-btn, .ep-center-control-btn {
+        display: none; /* Hide complex history controls on mobile to save space */
+    }
+    .ep-pill-btn {
+        padding: 6px 10px;
+        font-size: 12px;
     }
 }
 

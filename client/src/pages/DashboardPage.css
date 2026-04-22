@@ -138,6 +138,15 @@
   align-items: center;
   gap: 4px;
   margin-bottom: 24px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  scrollbar-width: none; /* Firefox */
+}
+
+.lv-tabs-bar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .lv-tab {
@@ -356,5 +365,15 @@
 
   .lv-hero-title {
     font-size: 26px;
+  }
+  
+  .lv-tab-section {
+    padding: 16px 12px 20px;
+    margin: 120px auto 30px;
+    border-radius: 12px;
+  }
+
+  .lv-prompt-box {
+    padding: 16px;
   }
 }

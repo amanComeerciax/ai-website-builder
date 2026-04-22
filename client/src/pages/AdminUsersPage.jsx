@@ -131,9 +131,9 @@ export default function AdminUsersPage() {
                         background: 'rgba(255,255,255,0.02)', 
                         borderRadius: '16px', 
                         border: '1px solid rgba(255,255,255,0.05)',
-                        overflow: 'hidden'
+                        overflowX: 'auto'
                     }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead style={{ background: 'rgba(255,255,255,0.05)', fontSize: '12px', textTransform: 'uppercase', opacity: 0.5 }}>
                                 <tr>
                                     <th style={{ padding: '16px' }}>User</th>

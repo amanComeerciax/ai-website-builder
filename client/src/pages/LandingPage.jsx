@@ -24,6 +24,8 @@ import {
     Check,
     Sun,
     Moon,
+    Menu,
+    X,
 } from 'lucide-react'
 import { SignedIn, SignedOut, useAuth, useClerk, SignInButton, SignUpButton } from '@clerk/clerk-react'
 import RadialOrbitalTimeline from '@/components/ui/radial-orbital-timeline'
@@ -246,6 +248,7 @@ export default function LandingPage() {
     const [navScrolled, setNavScrolled] = useState(false)
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
     const [selectedModel, setSelectedModel] = useState('Gemini 3 Flash')
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const fileInputRef = useRef(null)
     const dropdownRef = useRef(null)
     const navigate = useNavigate()
@@ -455,7 +458,47 @@ export default function LandingPage() {
                                     <ArrowRight size={14} />
                                 </Link>
                             </SignedIn>
+
+                            {/* Hamburger Menu Toggle */}
+                            <button
+                                className="lp-mobile-menu-toggle"
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                aria-label="Toggle mobile menu"
+                            >
+                                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                            </button>
                         </div>
+                    </div>
+
+                    {/* ═══ Mobile Nav Drawer ═══ */}
+                    <div className={`lp-mobile-nav ${isMobileMenuOpen ? 'lp-mobile-nav-open' : ''}`}>
+                        <div className="lp-mobile-nav-content">
+                            <div className="lp-mobile-nav-links">
+                                <Link to="/" className="lp-mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
+                                <a href="#features" className="lp-mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>Features</a>
+                                <Link to="/pricing" className="lp-mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>Pricing</Link>
+                                <Link to="/templates" className="lp-mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>Templates</Link>
+                                <a href="#how-it-works" className="lp-mobile-nav-link" onClick={() => setIsMobileMenuOpen(false)}>How it Works</a>
+                            </div>
+
+                            <div className="lp-mobile-nav-auth">
+                                <SignedOut>
+                                    <SignUpButton mode="modal" fallbackRedirectUrl="/dashboard">
+                                        <button className="vhero-nav-btn-ghost w-full">Sign Up</button>
+                                    </SignUpButton>
+                                    <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
+                                        <button className="vhero-nav-btn-solid w-full">Log In</button>
+                                    </SignInButton>
+                                </SignedOut>
+                                <SignedIn>
+                                    <Link to="/dashboard" className="vhero-nav-btn-solid w-full" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                        Dashboard
+                                        <ArrowRight size={14} />
+                                    </Link>
+                                </SignedIn>
+                            </div>
+                        </div>
+                        <div className="lp-mobile-nav-overlay" onClick={() => setIsMobileMenuOpen(false)} />
                     </div>
                 </nav>
 

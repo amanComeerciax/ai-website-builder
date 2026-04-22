@@ -499,14 +499,42 @@
 /* LAYOUT RESPONSIVENESS */
 @media (max-width: 768px) {
   .sp-container { flex-direction: column; }
-  .sp-sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #222; flex-direction: row; padding: 12px; align-items: center; gap: 8px; overflow-x: auto;}
-  .sp-nav-group { flex-direction: row; padding: 0; }
+  .sp-sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #222; flex-direction: row; padding: 12px; align-items: center; gap: 8px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  .sp-nav-group { flex-direction: row; padding: 0; display: flex; }
+  .sp-nav-item { flex-shrink: 0; }
   .sp-sidebar-header { display: none; }
   .sp-section-label { display: none; }
-  .sp-content { padding: 20px; max-width: 100%; }
+  .sp-content { padding: 16px; max-width: 100%; padding-bottom: 80px; }
   .sp-grid-2, .sp-grid-3, .sp-project-grid { grid-template-columns: 1fr; }
   .sp-footer-inner { grid-template-columns: repeat(2, 1fr); }
   .sp-profile-name-row { flex-direction: column; gap: 16px; }
+  
+  .sp-page-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+  .sp-tabs { max-width: 100%; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; display: flex; }
+  .sp-tab { flex-shrink: 0; }
+  
+  .sp-row { flex-wrap: wrap; gap: 16px; padding: 16px; }
+  .sp-row-info { padding-right: 0; width: 100%; }
+  
+  .sp-table-wrapper { overflow-x: auto; }
+  .sp-table { min-width: 600px; }
+  
+  .sp-filter-bar { flex-wrap: wrap; }
+  .sp-search-bar { width: 100%; }
+  .sp-select-wrapper { width: 100%; }
+  
+  .sp-banner { height: 120px; margin-bottom: 40px; }
+  .sp-banner-avatar { width: 64px; height: 64px; bottom: -32px; left: 16px; font-size: 24px; }
+  
+  .sp-heatmap-grid { overflow-x: auto; padding-bottom: 8px; }
+  .sp-activity-container { flex-direction: column; }
+  
+  .sp-row > div:last-child { width: 100%; }
+  .sp-row input { max-width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .sp-footer-inner { grid-template-columns: 1fr; }
 }
 
 /* Loading spinner for settings pages */

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import WorkspaceDropdown from '../components/WorkspaceDropdown'
@@ -9,6 +10,21 @@ import './DashboardLayout.css'
 
 export default function DashboardLayout() {
     const { isSidebarCollapsed, toggleSidebar } = useUIStore()
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768)
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
+
+    useEffect(() => {
+        // Auto-collapse sidebar on mobile devices on initial load
+        if (window.innerWidth < 768 && !isSidebarCollapsed) {
+            toggleSidebar()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     return (
         <div className={`lv-layout ${isSidebarCollapsed ? 'collapsed' : ''}`}>
@@ -17,6 +33,10 @@ export default function DashboardLayout() {
             
             <WorkspaceDropdown />
             <CreateFolderModal />
+            
+            {isMobile && !isSidebarCollapsed && (
+                <div className="lv-mobile-overlay" onClick={toggleSidebar} />
+            )}
             
             <main className="lv-main">
                 {isSidebarCollapsed && (
