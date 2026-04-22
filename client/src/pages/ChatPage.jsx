@@ -13,6 +13,7 @@ import HistoryPanel from '../components/editor/HistoryPanel'
 import HistorySidebar from '../components/editor/HistorySidebar'
 import ProjectPopover from '../components/editor/ProjectPopover'
 import VisualEditPanel from '../components/editor/VisualEditPanel'
+import SetupWizard from '../components/editor/SetupWizard'
 import RenameModal from '../components/modals/RenameModal'
 import MoveToFolderModal from '../components/modals/MoveToFolderModal'
 import DetailsModal from '../components/modals/DetailsModal'
@@ -49,7 +50,7 @@ export default function ChatPage() {
     const { 
         isGenerating, generationStatus, isDetailsExpanded, setDetailsExpanded,
         isIdeVisible, setIdeVisible, activeView, setActiveView, messages, addMessage, startGeneration,
-        generationPhase, isVisualEditMode
+        generationPhase, isVisualEditMode, isConfigured
     } = useChatStore()
     const { files } = useEditorStore()
     
@@ -473,7 +474,11 @@ export default function ChatPage() {
                                     </div>
                                 </div>
                             )}
-                            {activeView === 'preview' && <PreviewPanel />}
+                            {activeView === 'preview' && (
+                                !isConfigured
+                                    ? <SetupWizard />
+                                    : <PreviewPanel />
+                            )}
                             {activeView === 'history' && <HistoryPanel projectId={projectId} />}
                         </div>
                     </>

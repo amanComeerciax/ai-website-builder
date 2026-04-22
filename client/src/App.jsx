@@ -11,6 +11,7 @@ import AuthPage from './pages/AuthPage'
 import SuccessPage from './pages/SuccessPage'
 import SettingsPage from './pages/SettingsPage'
 import NotFoundPage from './pages/NotFoundPage'
+import BoneyardFixtures from './pages/BoneyardFixtures'
 import { Toaster } from 'react-hot-toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -58,6 +59,7 @@ function App() {
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/boneyard-fixtures" element={<BoneyardFixtures />} />
           <Route path="/success" element={<ProtectedRoute><SuccessPage /></ProtectedRoute>} />
 
           {/* Dashboard routes */}

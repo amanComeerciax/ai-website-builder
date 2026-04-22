@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { Skeleton } from 'boneyard-js/react';
 import './TemplatesPage.css';
 
 // Global cache for preview HTML so we don't re-fetch on repeat hovers
@@ -134,45 +135,6 @@ export default function TemplatesPage() {
         return 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=800&q=80';
     };
 
-    // Skeleton placeholder that mirrors a website layout
-    const SkeletonPlaceholder = () => (
-        <div className="lv-skeleton-placeholder">
-            <div className="lv-skeleton-shimmer" />
-            {/* Fake navbar */}
-            <div className="lv-skel-nav">
-                <div className="lv-skel-block" style={{ width: '18%', height: '8px' }} />
-                <div style={{ display: 'flex', gap: '6px' }}>
-                    <div className="lv-skel-block" style={{ width: '28px', height: '8px' }} />
-                    <div className="lv-skel-block" style={{ width: '28px', height: '8px' }} />
-                    <div className="lv-skel-block" style={{ width: '28px', height: '8px' }} />
-                </div>
-            </div>
-            {/* Fake hero */}
-            <div className="lv-skel-hero">
-                <div className="lv-skel-block" style={{ width: '60%', height: '14px', borderRadius: '4px' }} />
-                <div className="lv-skel-block" style={{ width: '40%', height: '8px', marginTop: '8px', borderRadius: '3px' }} />
-                <div className="lv-skel-block" style={{ width: '22%', height: '16px', marginTop: '14px', borderRadius: '6px' }} />
-            </div>
-            {/* Fake content cards */}
-            <div className="lv-skel-cards">
-                <div className="lv-skel-card">
-                    <div className="lv-skel-block" style={{ width: '100%', height: '40%', borderRadius: '4px' }} />
-                    <div className="lv-skel-block" style={{ width: '70%', height: '6px', marginTop: '8px' }} />
-                    <div className="lv-skel-block" style={{ width: '90%', height: '5px', marginTop: '5px' }} />
-                </div>
-                <div className="lv-skel-card">
-                    <div className="lv-skel-block" style={{ width: '100%', height: '40%', borderRadius: '4px' }} />
-                    <div className="lv-skel-block" style={{ width: '60%', height: '6px', marginTop: '8px' }} />
-                    <div className="lv-skel-block" style={{ width: '85%', height: '5px', marginTop: '5px' }} />
-                </div>
-                <div className="lv-skel-card">
-                    <div className="lv-skel-block" style={{ width: '100%', height: '40%', borderRadius: '4px' }} />
-                    <div className="lv-skel-block" style={{ width: '65%', height: '6px', marginTop: '8px' }} />
-                    <div className="lv-skel-block" style={{ width: '80%', height: '5px', marginTop: '5px' }} />
-                </div>
-            </div>
-        </div>
-    );
 
     // Sub-component for Live Previews - Auto-Loads via IntersectionObserver
     const LiveThumbnail = ({ template }) => {
@@ -222,20 +184,22 @@ export default function TemplatesPage() {
 
         return (
             <div className="lv-template-iframe-wrapper" ref={wrapperRef}>
-                {/* Always show skeleton until iframe is fully loaded */}
-                {!isLoaded && <SkeletonPlaceholder />}
-
-                {html && (
-                    <iframe 
-                        className={`lv-template-iframe ${isLoaded ? 'loaded' : ''}`}
-                        srcDoc={html}
-                        frameBorder="0"
-                        scrolling="no"
-                        loading="lazy"
-                        title={template.title}
-                        onLoad={() => setIsLoaded(true)}
-                    />
-                )}
+                <Skeleton name="template-preview" loading={!isLoaded} style={{ width: '100%', height: '100%', display: 'block' }}>
+                    <div className={`lv-template-iframe ${isLoaded ? 'loaded' : ''}`} style={{ width: '100%', height: '100%', display: html && isLoaded ? 'none' : 'block' }}></div>
+                    {html && (
+                        <iframe 
+                            className={`lv-template-iframe ${isLoaded ? 'loaded' : ''}`}
+                            srcDoc={html}
+                            frameBorder="0"
+                            scrolling="no"
+                            loading="lazy"
+                            title={template.title}
+                            onLoad={() => setIsLoaded(true)}
+                            style={{ display: isLoaded ? 'block' : 'none' }}
+                            sandbox="allow-scripts allow-same-origin"
+                        />
+                    )}
+                </Skeleton>
             </div>
         );
     };
@@ -279,7 +243,9 @@ export default function TemplatesPage() {
                             <div key={i} className="lv-template-card">
                                 <div className="lv-template-image-wrapper">
                                     <div className="lv-template-iframe-wrapper">
-                                        <SkeletonPlaceholder />
+                                        <Skeleton name="template-preview" loading={true} style={{ width: '100%', height: '100%', display: 'block' }}>
+                                            <div className="lv-template-iframe" style={{ width: '100%', height: '100%' }}></div>
+                                        </Skeleton>
                                     </div>
                                 </div>
                                 <div className="lv-template-info">

@@ -1,0 +1,12 @@
+{
+  "out": "./src/bones",
+  "animate": "shimmer",
+  "color": "#1f1f1f",
+  "darkColor": "#1f1f1f",
+  "shimmerColor": "#2a2a2a",
+  "darkShimmerColor": "#2a2a2a",
+  "speed": "1.5s",
+  "transition": 300,
+  "breakpoints": [375, 768, 1280],
+  "routes": ["/boneyard-fixtures"]
+}

@@ -377,12 +377,15 @@ export default function ChatPanel() {
         setTimeout(() => setCopiedId(null), 2000)
     }
 
-    // Strip [Attached image: ...] from displayed content
+    // Strip attachment tags and markdown symbols from displayed chat messages
     const cleanMessageContent = (content) => {
         return content
-            .replace(/\[Visual Edit on[^\]]*\]\n?/g, '')  // Strip [Visual Edit on element: ...] prefix
-            .replace(/\[Visual Edit on \d+ element\(s\):[^\]]*\]\n?/g, '') // Strip multi-element version
-            .replace(/\n?\[Attached (?:image|file): [^\]]+\]/g, '')
+            .replace(/\[Visual Edit on[^\]]*\]\n?/g, '')        // strip visual edit prefix
+            .replace(/\[Visual Edit on \d+ element\(s\):[^\]]*\]\n?/g, '') // multi-element version
+            .replace(/\n?\[Attached (?:image|file): [^\]]+\]/g, '') // strip attachment markers
+            .replace(/\*\*([^*]+)\*\*/g, '$1')                   // **bold** → plain
+            .replace(/\*([^*]+)\*/g, '$1')                       // *italic* → plain
+            .replace(/^#{1,6}\s+/gm, '')                         // # headers → plain
             .trim()
     }
 
@@ -404,7 +407,7 @@ export default function ChatPanel() {
         let assistantNext = ''
         
         if (configStep === 0) {
-            userContent = 'The name is **' + styleOptions.websiteName + '**.'
+            userContent = 'The name is ' + styleOptions.websiteName + '.'
             assistantNext = "Nice name! Can you give me a short description of what your website or business is about?"
         } else if (configStep === 1) {
             userContent = 'Description: ' + styleOptions.description
@@ -752,64 +755,7 @@ export default function ChatPanel() {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* STYLE CONFIGURATOR */}
-            {!isConfigured && messages.length > 0 && (
-                <div className="website-style-picker-container">
-                    <WebsiteStylePicker 
-                        value={styleOptions}
-                        onChange={setStyleOptions}
-                        step={configStep}
-                    />
-                    <button 
-                        style={{
-                            width: '100%', padding: '14px',
-                            background: configStep === 2 
-                                ? (styleOptions.templateId 
-                                    ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-                                    : 'rgba(255,255,255,0.06)')
-                                : 'linear-gradient(135deg, #3a8bfd 0%, #4466ff 100%)',
-                            color: configStep === 2 && !styleOptions.templateId ? 'rgba(255,255,255,0.3)' : '#fff',
-                            border: 'none',
-                            borderRadius: '14px', fontSize: '14px', fontWeight: '600',
-                            cursor: configStep === 2 && !styleOptions.templateId ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center', justifyContent: 'center', gap: '8px',
-                            boxShadow: configStep === 2 
-                                ? (styleOptions.templateId ? '0 4px 20px rgba(139,92,246,0.3)' : 'none')
-                                : '0 4px 20px rgba(59,130,246,0.25)',
-                            transition: 'all 0.3s ease',
-                            marginTop: '12px',
-                            letterSpacing: '-0.01em',
-                            opacity: configStep === 2 && !styleOptions.templateId ? 0.5 : 1,
-                        }}
-                        onClick={handleNextStep}
-                        disabled={configStep === 2 && !styleOptions.templateId}
-                    >
-                        {configStep === 2 ? (
-                            <><Sparkles size={16} /> Build Your Website</>
-                        ) : (
-                            <>Continue <ArrowRight size={16} /></>
-                        )}
-                    </button>
-                    
-                    {configStep > 0 && (
-                        <button 
-                            style={{
-                                width: '100%', padding: '10px',
-                                background: 'transparent', color: 'rgba(255,255,255,0.35)',
-                                border: 'none', borderRadius: '10px',
-                                fontSize: '12px', fontWeight: '500',
-                                cursor: 'pointer', marginTop: '6px',
-                                transition: 'all 0.2s',
-                                letterSpacing: '-0.01em',
-                            }}
-                            onClick={() => setConfigStep(prev => prev - 1)}
-                        >
-                            &larr; Back to previous step
-                        </button>
-                    )}
-                </div>
-            )}
+
 
             <div className="cp-input-tabs">
                 <button className="cp-input-tab-left">&larr; Back to Preview</button>

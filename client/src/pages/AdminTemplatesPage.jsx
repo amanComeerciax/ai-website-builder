@@ -27,8 +27,11 @@ export default function AdminTemplatesPage() {
     const [chunkingResult, setChunkingResult] = useState(null);
 
     const categories = [
-        'saas', 'portfolio', 'landing', 'blog', 'ecommerce', 
-        'restaurant', 'wellness', 'coffee-shop', 'fashion', 'service', 'sports', 'custom'
+        'agency', 'automotive', 'blog', 'coffee-shop', 'custom',
+        'ecommerce', 'education', 'entertainment', 'fashion', 'fitness',
+        'landing', 'legal', 'medical', 'nonprofit', 'portfolio',
+        'real-estate', 'restaurant', 'saas', 'service', 'sports',
+        'travel', 'wedding', 'wellness'
     ];
 
     // Live stats for the HTML textarea
