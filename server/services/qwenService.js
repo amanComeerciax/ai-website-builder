@@ -19,8 +19,7 @@ const QWEN_TIMEOUT_MS = parseInt(process.env.QWEN_TIMEOUT_MS) || 300000; // 5 mi
 const QWEN_MAX_RETRIES = parseInt(process.env.QWEN_MAX_RETRIES) || 3;
 const MAX_INPUT_CHARS = parseInt(process.env.QWEN_MAX_INPUT_CHARS) || 150000;
 
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
-const mistralClient = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY }) : null;
+// No global mistralClient needed anymore as it is handled per-request for token rotation
 
 /**
  * Generate code via local Qwen (Ollama) with streaming.
@@ -36,7 +35,7 @@ const mistralClient = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY })
 async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retries = QWEN_MAX_RETRIES, preferredModel = 'qwen') {
   // ─── GUARD: Direct Mistral routing ───
   if (preferredModel === 'mistral') {
-    if (!mistralClient) {
+    if (!process.env.MISTRAL_API_KEY && !process.env.MISTRAL_API_KEY_2) {
       throw new Error('Mistral model selected but no MISTRAL_API_KEY is configured.');
     }
     console.log(`[Model Router] User selected Mistral — skipping local Ollama, going straight to cloud...`);
@@ -175,40 +174,72 @@ async function generateWithQwen(systemPrompt, userPrompt, jsonMode = false, retr
  * Direct Mistral Cloud API generation.
  */
 async function generateWithMistral(systemPrompt, userPrompt, jsonMode = false) {
-  if (!mistralClient) {
+  // Collect all Mistral tokens from environment variables
+  const tokens = [];
+  if (process.env.MISTRAL_API_KEY) tokens.push(process.env.MISTRAL_API_KEY);
+  
+  let i = 2;
+  while (process.env[`MISTRAL_API_KEY_${i}`]) {
+    tokens.push(process.env[`MISTRAL_API_KEY_${i}`]);
+    i++;
+  }
+
+  if (tokens.length === 0) {
     throw new Error('No MISTRAL_API_KEY configured.');
   }
 
-  try {
-    const chatStreamResponse = await mistralClient.chat.stream({
-      model: process.env.MISTRAL_MODEL || 'mistral-small-latest',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.1,
-      responseFormat: jsonMode ? { type: 'json_object' } : undefined
-    });
+  const model = process.env.MISTRAL_MODEL || 'mistral-small-latest';
+  let lastError = null;
 
-    let content = '';
-    for await (const chunk of chatStreamResponse) {
-      const deltaContent = chunk?.data?.choices?.[0]?.delta?.content;
-      if (deltaContent) {
-        content += deltaContent;
+  for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
+    const currentToken = tokens[tokenIndex];
+    const isLastToken = tokenIndex === tokens.length - 1;
+    const client = new Mistral({ apiKey: currentToken });
+
+    try {
+      console.log(`[Mistral Fallback] Using token ${tokenIndex + 1}/${tokens.length} — model: ${model}`);
+      const chatStreamResponse = await client.chat.stream({
+        model: model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.1,
+        responseFormat: jsonMode ? { type: 'json_object' } : undefined
+      });
+
+      let content = '';
+      for await (const chunk of chatStreamResponse) {
+        const deltaContent = chunk?.data?.choices?.[0]?.delta?.content;
+        if (deltaContent) {
+          content += deltaContent;
+        }
       }
+
+      if (jsonMode) {
+        JSON.parse(content);
+      }
+
+      console.log(`[Mistral Fallback] ✅ Generation succeeded! (${content.length} characters)`);
+      return content;
+
+    } catch (mistralError) {
+      lastError = mistralError;
+      const isRateLimit = mistralError.message.toLowerCase().includes('429') || 
+                         mistralError.message.toLowerCase().includes('rate limit') ||
+                         mistralError.message.toLowerCase().includes('quota');
+
+      if (isRateLimit && !isLastToken) {
+        console.warn(`[Mistral Fallback] Token ${tokenIndex + 1} rate limited. Trying next token...`);
+        continue;
+      }
+      
+      console.error(`[Mistral Fallback Error]:`, mistralError.message);
+      if (isLastToken) throw mistralError;
     }
-
-    if (jsonMode) {
-      JSON.parse(content);
-    }
-
-    console.log(`[Mistral] Generation succeeded! (${content.length} characters)`);
-    return content;
-
-  } catch (mistralError) {
-    console.error(`[Mistral Error]:`, mistralError);
-    throw new Error(`Mistral generation failed: ${mistralError.message}`);
   }
+
+  throw lastError || new Error(`Mistral generation failed after trying all tokens.`);
 }
 
 module.exports = { generateWithQwen, generateWithMistral };

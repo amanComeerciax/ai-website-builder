@@ -14,8 +14,6 @@ const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const MISTRAL_MODEL = process.env.MISTRAL_MODEL || 'mistral-small-latest';
 const MISTRAL_MAX_RETRIES = parseInt(process.env.MISTRAL_MAX_RETRIES) || 2;
 
-const client = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY }) : null;
-
 /**
  * Generate a response from Mistral Cloud API.
  * 
@@ -27,7 +25,17 @@ const client = MISTRAL_API_KEY ? new Mistral({ apiKey: MISTRAL_API_KEY }) : null
  * @returns {{ content: string, model: string, durationMs: number }}
  */
 async function callMistral(systemPrompt, userMessage, options = {}, history = []) {
-  if (!client) {
+  // Collect all Mistral tokens from environment variables
+  const tokens = [];
+  if (process.env.MISTRAL_API_KEY) tokens.push(process.env.MISTRAL_API_KEY);
+  
+  let i = 2;
+  while (process.env[`MISTRAL_API_KEY_${i}`]) {
+    tokens.push(process.env[`MISTRAL_API_KEY_${i}`]);
+    i++;
+  }
+
+  if (tokens.length === 0) {
     throw new Error('MISTRAL_API_KEY is not configured.');
   }
 
@@ -37,55 +45,76 @@ async function callMistral(systemPrompt, userMessage, options = {}, history = []
   // If tools are provided, we don't use streaming for now to simplify tool call handling
   const useStream = !tools;
 
-  for (let attempt = 1; attempt <= MISTRAL_MAX_RETRIES; attempt++) {
-    try {
-      console.log(`[Mistral Service] Attempt ${attempt}/${MISTRAL_MAX_RETRIES} — model: ${MISTRAL_MODEL}${tools ? ' (with tools)' : ''}`);
+  let lastError = null;
 
-      const messages = history.length > 0 ? history : [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage }
-      ];
+  // Try each token
+  for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
+    const currentToken = tokens[tokenIndex];
+    const mistralClient = new Mistral({ apiKey: currentToken });
+    const isLastToken = tokenIndex === tokens.length - 1;
 
-      if (useStream) {
-        const streamResponse = await client.chat.stream({
-          model: MISTRAL_MODEL,
-          messages,
-          temperature,
-          maxTokens: 16384,
-          responseFormat: jsonMode ? { type: 'json_object' } : undefined
-        });
+    for (let attempt = 1; attempt <= MISTRAL_MAX_RETRIES; attempt++) {
+      try {
+        console.log(`[Mistral Service] Token ${tokenIndex + 1}/${tokens.length} — Attempt ${attempt}/${MISTRAL_MAX_RETRIES} — model: ${MISTRAL_MODEL}${tools ? ' (with tools)' : ''}`);
 
-        let content = '';
-        for await (const chunk of streamResponse) {
-          const delta = chunk?.data?.choices?.[0]?.delta?.content;
-          if (delta) content += delta;
+        const messages = history.length > 0 ? history : [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ];
+
+        if (useStream) {
+          const streamResponse = await mistralClient.chat.stream({
+            model: MISTRAL_MODEL,
+            messages,
+            temperature,
+            maxTokens: 16384,
+            responseFormat: jsonMode ? { type: 'json_object' } : undefined
+          });
+
+          let content = '';
+          for await (const chunk of streamResponse) {
+            const delta = chunk?.data?.choices?.[0]?.delta?.content;
+            if (delta) content += delta;
+          }
+          return { content, model: MISTRAL_MODEL, durationMs: Date.now() - startTime };
+        } else {
+          // Standard chat completion for tool calling
+          const response = await mistralClient.chat.complete({
+            model: MISTRAL_MODEL,
+            messages,
+            temperature,
+            tools,
+            toolChoice: 'auto',
+            responseFormat: jsonMode ? { type: 'json_object' } : undefined
+          });
+
+          const choice = response.choices[0];
+          return {
+            content: choice.message.content || '',
+            toolCalls: choice.message.toolCalls,
+            model: MISTRAL_MODEL,
+            durationMs: Date.now() - startTime
+          };
         }
-        return { content, model: MISTRAL_MODEL, durationMs: Date.now() - startTime };
-      } else {
-        // Standard chat completion for tool calling
-        const response = await client.chat.complete({
-          model: MISTRAL_MODEL,
-          messages,
-          temperature,
-          tools,
-          toolChoice: 'auto',
-          responseFormat: jsonMode ? { type: 'json_object' } : undefined
-        });
 
-        const choice = response.choices[0];
-        return {
-          content: choice.message.content || '',
-          toolCalls: choice.message.toolCalls,
-          model: MISTRAL_MODEL,
-          durationMs: Date.now() - startTime
-        };
+      } catch (error) {
+        lastError = error;
+        const isRateLimit = error.message.toLowerCase().includes('429') || 
+                           error.message.toLowerCase().includes('rate limit') ||
+                           error.message.toLowerCase().includes('quota');
+
+        if (isRateLimit && !isLastToken && attempt === MISTRAL_MAX_RETRIES) {
+          console.warn(`[Mistral Service] Token ${tokenIndex + 1} rate limited. Trying next token...`);
+          break; // Move to next token
+        }
+
+        if (attempt === MISTRAL_MAX_RETRIES) throw error;
+        console.warn(`[Mistral Service] Attempt ${attempt} failed: ${error.message}. Retrying...`);
+        await new Promise(r => setTimeout(r, 2000));
       }
-
-    } catch (error) {
-      if (attempt === MISTRAL_MAX_RETRIES) throw error;
-      await new Promise(r => setTimeout(r, 2000));
     }
   }
+  throw lastError || new Error('Mistral generation failed after trying all tokens.');
 }
 
 module.exports = { callMistral };

@@ -6,7 +6,7 @@
  * to inject real, high-quality images into sections.
  */
 
-const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
+// No global PEXELS_API_KEY needed anymore as it is handled per-request for token rotation
 const PEXELS_API_URL = 'https://api.pexels.com/v1';
 
 // Cache to avoid re-fetching the same query
@@ -19,7 +19,17 @@ const imageCache = new Map();
  * @returns {Promise<string[]>} Array of image URLs
  */
 async function searchPhotos(query, count = 5) {
-  if (!PEXELS_API_KEY) {
+  // Collect all Pexels tokens from environment variables
+  const tokens = [];
+  if (process.env.PEXELS_API_KEY) tokens.push(process.env.PEXELS_API_KEY);
+  
+  let i = 2;
+  while (process.env[`PEXELS_API_KEY_${i}`]) {
+    tokens.push(process.env[`PEXELS_API_KEY_${i}`]);
+    i++;
+  }
+
+  if (tokens.length === 0) {
     console.warn('[PexelsService] ⚠️ PEXELS_API_KEY not set — skipping image search');
     return [];
   }
@@ -29,27 +39,45 @@ async function searchPhotos(query, count = 5) {
     return imageCache.get(cacheKey);
   }
 
-  try {
-    const url = `${PEXELS_API_URL}/search?query=${encodeURIComponent(query)}&per_page=${count}&orientation=landscape`;
-    const response = await fetch(url, {
-      headers: { Authorization: PEXELS_API_KEY }
-    });
+  let lastError = null;
 
-    if (!response.ok) {
-      console.error(`[PexelsService] ❌ API error ${response.status}: ${await response.text()}`);
+  // Try each token
+  for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
+    const currentToken = tokens[tokenIndex];
+    const isLastToken = tokenIndex === tokens.length - 1;
+
+    try {
+      const url = `${PEXELS_API_URL}/search?query=${encodeURIComponent(query)}&per_page=${count}&orientation=landscape`;
+      const response = await fetch(url, {
+        headers: { Authorization: currentToken }
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`[PexelsService] ❌ API error with token ${tokenIndex + 1} (${response.status}): ${errText}`);
+        
+        // If rate limited or quota exceeded, try next token
+        if ((response.status === 429 || response.status === 403) && !isLastToken) {
+          console.warn(`[PexelsService] Token ${tokenIndex + 1} exhausted. Trying next fallback...`);
+          continue;
+        }
+        return []; // Non-recoverable error for this request
+      }
+
+      const data = await response.json();
+      const urls = (data.photos || []).map(p => p.src.large2x || p.src.large || p.src.original);
+
+      console.log(`[PexelsService] ✅ Found ${urls.length} photos for "${query}" (using token ${tokenIndex + 1})`);
+      imageCache.set(cacheKey, urls);
+      return urls;
+    } catch (error) {
+      lastError = error;
+      console.error(`[PexelsService] ❌ Fetch failed with token ${tokenIndex + 1}:`, error.message);
+      if (!isLastToken) continue;
       return [];
     }
-
-    const data = await response.json();
-    const urls = (data.photos || []).map(p => p.src.large2x || p.src.large || p.src.original);
-
-    console.log(`[PexelsService] ✅ Found ${urls.length} photos for "${query}"`);
-    imageCache.set(cacheKey, urls);
-    return urls;
-  } catch (error) {
-    console.error('[PexelsService] ❌ Fetch failed:', error.message);
-    return [];
   }
+  return [];
 }
 
 /**
@@ -131,7 +159,7 @@ function buildQuery(siteType, section, brandName = '') {
  * @returns {Promise<object>} Updated layout spec with real Pexels images
  */
 async function injectPexelsImages(layoutSpec, siteType, brandName) {
-  if (!PEXELS_API_KEY || !layoutSpec?.sections) return layoutSpec;
+  if ((!process.env.PEXELS_API_KEY && !process.env.PEXELS_API_KEY_2) || !layoutSpec?.sections) return layoutSpec;
 
   console.log(`[PexelsService] 🖼 Injecting Pexels images into ${layoutSpec.sections.length} sections...`);
 
