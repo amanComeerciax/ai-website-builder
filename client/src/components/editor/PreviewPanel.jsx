@@ -544,7 +544,7 @@ export default function PreviewPanel() {
                         <iframe
                             ref={iframeRef}
                             srcDoc={safeSrcDoc}
-                            sandbox="allow-scripts"
+                            sandbox="allow-scripts allow-same-origin"
                             style={{ width: '100%', height: '100%', border: 'none' }}
                             title="Generated website preview"
                         />

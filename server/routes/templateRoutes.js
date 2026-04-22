@@ -38,8 +38,8 @@ router.get('/', async (req, res) => {
         }).select('-htmlContent'); // don't send full HTML to list endpoint
 
         const list = templates.map(tmpl => ({
-            id: `${(tmpl.categories[0] || 'custom')}/${tmpl.slug}`,
-            slug: tmpl.slug,
+            id: `${(tmpl.categories[0] || 'custom')}/${tmpl.slug || tmpl._id}`,
+            slug: tmpl.slug || tmpl._id.toString(),
             categoryId: tmpl.categories[0] || 'custom',   // primary category for routing
             allCategories: tmpl.categories,
             title: tmpl.name,
@@ -95,15 +95,24 @@ router.get('/admin', requireAdmin, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/templates/preview/:categoryId/:templateId
-// Returns full HTML for a single template (by slug, category-agnostic)
+// GET /api/templates/preview/:templateId or /api/templates/preview/:categoryId/:templateId
+// Returns full HTML for a single template (by slug or Object ID, category-agnostic)
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/preview/:categoryId/:templateId', async (req, res) => {
+router.get(['/preview/:templateId', '/preview/:categoryId/:templateId'], async (req, res) => {
     try {
         const { templateId } = req.params;
         const slug = templateId.replace('.json', '').replace('.html', '');
 
-        const template = await Template.findOne({ slug, isActive: true });
+        const mongoose = require('mongoose');
+        let query = { isActive: true };
+        
+        if (mongoose.Types.ObjectId.isValid(slug)) {
+            query.$or = [{ _id: slug }, { slug: slug }];
+        } else {
+            query.slug = slug;
+        }
+
+        const template = await Template.findOne(query);
 
         if (!template) {
             return res.status(404).json({ error: 'Preview not available for this template' });
@@ -214,6 +223,37 @@ router.patch('/:id/visibility', requireAdmin, async (req, res) => {
     } catch (error) {
         console.error('[TemplateRoute] PATCH /visibility:', error);
         res.status(500).json({ error: 'Failed to update visibility' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/templates/:id/categories  (ADMIN ONLY)
+// Update a template's categories list.
+// Body: { categories: string[] }
+// ─────────────────────────────────────────────────────────────────────────────
+router.patch('/:id/categories', requireAdmin, async (req, res) => {
+    try {
+        const { categories } = req.body;
+        if (!Array.isArray(categories) || categories.length === 0) {
+            return res.status(400).json({ error: 'categories must be a non-empty array' });
+        }
+
+        const cleaned = categories.map(c => c.toLowerCase().replace(/[^a-z0-9-]/g, '')).filter(Boolean);
+        if (cleaned.length === 0) {
+            return res.status(400).json({ error: 'At least one valid category is required' });
+        }
+
+        const template = await Template.findByIdAndUpdate(
+            req.params.id,
+            { categories: cleaned },
+            { new: true }
+        );
+        if (!template) return res.status(404).json({ error: 'Template not found' });
+
+        res.json({ success: true, categories: template.categories });
+    } catch (error) {
+        console.error('[TemplateRoute] PATCH /categories:', error);
+        res.status(500).json({ error: 'Failed to update categories' });
     }
 });
 

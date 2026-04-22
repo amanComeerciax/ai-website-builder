@@ -74,7 +74,10 @@ const requireAdmin = async (req, res, next) => {
       const user = await User.findOne({ clerkId: req.user.clerkId });
       
       const isAdmin = user && user.role === 'admin';
-      const isSuperAdmin = user && user.email === 'kingamaan14@gmail.com';
+      
+      // Pluck super admin emails from comma-separated env var or fallback empty
+      const superAdmins = (process.env.SUPER_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+      const isSuperAdmin = user && superAdmins.includes(user.email?.toLowerCase());
 
       if (isAdmin || isSuperAdmin) {
         return next();

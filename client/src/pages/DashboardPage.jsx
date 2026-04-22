@@ -219,7 +219,7 @@ function LiveThumbnail({ projectId }) {
     <iframe
       srcDoc={html}
       title="preview"
-      sandbox="allow-same-origin"
+      sandbox="allow-scripts allow-same-origin"
       loading="lazy"
     />
   );
@@ -261,7 +261,7 @@ function TemplateThumbnail({ templateId }) {
     <iframe
       srcDoc={html}
       title="template preview"
-      sandbox="allow-same-origin"
+      sandbox="allow-scripts allow-same-origin"
       loading="lazy"
     />
   );

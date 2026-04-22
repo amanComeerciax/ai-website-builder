@@ -230,7 +230,8 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
           <textarea
             name="description"
             autoFocus
-            rows={3}
+            rows={5}
+            maxLength={2500}
             placeholder="What does your business do? (e.g. Artisanal coffee roastery in Brooklyn...)"
             value={details.description}
             onChange={handleDetailChange}
@@ -244,10 +245,14 @@ export default function WebsiteStylePicker({ step = 0, value, onChange }) {
             onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
           />
           <div style={{
-            fontSize: '11px', color: 'rgba(255,255,255,0.25)',
-            marginTop: '8px', paddingLeft: '4px',
+            fontSize: '11px',
+            marginTop: '8px', paddingLeft: '4px', paddingRight: '4px',
+            display: 'flex', justifyContent: 'space-between'
           }}>
-            The AI will use this to generate relevant content for your site
+            <span style={{ color: 'rgba(255,255,255,0.25)' }}>The AI will use this to generate relevant content for your site</span>
+            <span style={{ color: details.description.length > 2400 ? '#ef4444' : 'rgba(255,255,255,0.3)', fontWeight: '500' }}>
+              {details.description.length}/2500
+            </span>
           </div>
         </div>
       )}

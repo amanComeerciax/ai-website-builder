@@ -138,7 +138,7 @@ export default function Canyon404({
 
                     {/* Layer: Depth Fog Path */}
                     <path
-                        style={{ transform: `translate(${p3.x}px,${p3.y}px)`, filter: 'blur(80px)' }}
+                        style={{ transform: `translate(${p3.x}px,${p3.y}px)`, opacity: 0.6 }}
                         fill="#1f2937"
                         d='m-300,400 H2400 V700 H0 z'
                     />
@@ -146,8 +146,7 @@ export default function Canyon404({
                     {/* Layer: THE BIG 404 (p4) */}
                     <text
                         style={{
-                            transform: `translate(${p4.x}px,${p4.y}px)`,
-                            filter: 'drop-shadow(0 0 50px #1f2937)'
+                            transform: `translate(${p4.x}px,${p4.y}px)`
                         }}
                         x='1000' y='550'
                         textAnchor='middle'
@@ -173,14 +172,14 @@ export default function Canyon404({
                     </g>
 
                     {/* Group 6: Very Near Blurry Cacti (p6) */}
-                    <g style={{ transform: `translate(${p6.x}px,${p6.y}px)`, filter: 'blur(5px) brightness(0.7)' }}>
+                    <g style={{ transform: `translate(${p6.x}px,${p6.y}px)`, filter: 'brightness(0.7)' }}>
                         <Cactus x={100} y={180} scale={0.5} />
                         <Cactus x={700} y={200} scale={0.55} />
                         <Cactus x={1350} y={250} scale={0.5} />
                     </g>
 
                     {/* Group 7: Extreme Foreground Blurry Cacti (p7) */}
-                    <g style={{ transform: `translate(${p7.x}px,${p7.y}px)`, filter: 'blur(10px) brightness(0.5)' }}>
+                    <g style={{ transform: `translate(${p7.x}px,${p7.y}px)`, filter: 'brightness(0.5)' }}>
                         <Cactus x={0} y={320} scale={0.6} />
                         <Cactus x={400} y={280} scale={0.65} />
                         <Cactus x={1400} y={350} scale={0.6} />

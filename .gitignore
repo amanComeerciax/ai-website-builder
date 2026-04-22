@@ -39,3 +39,14 @@ _agents/
 .planning/
 .gemini/
 .ai/
+.claude/
+.opencode.json
+.mcp.json
+.cursorrules
+.windsurfrules
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+
+# Added by code-review-graph
+.code-review-graph/

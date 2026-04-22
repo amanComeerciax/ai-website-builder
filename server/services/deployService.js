@@ -118,7 +118,6 @@ const deployProject = async (netlifySiteId, fileTree) => {
             console.warn(`[DeployService] Error with token ${tokenIndex + 1}: ${error.message}. Trying fallback...`);
         }
     }
-
     throw lastError || new Error("Deployment failed after trying all available tokens.");
 };
 

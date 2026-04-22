@@ -109,6 +109,40 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
     }
   }
 
+  // ─── VERSION HISTORY CONTEXT (for prompts referencing past versions) ──
+  let versionHistoryContext = null;
+  const VERSION_REF_REGEX = /\b(previous|old|earlier|before|originally|last\s+time|version\s*\d|2nd|3rd|4th|5th|second|third|fourth|fifth|first\s+version|v1|v2|v3|prior|former|initial)\b/i;
+
+  if (isModification && VERSION_REF_REGEX.test(prompt)) {
+    try {
+      const Version = require('../models/Version');
+      const { extractVersionSummary } = require('../services/rawHtmlGenerator.js');
+      const versions = await Version.find({ projectId })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean();
+
+      if (versions.length > 1) {
+        // Build compact history — newest first, labeled by version number
+        const totalVersions = versions.length;
+        const historyLines = versions.map((v, i) => {
+          const versionNum = totalVersions - i; // e.g., 5 versions → V5 (newest) down to V1 (oldest)
+          const dateStr = new Date(v.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          const html = v.fileTree?.['index.html'] || '';
+          const summary = extractVersionSummary(html);
+          return `Version ${versionNum} (${dateStr}) — ${v.name || 'Unnamed'}\n  ${summary}`;
+        });
+
+        versionHistoryContext = historyLines.join('\n\n');
+        console.log(`[Worker] 📜 Found ${versions.length} versions for history context (${versionHistoryContext.length} chars)`);
+      } else {
+        console.log(`[Worker] 📜 Only 1 version found — no history to inject`);
+      }
+    } catch (vErr) {
+      console.warn(`[Worker] ⚠️ Version history fetch failed (non-fatal):`, vErr.message);
+    }
+  }
+
   let enhanced;
   try {
     enhanced = await enhance(prompt, { ...enhanceOptionsOverride, existingFiles });
@@ -200,7 +234,7 @@ const aiWorker = new Worker('AI_Generation_Queue', async job => {
         event: progress.event,
         payload: { type: progress.type, file: progress.file, message: progress.message }
       });
-    }, isModification ? existingHtmlForEdit : null, currentModel, enrichedPrompt);
+    }, isModification ? existingHtmlForEdit : null, currentModel, enrichedPrompt, versionHistoryContext);
   } catch (e) {
     console.error(`[Worker] Generation failed:`, e.message);
     throw new Error(`Website generation failed: ${e.message}`);

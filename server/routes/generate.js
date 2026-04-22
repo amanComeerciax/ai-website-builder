@@ -24,38 +24,65 @@ router.post("/suggest-category", async (req, res) => {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({ error: "prompt is required" });
 
+        // All real category folder names from /server/templates
         const ALLOWED_CATEGORIES = [
-            "blog", "coffee-shop", "fashion", "landing", 
-            "portfolio", "restaurant", "saas", "service", "wellness"
+            "agency", "automotive", "blog", "coffee-shop", "custom",
+            "ecommerce", "education", "entertainment", "fashion", "fitness",
+            "landing", "legal", "medical", "nonprofit", "portfolio",
+            "real-estate", "restaurant", "saas", "service", "sports",
+            "travel", "wedding", "wellness"
         ];
 
-        // We use Llama via Groq for high-speed simple matching (or Gem fast fallback)
-        const systemPrompt = `You are an expert intent classifier for a website builder. Map the user's prompt to EXACTLY ONE of the following precise template categories to ensure they get the best layout structure: ${ALLOWED_CATEGORIES.join(", ")}.
+        const systemPrompt = `You are an expert website category classifier. Given a business description, return the MOST relevant template categories in order of relevance.
 
-Rules:
-1. If the user mentions 'shop', 'cart', 'buy', or 'store', classify as: ecommerce (if available) or landing.
-2. If the user mentions 'dashboard', 'app', 'software', or 'login', classify as: saas
-3. If they mention their own work, 'gallery', 'resume', or 'showcase', classify as: portfolio
-4. If they mention food, cake, cafe, dining, bakery, classify as: coffee-shop or restaurant
-5. DO NOT explain your reasoning.
-6. ONLY reply with the single exact word from the list above.`;
+Available categories: ${ALLOWED_CATEGORIES.join(", ")}
+
+Category definitions (classify by INTENT, not exact keywords):
+- agency: marketing agencies, creative studios, digital agencies, consulting firms
+- automotive: car dealerships, auto repair, vehicle rentals
+- blog: personal blogs, news sites, content publishing, journalism
+- coffee-shop: cafes, coffee shops, tea houses, specialty drinks
+- custom: very generic or truly unclear requests
+- ecommerce: online stores, shops, product selling, retail
+- education: schools, courses, learning platforms, tutoring, training
+- entertainment: events, shows, music, nightlife, concerts, venues
+- fashion: clothing brands, apparel, boutiques, accessories
+- fitness: gyms, personal training, yoga studios, workout, health coaching
+- landing: product launch pages, app promotions, waitlists, single product
+- legal: law firms, attorneys, legal services
+- medical: clinics, hospitals, healthcare, doctors, dentists
+- nonprofit: charities, NGOs, foundations, volunteer organizations
+- portfolio: personal portfolios, freelancers, resumes, showcasing work
+- real-estate: property listings, real estate agents, housing, rentals
+- restaurant: restaurants, diners, food trucks, dining, bistros
+- saas: software platforms, web apps, dashboards, SaaS tools with login
+- service: professional services, home services, cleaning, plumbing, contractors
+- sports: sports teams, athletic clubs, sports coaching
+- travel: travel agencies, tour operators, trip planning, holiday packages, destinations, tours
+- wedding: wedding planning, venues, photographers, bridal
+- wellness: spas, meditation, mental health, therapy, holistic health
+
+RULES:
+1. Understand INTENT. "We plan trips to countries" → travel. "AI editor with subscription" → saas, landing.
+2. Return 1-3 categories, comma-separated, most relevant first.
+3. Output ONLY category names separated by commas. No explanations or extra text.
+4. If completely vague, return: custom`;
 
         const { callModel } = require('../services/modelRouter.js');
         const response = await callModel('template_selector', prompt, systemPrompt, { forceModel: 'groq' });
-        const responseText = response.content;
+        const responseText = response.content.trim();
         
-        let predictedCategory = "all"; // fallback
-        // Clean response but keep hyphens to allow 'coffee-shop'
-        const cleanResponse = responseText.toLowerCase().replace(/[^a-z-]/g, "");
-        if (ALLOWED_CATEGORIES.includes(cleanResponse)) {
-            predictedCategory = cleanResponse;
+        const rawCats = responseText.toLowerCase().split(',').map(c => c.replace(/[^a-z-]/g, '').trim()).filter(Boolean);
+        const validCats = rawCats.filter(c => ALLOWED_CATEGORIES.includes(c));
+        
+        if (validCats.length === 0) {
+            res.json({ category: "custom", categories: [] });
+        } else {
+            res.json({ category: validCats[0], categories: validCats });
         }
-
-        res.json({ category: predictedCategory });
     } catch (err) {
         console.error("[generate /suggest-category]", err);
-        // Fallback to "all" if the AI call fails or rate limits
-        res.json({ category: "all" });
+        res.json({ category: "custom", categories: [] });
     }
 });
 

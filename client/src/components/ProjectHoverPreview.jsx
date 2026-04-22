@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@clerk/clerk-react'
+import { Skeleton } from 'boneyard-js/react'
 import { apiClient } from '../lib/api'
 import './ProjectHoverPreview.css'
 
@@ -56,35 +57,33 @@ export default function ProjectHoverPreview({ project, position }) {
         >
             <div className="php-card">
                 <div className="php-preview-wrapper">
-                    {isLoading ? (
-                        /* Skeleton shimmer while loading */
-                        <div className="php-skeleton">
-                            <div className="php-skel-bar php-skel-lg" />
-                            <div className="php-skel-bar php-skel-md" />
-                            <div className="php-skel-bar php-skel-sm" />
-                            <div className="php-skel-row">
-                                <div className="php-skel-box" />
-                                <div className="php-skel-box" />
+                    <Skeleton name="project-preview" loading={isLoading || !previewHtml} style={{ width: '100%', height: '100%', display: 'block' }}>
+                        {previewHtml ? (
+                            /* Real site preview via scaled iframe */
+                            <div className="php-iframe-viewport">
+                                <iframe
+                                    ref={iframeRef}
+                                    title="preview"
+                                    srcDoc={previewHtml}
+                                    sandbox="allow-scripts allow-same-origin"
+                                    className="php-iframe"
+                                    scrolling="no"
+                                />
                             </div>
-                        </div>
-                    ) : previewHtml ? (
-                        /* Real site preview via scaled iframe */
-                        <div className="php-iframe-viewport">
-                            <iframe
-                                ref={iframeRef}
-                                title="preview"
-                                srcDoc={previewHtml}
-                                sandbox="allow-same-origin"
-                                className="php-iframe"
-                                scrolling="no"
-                            />
-                        </div>
-                    ) : (
-                        /* Fallback: styled mockup if no HTML exists */
-                        <div className="php-skeleton php-skeleton-static">
-                            <div className="php-no-preview">No preview yet</div>
-                        </div>
-                    )}
+                        ) : (
+                            /* Fallback structural layout for boneyard to capture */
+                            <div className="php-iframe-viewport" style={{ background: '#1c1c1c', display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ height: 40, borderBottom: '1px solid #333' }} />
+                                <div style={{ flex: 1, padding: 20 }}>
+                                    <div style={{ height: 120, background: '#2a2a2a', borderRadius: 8, marginBottom: 12 }} />
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        <div style={{ flex: 1, height: 80, background: '#2a2a2a', borderRadius: 8 }} />
+                                        <div style={{ flex: 1, height: 80, background: '#2a2a2a', borderRadius: 8 }} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </Skeleton>
                 </div>
                 <div className="php-info">
                     <h4 className="php-name">{project.name}</h4>

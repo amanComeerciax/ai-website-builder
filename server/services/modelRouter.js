@@ -134,14 +134,30 @@ async function runToolLoop(model, messages, config, route) {
 }
 
 async function handleFallback(task, messages, config, route, primaryError) {
-  console.warn(`[Model Router] Primary model failed for "${task}": ${primaryError.message}`);
+  console.warn(`[Model Router] Primary model (${route.model}) failed for "${task}": ${primaryError.message}`);
 
-  // Simplistic fallback for now (no multi-step tool loop in fallback yet)
+  const fallbackChain = [];
   if (route.model === 'mistral') {
-    console.log(`[Model Router] Fallback: Attempting cloud Groq...`);
-    return await executeModelCall('groq', messages, { ...config, temperature: 0.2 });
+    fallbackChain.push('groq', 'glm');
+  } else if (route.model === 'groq') {
+    fallbackChain.push('mistral', 'glm');
+  } else if (route.model === 'glm') {
+    fallbackChain.push('mistral', 'groq');
+  } else {
+    fallbackChain.push('mistral', 'groq', 'glm');
   }
-  
+
+  for (const fallbackModel of fallbackChain) {
+    try {
+      console.log(`[Model Router] Fallback: Attempting ${fallbackModel} for "${task}"...`);
+      // We explicitly disable tools in fallback to ensure it just reliably answers 
+      return await executeModelCall(fallbackModel, messages, { ...config, temperature: 0.2, useTools: false });
+    } catch (fallbackError) {
+      console.warn(`[Model Router] Fallback model (${fallbackModel}) failed: ${fallbackError.message}`);
+    }
+  }
+
+  console.error(`[Model Router] All fallback models exhausted for "${task}".`);
   throw primaryError;
 }
 
@@ -152,14 +168,17 @@ async function executeModelCall(model, messages, config) {
     if (model === 'mistral') {
         const system = messages.find(m => m.role === 'system')?.content || '';
         const user = messages.find(m => m.role === 'user')?.content || '';
-        // Note: For tool loops, we need to pass the FULL messages array.
-        // We'll update the services next.
         return await callMistral(system, user, config, messages);
     }
     if (model === 'groq') {
         const system = messages.find(m => m.role === 'system')?.content || '';
         const user = messages.find(m => m.role === 'user')?.content || '';
         return await callGroq(system, user, config, messages);
+    }
+    if (model === 'glm') {
+        const system = messages.find(m => m.role === 'system')?.content || '';
+        const user = messages.find(m => m.role === 'user')?.content || '';
+        return await callGLM(system, user, config, messages);
     }
     if (model === 'qwen') {
         const system = messages.find(m => m.role === 'system')?.content || '';

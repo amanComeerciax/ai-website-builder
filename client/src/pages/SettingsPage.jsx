@@ -15,6 +15,7 @@ import { toast } from 'react-hot-toast';
 import InviteMembersModal from '../components/modals/InviteMembersModal';
 import InviteLinkModal from '../components/modals/InviteLinkModal';
 import './SettingsPage.css';
+import { Skeleton } from 'boneyard-js/react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED COMPONENTS
@@ -40,6 +41,83 @@ const MutedDropdown = ({ options, value, onChange, disabled }) => (
     <ChevronDown size={14} className="sp-select-icon" />
   </div>
 );
+
+const ALL_TEMPLATE_CATEGORIES = [
+  'agency', 'automotive', 'blog', 'coffee-shop', 'custom',
+  'ecommerce', 'education', 'entertainment', 'fashion', 'fitness',
+  'landing', 'legal', 'medical', 'nonprofit', 'portfolio',
+  'real-estate', 'restaurant', 'saas', 'service', 'sports',
+  'travel', 'wedding', 'wellness'
+];
+
+const EditableCategoriesCell = ({ categories, templateId, onUpdate }) => {
+  const [showAdd, setShowAdd] = useState(false);
+  const dropRef = React.useRef(null);
+
+  // close dropdown when clicking outside
+  React.useEffect(() => {
+    if (!showAdd) return;
+    const handler = (e) => { if (dropRef.current && !dropRef.current.contains(e.target)) setShowAdd(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showAdd]);
+
+  const removeCategory = (cat) => {
+    const next = categories.filter(c => c !== cat);
+    if (next.length === 0) { toast.error('At least one category required'); return; }
+    onUpdate(templateId, next);
+  };
+
+  const addCategory = (cat) => {
+    if (categories.includes(cat)) return;
+    onUpdate(templateId, [...categories, cat]);
+    setShowAdd(false);
+  };
+
+  const available = ALL_TEMPLATE_CATEGORIES.filter(c => !categories.includes(c));
+
+  return (
+    <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', maxWidth: '200px', alignItems: 'center', position: 'relative' }} ref={dropRef}>
+      {categories.map(c => (
+        <span key={c} style={{
+          fontSize: '10px', padding: '2px 5px', background: 'rgba(255,255,255,0.05)',
+          borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px',
+          color: '#ccc', whiteSpace: 'nowrap',
+        }}>
+          {c}
+          <button onClick={() => removeCategory(c)} style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            color: '#888', fontSize: '12px', lineHeight: 1, display: 'flex',
+          }} title={`Remove ${c}`}>×</button>
+        </span>
+      ))}
+      <button onClick={() => setShowAdd(!showAdd)} style={{
+        width: '18px', height: '18px', borderRadius: '4px', border: '1px dashed rgba(255,255,255,0.15)',
+        background: 'none', color: '#888', cursor: 'pointer', fontSize: '12px', lineHeight: 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0,
+      }} title="Add category">+</button>
+      {showAdd && available.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, marginTop: '4px', zIndex: 100,
+          background: '#1a1a1e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px',
+          padding: '4px', maxHeight: '200px', overflowY: 'auto', minWidth: '140px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+        }}>
+          {available.map(c => (
+            <button key={c} onClick={() => addCategory(c)} style={{
+              display: 'block', width: '100%', textAlign: 'left', padding: '5px 8px',
+              background: 'none', border: 'none', color: '#ccc', fontSize: '11px',
+              cursor: 'pointer', borderRadius: '4px', fontFamily: 'inherit',
+            }}
+            onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.06)'}
+            onMouseLeave={e => e.target.style.background = 'none'}
+            >{c}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: PROFILE (NO SIDEBAR)
@@ -1266,30 +1344,10 @@ const PrivacyPage = () => {
     updateSetting(key, !settings[key]);
   };
 
-  // Loading skeleton
-  if (isLoading || !settings) {
-    return (
-      <div className="sp-content">
-        <div className="sp-page-header">
-          <div>
-            <h1 className="sp-page-title">Privacy & Security</h1>
-            <p className="sp-page-subtitle">Loading settings...</p>
-          </div>
-        </div>
-        <div className="sp-card-no-padding">
-          {[...Array(8)].map((_, i) => (
-            <div className="sp-row" key={i} style={{ opacity: 0.3 }}>
-              <div className="sp-row-info">
-                <h4 className="sp-row-title" style={{ width: '60%', height: 14, background: '#333', borderRadius: 4 }}>&nbsp;</h4>
-                <p className="sp-row-desc" style={{ width: '40%', height: 12, background: '#2a2a2a', borderRadius: 4, marginTop: 6 }}>&nbsp;</p>
-              </div>
-              <div style={{ width: 44, height: 24, background: '#333', borderRadius: 12 }} />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // If loading or no settings, we show the loading state flag, but the UI component renders normally
+  // so boneyard-js can extract the skeleton map.
+  const isReady = !isLoading && settings;
+  const safeSettings = settings || {};
 
   const rows = [
     {
@@ -1302,7 +1360,7 @@ const PrivacyPage = () => {
             { value: 'private', label: 'Private' },
             { value: 'public', label: 'Public' }
           ]}
-          value={settings.defaultProjectVisibility}
+          value={safeSettings.defaultProjectVisibility || 'workspace'}
           onChange={(v) => updateSetting('defaultProjectVisibility', v)}
           disabled={!canEdit}
         />
@@ -1319,7 +1377,7 @@ const PrivacyPage = () => {
             { value: 'anyone', label: 'Anyone' },
             { value: 'workspace', label: 'Workspace only' }
           ]}
-          value={settings.defaultWebsiteAccess}
+          value={safeSettings.defaultWebsiteAccess || 'anyone'}
           onChange={(v) => updateSetting('defaultWebsiteAccess', v)}
           disabled={!canEdit}
         />
@@ -1355,7 +1413,7 @@ const PrivacyPage = () => {
             { value: 'editors', label: 'Editors and above' },
             { value: 'owners', label: 'Owners only' }
           ]}
-          value={settings.whoCanPublish}
+          value={safeSettings.whoCanPublish || 'editors'}
           onChange={(v) => updateSetting('whoCanPublish', v)}
           disabled={!canEdit}
         />
@@ -1376,39 +1434,41 @@ const PrivacyPage = () => {
   ];
 
   return (
-    <div className="sp-content">
-      <div className="sp-page-header">
-        <div>
-          <h1 className="sp-page-title">Privacy & Security</h1>
-          <p className="sp-page-subtitle">Configure privacy, security, and data access for this workspace.</p>
-        </div>
-        {!canEdit && (
-          <div style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12, fontWeight: 500 }}>
-            View only — contact a workspace admin to change settings
+    <Skeleton name="privacy-settings" loading={!isReady}>
+      <div className="sp-content">
+        <div className="sp-page-header">
+          <div>
+            <h1 className="sp-page-title">Privacy & Security</h1>
+            <p className="sp-page-subtitle">Configure privacy, security, and data access for this workspace.</p>
           </div>
-        )}
-      </div>
-
-      <div className="sp-card-no-padding">
-        {rows.map((r, i) => (
-          <div className="sp-row" key={i}>
-            <div className="sp-row-info">
-              <h4 className="sp-row-title">
-                {r.label}
-                {r.badge && <span className={`sp-badge ${r.badgeClass}`}>{r.badge}</span>}
-              </h4>
-              <p className="sp-row-desc">{r.desc}</p>
+          {!canEdit && isReady && (
+            <div style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12, fontWeight: 500 }}>
+              View only — contact a workspace admin to change settings
             </div>
-            {r.right ? r.right : (
-              <Toggle
-                isOn={settings[r.key]}
-                onToggle={() => canEdit && toggleSetting(r.key)}
-              />
-            )}
-          </div>
-        ))}
+          )}
+        </div>
+
+        <div className="sp-card-no-padding">
+          {rows.map((r, i) => (
+            <div className="sp-row" key={i}>
+              <div className="sp-row-info">
+                <h4 className="sp-row-title">
+                  {r.label}
+                  {r.badge && <span className={`sp-badge ${r.badgeClass}`}>{r.badge}</span>}
+                </h4>
+                <p className="sp-row-desc">{r.desc}</p>
+              </div>
+              {r.right ? r.right : (
+                <Toggle
+                  isOn={safeSettings[r.key] || false}
+                  onToggle={() => canEdit && toggleSetting(r.key)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </Skeleton>
   );
 };
 
@@ -1501,10 +1561,7 @@ const ProjectSettingsPage = () => {
   const [isSubmittingShare, setIsSubmittingShare] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 
-  const SHARE_CATEGORIES = [
-    'saas', 'portfolio', 'landing', 'blog', 'ecommerce', 'restaurant',
-    'wellness', 'coffee-shop', 'fashion', 'service', 'agency', 'education', 'custom'
-  ];
+  const SHARE_CATEGORIES = ALL_TEMPLATE_CATEGORIES;
 
   const toggleShareCategory = (cat) => {
     setShareForm(prev => ({
@@ -2059,12 +2116,7 @@ const GithubPage = () => (
 const TemplatesManagerPage = () => {
   const { getToken } = useAuth();
 
-  const categories = [
-    'saas', 'portfolio', 'landing', 'blog', 'ecommerce', 
-    'restaurant', 'wellness', 'coffee-shop', 'fashion', 'service', 'sports',
-    'agency', 'automotive', 'education', 'entertainment', 'fitness',
-    'legal', 'medical', 'nonprofit', 'real-estate', 'travel', 'wedding', 'custom'
-  ];
+  const categories = ALL_TEMPLATE_CATEGORIES;
 
   const emptyTemplate = () => ({
     id: Date.now() + Math.random(),
@@ -2127,6 +2179,27 @@ const TemplatesManagerPage = () => {
       }
     } catch (err) {
       toast.error('Failed to update visibility');
+    }
+  };
+
+  const updateCategories = async (tmplId, newCategories) => {
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/templates/${tmplId}/categories`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categories: newCategories })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAdminTemplates(prev => prev.map(t => t.id === tmplId ? { ...t, categories: data.categories } : t));
+        toast.success('Categories updated');
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to update categories');
+      }
+    } catch (err) {
+      toast.error('Failed to update categories');
     }
   };
 
@@ -2617,10 +2690,11 @@ const TemplatesManagerPage = () => {
                           )}
                         </td>
                         <td>
-                          <div style={{display:'flex', gap:'4px', flexWrap:'wrap', maxWidth:'140px'}}>
-                            {t.categories.slice(0, 2).map(c => <span key={c} style={{fontSize:'10px', padding:'2px 6px', background:'rgba(255,255,255,0.05)', borderRadius:'4px'}}>{c}</span>)}
-                            {t.categories.length > 2 && <span style={{fontSize:'10px', color:'#888'}}>+{t.categories.length - 2}</span>}
-                          </div>
+                          <EditableCategoriesCell
+                            categories={t.categories}
+                            templateId={t.id}
+                            onUpdate={updateCategories}
+                          />
                         </td>
                         <td>
                           <Toggle isOn={t.isVisibleInThemes} onToggle={() => toggleVisibility(t.id, 'isVisibleInThemes', t.isVisibleInThemes)} disabled={isPending || isRejected} />

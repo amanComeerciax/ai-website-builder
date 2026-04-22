@@ -356,18 +356,6 @@ export default function LandingPage() {
                 }
             )
         })
-
-        // Parallax effect for visuals inside cards
-        gsap.to('.hiw-visual-area', {
-            y: -20,
-            ease: "none",
-            scrollTrigger: {
-                trigger: '.hiw-grid',
-                start: "top bottom",
-                end: "bottom top",
-                scrub: true
-            }
-        })
     }, { scope: hiwGridRef })
 
     const handleSend = () => {
@@ -660,8 +648,7 @@ export default function LandingPage() {
                         ref={hiwGridRef}
                     >
                         {/* Step 1: AI-Powered Code Generation (Span 8) */}
-                        <ShineBorder className="span-8 hiw-shine-wrap" borderWidth={2} duration={8} borderRadius={32} color={["#f97316", "#fb923c", "#fbbf24"]}>
-                        <GlowCard className="hiw-card hiw-card-fill" glowColor="orange" customSize>
+                        <GlowCard className="span-8 hiw-card hiw-card-fill" glowColor="orange" customSize>
                             <div className="hiw-card-info">
                                 <h3 className="hiw-card-title">AI-Powered Code Generation</h3>
                                 <p className="hiw-card-desc">
@@ -737,11 +724,9 @@ export default function LandingPage() {
                                 </div>
                             </div>
                         </GlowCard>
-                        </ShineBorder>
 
                         {/* Step 2: Real-Time Preview (Span 4) */}
-                        <ShineBorder className="span-4 hiw-shine-wrap" borderWidth={2} duration={10} borderRadius={32} color={["#3b82f6", "#60a5fa", "#06b6d4"]}>
-                        <GlowCard className="hiw-card hiw-card-fill" glowColor="blue" customSize>
+                        <GlowCard className="span-4 hiw-card hiw-card-fill" glowColor="blue" customSize>
                             <div className="hiw-card-info">
                                 <h3 className="hiw-card-title">Real-Time Preview</h3>
                                 <p className="hiw-card-desc">
@@ -762,11 +747,9 @@ export default function LandingPage() {
                                 </div>
                             </div>
                         </GlowCard>
-                        </ShineBorder>
 
                         {/* Step 3: One-Click Deploy (Span 4) */}
-                        <ShineBorder className="span-4 hiw-shine-wrap" borderWidth={2} duration={12} borderRadius={32} color={["#8b5cf6", "#a78bfa", "#ec4899"]}>
-                        <GlowCard className="hiw-card hiw-card-fill" glowColor="purple" customSize>
+                        <GlowCard className="span-4 hiw-card hiw-card-fill" glowColor="purple" customSize>
                             <div className="hiw-card-info">
                                 <h3 className="hiw-card-title">One-Click Deploy</h3>
                                 <p className="hiw-card-desc">
@@ -779,11 +762,9 @@ export default function LandingPage() {
                                 <div className="admin-badge" style={{ padding: '1rem' }}><Zap size={24} /></div>
                             </div>
                         </GlowCard>
-                        </ShineBorder>
 
                         {/* Step 4: Smart Templates & Customization (Span 8) */}
-                        <ShineBorder className="span-8 hiw-shine-wrap" borderWidth={2} duration={9} borderRadius={32} color={["#10b981", "#34d399", "#06b6d4"]}>
-                        <GlowCard className="hiw-card hiw-card-fill" glowColor="green" customSize>
+                        <GlowCard className="span-8 hiw-card hiw-card-fill" glowColor="green" customSize>
                             <div className="hiw-card-info">
                                 <h3 className="hiw-card-title">Smart Templates & Customization</h3>
                                 <p className="hiw-card-desc">
@@ -800,7 +781,6 @@ export default function LandingPage() {
                                 </div>
                             </div>
                         </GlowCard>
-                        </ShineBorder>
                     </div>
                 </div>
             </section>
