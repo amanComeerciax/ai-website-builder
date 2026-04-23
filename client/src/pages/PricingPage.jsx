@@ -140,14 +140,10 @@ export default function PricingPage() {
             return;
         }
 
-        if (plan.price === "0") {
-            navigate("/dashboard");
-            return;
-        }
-
         setLoadingPlan(plan.name);
         try {
-            const response = await fetch(`/api/payment/create-checkout-session`, {
+            // 1. Create order on backend
+            const orderRes = await fetch(`${import.meta.env.VITE_API_URL}/api/payment/razorpay/create-order`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -158,18 +154,51 @@ export default function PricingPage() {
                 })
             });
 
+            if (!orderRes.ok) throw new Error('Failed to create Razorpay order');
+            const order = await orderRes.json();
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to create checkout session');
-            }
+            // 2. Open Razorpay Modal
+            const options = {
+                key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_placeholder", // Set in .env
+                amount: order.amount,
+                currency: order.currency,
+                name: "StackForge AI",
+                description: `Upgrade to ${plan.name}`,
+                order_id: order.id,
+                handler: async (response) => {
+                    // 3. Verify on backend
+                    const verifyRes = await fetch(`${import.meta.env.VITE_API_URL}/api/payment/razorpay/verify`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ...response,
+                            userId: userId,
+                            planName: plan.name
+                        })
+                    });
 
-            const { url } = await response.json();
-            if (url) {
-                window.location.href = url; // Redirect to Stripe Checkout
-            }
+                    const verifyData = await verifyRes.json();
+                    if (verifyData.success) {
+                        alert("Payment successful! You are now a Pro member.");
+                        navigate("/dashboard");
+                    } else {
+                        alert("Verification failed: " + verifyData.message);
+                    }
+                },
+                prefill: {
+                    name: "", // Can add user name from Clerk
+                    email: "", // Can add email from Clerk
+                },
+                theme: {
+                    color: "#22d3ee",
+                },
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+
         } catch (error) {
-            console.error('Checkout Error:', error);
+            console.error('Razorpay Error:', error);
             alert(`Error: ${error.message}`);
         } finally {
             setLoadingPlan(null);

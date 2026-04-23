@@ -29,7 +29,6 @@ const workspaceSchema = new mongoose.Schema(
     handle: {
       type: String,
       default: '',
-      unique: true,
       sparse: true
     },
     // ── Per-workspace privacy & security settings ──
