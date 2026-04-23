@@ -35,7 +35,11 @@ router.post('/sync', requireAuth, async (req, res) => {
     return res.status(200).json({ 
       success: true, 
       user: {
-        ...user.toObject(),
+        email: user.email,
+        name: user.name || "",
+        avatar: user.avatar || "",
+        tier: user.subscription?.tier || 'free',
+        usage: user.usage || { generationsThisMonth: 0 },
         role: user.role || 'user'
       } 
     });
@@ -64,13 +68,13 @@ router.get('/me', requireAuth, async (req, res) => {
       
       user = await User.findOneAndUpdate(
         { clerkId: req.user.clerkId },
-        { email, tier: 'free', usage: { generationsThisMonth: 0 } },
+        { email, 'subscription.tier': 'free', usage: { generationsThisMonth: 0 } },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
       console.log(`[Auth] Auto-created user: ${user.email} (${req.user.clerkId})`);
     }
 
-    const tier = user.tier || user.subscription?.tier || 'free';
+    const tier = user.subscription?.tier || 'free';
 
     // MULTI-WORKSPACE MIGRATION LOGIC
     let ownedWorkspaces = await Workspace.find({ userId: req.user.clerkId }).sort({ createdAt: 1 });

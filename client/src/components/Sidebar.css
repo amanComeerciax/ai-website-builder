@@ -276,6 +276,33 @@
 }
 .lv-upgrade-btn:hover { background: #222; }
 .lv-upgrade-btn svg { color: #60a5fa; }
+.lv-upgrade-btn:hover svg { transform: scale(1.1); transition: transform 0.2s; }
+
+/* ── Pro Badge ── */
+.lv-pro-badge-container {
+  padding: 0 12px 12px;
+}
+
+.lv-pro-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.1) 0%, rgba(96, 165, 250, 0.1) 100%);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  color: #22d3ee;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.1);
+  letter-spacing: 0.02em;
+}
+
+.lv-pro-badge svg {
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
+}
 
 .lv-user-row-container {
   position: relative;

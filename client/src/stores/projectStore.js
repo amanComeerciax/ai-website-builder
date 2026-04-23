@@ -39,7 +39,7 @@ export const useProjectStore = create((set, get) => ({
             return newProject.id;
         } catch (err) {
             console.error('[ProjectStore] Failed to create project via API:', err);
-            return null; // Don't fallback to local-only, we need the DB record
+            throw err;
         }
     },
     

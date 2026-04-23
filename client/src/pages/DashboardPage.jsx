@@ -375,11 +375,14 @@ export default function DashboardPage() {
       return;
     }
 
+    setWarningMsg("");
     setIsCreating(true);
+
     try {
       const token = await getToken();
       const folderId = searchParams.get("folder");
       const { activeWorkspaceId } = useWorkspaceStore.getState();
+      
       const newProjectId = await createProject(
         trimmed,
         token,
@@ -388,12 +391,22 @@ export default function DashboardPage() {
         activeWorkspaceId,
       );
 
+      if (!newProjectId) {
+         // If createProject returns null, it means an error occurred and was handled in the store
+         // But we want to know what the error was. Let's make createProject throw or handle it.
+         throw new Error("Failed to create project");
+      }
+
       // Redirect to the real project URL
       const url = `/chat/${newProjectId}?prompt=${encodeURIComponent(trimmed)}`;
       navigate(url);
     } catch (err) {
-      console.error('Navigation failed:', err);
+      console.error('Project creation failed:', err);
+      setWarningMsg(err.message || "Failed to create project. Please try again.");
       setIsCreating(false);
+      
+      // If limit reached, scroll to top to see the warning
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 

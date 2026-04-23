@@ -74,8 +74,8 @@ userSchema.methods.checkAndResetGenerations = function () {
 // Get tier limits
 userSchema.methods.getTierLimits = function () {
     const limits = {
-        free: { maxProjects: 1, maxGenerations: 3, model: "haiku" },
-        pro: { maxProjects: 10, maxGenerations: 50, model: "sonnet" },
+        free: { maxProjects: 2, maxGenerations: 2, model: "haiku" },
+        pro: { maxProjects: Infinity, maxGenerations: Infinity, model: "sonnet" },
         business: { maxProjects: Infinity, maxGenerations: Infinity, model: "sonnet" },
     }
     return limits[this.subscription.tier] || limits.free

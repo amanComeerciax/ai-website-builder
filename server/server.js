@@ -51,7 +51,7 @@ app.use("/api/", apiLimiter)
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const User = require('./models/User');
 
-const PLAN_TO_TIER = { 'Basic': 'free', 'Team': 'pro', 'Agency': 'business' };
+const PLAN_TO_TIER = { 'Basic': 'free', 'Team': 'pro', 'Agency': 'business', 'Pro Access': 'pro' };
 
 app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];

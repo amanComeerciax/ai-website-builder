@@ -12,13 +12,13 @@ router.post('/create-checkout-session', async (req, res) => {
         }
 
         const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
+            payment_method_types: ['card', 'upi'],
             line_items: [
                 {
                     price_data: {
-                        currency: 'usd',
+                        currency: 'inr',
                         product_data: {
-                            name: `StackForge AI - ${planName} Plan`,
+                            name: `StackForge AI - ${planName}`,
                         },
                         unit_amount: parseInt(planPrice) * 100,
                     },
