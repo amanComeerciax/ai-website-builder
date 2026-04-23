@@ -244,8 +244,15 @@ export default function ChatPage() {
                     addMessage({ role: 'user', content: `I want to use the "${templateName || templateId}" theme` });
                     addMessage({ 
                         role: 'assistant', 
-                        content: `Great choice! Here's a live preview of the **${templateName || templateId}** theme. 👉\n\nTo make it yours, **what's your brand name?**\n\n_Step 1 of 3_` 
+                        content: `Great choice! Here's a live preview of the **${templateName || templateId}** theme. 👉\n\nTo make it yours, **what's your brand name?**\n\n_Step 1 of 2_` 
                     });
+
+                    // Pre-set templateId in styleOptions so SetupWizard skips Step 3 (Theme)
+                    useChatStore.getState().setStyleOptions(prev => ({
+                        ...prev,
+                        templateId: templateId,
+                        initialPrompt: templateName || templateId,
+                    }));
 
                     // Force show the preview panel with the template HTML
                     useChatStore.setState({ isIdeVisible: true, activeView: 'preview' });

@@ -83,12 +83,59 @@ router.post('/razorpay/verify', async (req, res) => {
             }
             res.json({ success: true, message: "Payment verified successfully" });
         } else {
-            console.error(`❌ Razorpay Signature Mismatch!`);
+            console.error('❌ Razorpay Signature Mismatch!');
             res.status(400).json({ success: false, message: "Invalid signature" });
         }
     } catch (error) {
         console.error('[Razorpay Verify Error]:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// ── POST /api/payment/razorpay/webhook ──
+router.post('/razorpay/webhook', express.json(), async (req, res) => {
+    try {
+        const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+        const signature = req.headers['x-razorpay-signature'];
+
+        const isValid = Razorpay.validateWebhookSignature(
+            JSON.stringify(req.body),
+            signature,
+            secret
+        );
+
+        if (!isValid) {
+            console.error('❌ Razorpay Webhook: Invalid Signature');
+            return res.status(400).send('Invalid signature');
+        }
+
+        const event = req.body.event;
+        console.log(`✅ Razorpay Webhook received: ${event}`);
+
+        if (event === 'payment.captured') {
+            const payment = req.body.payload.payment.entity;
+            const userId = payment.notes.userId;
+            
+            if (userId && userId !== 'anonymous') {
+                await User.findOneAndUpdate(
+                    { clerkId: userId },
+                    { 
+                        $set: { 
+                            'subscription.tier': 'pro', 
+                            'subscription.status': 'active',
+                            'subscription.razorpayPaymentId': payment.id
+                        } 
+                    },
+                    { upsert: true }
+                );
+                console.log(`✅ User ${userId} upgraded via Webhook`);
+            }
+        }
+
+        res.json({ status: 'ok' });
+    } catch (error) {
+        console.error('Razorpay Webhook Error:', error);
+        res.status(500).send('Internal Server Error');
     }
 });
 

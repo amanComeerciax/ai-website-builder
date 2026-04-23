@@ -15,24 +15,47 @@ const TYPING_SUGGESTIONS = [
 // Reusable Clerk Appearance Object to guarantee visual consistency between both modes
 const clerkAppearance = {
   baseTheme: dark,
+  variables: {
+    colorPrimary: "#ffffff",
+    colorBackground: "#0a0a0a",
+    colorText: "#ffffff",
+    colorTextSecondary: "#71717a",
+    colorInputBackground: "rgba(255, 255, 255, 0.03)",
+    colorInputText: "#ffffff",
+    borderRadius: "0.75rem",
+    fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif",
+  },
   elements: {
     rootBox: {
       width: "100%",
       maxWidth: "380px",
+      boxSizing: "border-box",
     },
     card: {
       background: "transparent",
       border: "none",
       boxShadow: "none",
       padding: "0",
+      overflow: "visible",
+    },
+    cardBox: {
+      background: "transparent",
+      border: "none",
+      boxShadow: "none",
+      overflow: "visible",
+    },
+    main: {
+      gap: "1rem",
     },
     headerTitle: {
       color: "#ffffff",
       fontWeight: "700",
       fontSize: "1.75rem",
+      marginBottom: "0.25rem",
     },
     headerSubtitle: {
       color: "#71717a",
+      marginBottom: "0.5rem",
     },
     socialButtonsBlockButton: {
       background: "rgba(255, 255, 255, 0.04)",
@@ -40,9 +63,13 @@ const clerkAppearance = {
       borderRadius: "0.75rem",
       color: "#ffffff",
       fontWeight: "500",
+      padding: "0.75rem 1rem",
       "&:hover": {
         background: "rgba(255, 255, 255, 0.08)",
       },
+    },
+    socialButtonsProviderIcon__apple: {
+      filter: "invert(1)",
     },
     dividerLine: {
       background: "rgba(255, 255, 255, 0.08)",
@@ -59,6 +86,7 @@ const clerkAppearance = {
       border: "1px solid rgba(255, 255, 255, 0.08)",
       borderRadius: "0.75rem",
       color: "#ffffff",
+      padding: "0.75rem 1rem",
       "&:focus": {
         borderColor: "rgba(255, 255, 255, 0.2)",
         boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.05)",
@@ -71,9 +99,22 @@ const clerkAppearance = {
       fontWeight: "600",
       fontSize: "0.875rem",
       padding: "0.75rem 0",
+      marginTop: "0.5rem",
       "&:hover": {
         background: "rgba(255, 255, 255, 0.9)",
       },
+    },
+    footer: {
+      background: "transparent !important",
+      borderTop: "none",
+      padding: "0.5rem 0 0",
+      "& *": {
+        background: "transparent !important",
+      },
+    },
+    footerAction: {
+      background: "transparent !important",
+      padding: "0",
     },
     footerActionText: {
       color: "#71717a",
@@ -84,11 +125,31 @@ const clerkAppearance = {
         color: "#93c5fd",
       },
     },
-    footer: {
-      "& + div": {
-        color: "#52525b",
-      },
+    footerPages: {
+      background: "transparent !important",
     },
+    badge: {
+      background: "rgba(255, 255, 255, 0.08)",
+      color: "#a1a1aa",
+      fontSize: "0.65rem",
+      position: "relative",
+    },
+    identityPreview: {
+      background: "rgba(255, 255, 255, 0.04)",
+      border: "1px solid rgba(255, 255, 255, 0.08)",
+      borderRadius: "0.75rem",
+    },
+    internal: {
+      background: "transparent !important",
+    },
+    // Dev mode banner
+    impersonationFab: {
+      background: "transparent",
+    },
+  },
+  layout: {
+    socialButtonsPlacement: "top",
+    showOptionalFields: false,
   },
 };
 
