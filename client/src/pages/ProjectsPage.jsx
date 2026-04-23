@@ -57,7 +57,7 @@ export default function ProjectsPage() {
             }
             sync()
         }
-    }, [isLoaded, isSignedIn, getToken, fetchProjects, activeWorkspaceId])
+    }, [isLoaded, isSignedIn, activeWorkspaceId]) // Cleaned dependencies
 
     const handleDelete = async (e, projectId) => {
         e.preventDefault();

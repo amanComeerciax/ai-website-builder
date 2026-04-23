@@ -109,9 +109,12 @@ export default function Sidebar() {
     const recentProjects = projects.slice(0, 3)
 
 
+    const hasSyncedRef = useRef(false)
+
     // Initial sync: sync user → fetch user data (sets default workspace) → fetch workspaces list
     useEffect(() => {
-        if (isLoaded && isSignedIn && clerkUser) {
+        if (isLoaded && isSignedIn && clerkUser && !hasSyncedRef.current) {
+            hasSyncedRef.current = true
             const sync = async () => {
                 const token = await getToken();
                 
@@ -140,7 +143,7 @@ export default function Sidebar() {
         // Clear hover preview immediately
         setHoveredProject(null)
         
-        if (isLoaded && isSignedIn) {
+        if (isLoaded && isSignedIn && activeWorkspaceId) {
             const load = async () => {
                 const token = await getToken();
                 fetchProjects(token, activeWorkspaceId)

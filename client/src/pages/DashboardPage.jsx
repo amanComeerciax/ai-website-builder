@@ -301,13 +301,13 @@ export default function DashboardPage() {
         fetchProjects(token, activeWorkspaceId);
       });
     }
-  }, [isLoaded, isSignedIn, projects.length, isProjectsLoading, fetchProjects, getToken]);
+  }, [isLoaded, isSignedIn]); // Only depend on auth load
 
   useEffect(() => {
     if (isLoaded && isSignedIn && !userData) {
       fetchUserData(getToken);
     }
-  }, [isLoaded, isSignedIn, fetchUserData, getToken, userData]);
+  }, [isLoaded, isSignedIn]); // Only depend on auth load
 
   // Fetch templates on mount — dedup by slug so multi-category templates show once
   useEffect(() => {

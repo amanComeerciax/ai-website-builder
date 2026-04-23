@@ -14,7 +14,7 @@ export default function AdminTemplatesPage() {
         if (isLoaded && isSignedIn && !userData) {
             fetchUserData(getToken);
         }
-    }, [isLoaded, isSignedIn, userData, fetchUserData, getToken]);
+    }, [isLoaded, isSignedIn]); // Only depend on auth load
 
     const [formData, setFormData] = useState({
         title: '',

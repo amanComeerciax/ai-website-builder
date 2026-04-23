@@ -14,7 +14,7 @@ export default function AdminUsersPage() {
         if (isLoaded && isSignedIn && !userData) {
             fetchUserData(getToken);
         }
-    }, [isLoaded, isSignedIn, userData, fetchUserData, getToken]);
+    }, [isLoaded, isSignedIn]); // Only depend on auth load
 
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
