@@ -101,6 +101,7 @@ router.get('/me', requireAuth, async (req, res) => {
       const defaultWorkspace = await Workspace.create({
         userId: req.user.clerkId,
         name: `${userName}'s StackForge`,
+        handle: `user-${req.user.clerkId.slice(-8)}`,
         plan: tier
       });
       finalWorkspaces.push(defaultWorkspace);
