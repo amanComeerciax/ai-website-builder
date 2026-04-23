@@ -8,22 +8,25 @@ async function checkMongoSize() {
         console.log('Connected.\n');
 
         const db = mongoose.connection.db;
+        const admin = db.admin();
+        const { databases } = await admin.listDatabases();
         
-        // Get DB stats
-        const stats = await db.command({ dbStats: 1 });
-        const sizeInMB = (stats.dataSize / (1024 * 1024)).toFixed(2);
-        const storageInMB = (stats.storageSize / (1024 * 1024)).toFixed(2);
-        const indexInMB = (stats.indexSize / (1024 * 1024)).toFixed(2);
+        let totalStorageMB = 0;
+        console.log('--- Cluster Databases ---');
+        for (const d of databases) {
+            const dSizeMB = (d.sizeOnDisk / (1024 * 1024)).toFixed(2);
+            totalStorageMB += parseFloat(dSizeMB);
+            console.log(`- ${d.name}: ${dSizeMB} MB`);
+        }
+        console.log(`\nTOTAL CLUSTER USAGE: ${totalStorageMB.toFixed(2)} MB / 512 MB`);
+        console.log('-------------------------\n');
 
-        console.log('--- Database Stats ---');
-        console.log(`Data Size: ${sizeInMB} MB`);
-        console.log(`Storage Size: ${storageInMB} MB`);
-        console.log(`Index Size: ${indexInMB} MB`);
-        console.log(`Total Collections: ${stats.collections}`);
-        console.log('----------------------\n');
+        if (totalStorageMB > 450) {
+            console.log('⚠️ WARNING: Your cluster is almost FULL!');
+        }
 
-        // Check individual collections
-        console.log('--- Top Collections by Size ---');
+        // Check current DB collections
+        console.log(`--- Collections in ${db.databaseName} ---`);
         const collections = await db.listCollections().toArray();
         for (const col of collections) {
             const colStats = await db.command({ collStats: col.name });
