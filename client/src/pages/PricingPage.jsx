@@ -10,32 +10,39 @@ const CheckIcon = () => (
 
 const plans = [
     {
-        name: "Basic",
-        desc: "Perfect for personal projects and hobbyists.",
-        price: "0",
-        features: ["1 User", "1GB Storage", "Community Forum"],
-        btn: "Get Started",
-        popular: false,
-        primary: false,
-    },
-    {
-        name: "Team",
-        desc: "Collaborate with your team on multiple projects.",
-        price: "49",
-        features: ["10 Users", "100GB Storage", "Email Support", "Shared Workspaces"],
-        btn: "Choose Team Plan",
+        name: "Pro Access (India)",
+        desc: "Happily contributing for testing and development support.",
+        price: "200",
+        currency: "₹",
+        currencyCode: "inr",
+        features: [
+            "Unlimited Project Generations",
+            "Custom Domain Support",
+            "1-Click Netlify Deploy",
+            "Premium Templates Access",
+            "Priority AI Support"
+        ],
+        btn: "Support with Love",
         popular: true,
         primary: true,
     },
     {
-        name: "Agency",
-        desc: "Manage all your clients under one roof.",
-        price: "149",
-        features: ["Unlimited Users", "1TB Storage", "Dedicated Support", "Client Invoicing"],
-        btn: "Contact Us",
+        name: "Pro Access (Global)",
+        desc: "Happily contributing for testing and development support.",
+        price: "5",
+        currency: "$",
+        currencyCode: "usd",
+        features: [
+            "Unlimited Project Generations",
+            "Custom Domain Support",
+            "1-Click Netlify Deploy",
+            "Premium Templates Access",
+            "Priority AI Support"
+        ],
+        btn: "Support with Love",
         popular: false,
-        primary: true,
-    },
+        primary: false,
+    }
 ];
 
 const ShaderCanvas = () => {
@@ -146,6 +153,7 @@ export default function PricingPage() {
                 body: JSON.stringify({
                     planName: plan.name,
                     planPrice: plan.price,
+                    currency: plan.currencyCode,
                     userId: userId,
                 })
             });
@@ -232,7 +240,7 @@ export default function PricingPage() {
                             <h2 style={{ fontSize: "2.5rem", fontWeight: 200, margin: "0 0 8px", letterSpacing: "-0.02em" }}>{plan.name}</h2>
                             <p style={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.6)", margin: "0 0 24px", lineHeight: 1.5 }}>{plan.desc}</p>
                             <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "24px" }}>
-                                <span style={{ fontSize: "3rem", fontWeight: 200, letterSpacing: "-0.02em" }}>${plan.price}</span>
+                                <span style={{ fontSize: "3rem", fontWeight: 200, letterSpacing: "-0.02em" }}>{plan.currency}{plan.price}</span>
                                 <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.5)" }}>/mo</span>
                             </div>
                             <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15) 50%, transparent)", marginBottom: "20px" }} />

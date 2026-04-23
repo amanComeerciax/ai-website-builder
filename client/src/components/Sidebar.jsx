@@ -449,10 +449,21 @@ export default function Sidebar() {
                     </button>
                 </div>
 
-                <button className="lv-upgrade-btn" onClick={() => navigate('/pricing')}>
-                    <Zap size={14} />
-                    <span>Upgrade to Pro</span>
-                </button>
+                {!!userData && userData.tier === 'free' && (
+                    <button className="lv-upgrade-btn" onClick={() => navigate('/pricing')}>
+                        <Zap size={14} />
+                        <span>Upgrade to Pro</span>
+                    </button>
+                )}
+
+                {!!userData && userData.tier !== 'free' && (
+                    <div className="lv-pro-badge-container">
+                        <div className="lv-pro-badge">
+                            <Zap size={12} fill="#22d3ee" color="#22d3ee" />
+                            <span>Pro Member</span>
+                        </div>
+                    </div>
+                )}
 
                 <div className="lv-user-bottom-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 12px 12px', position: 'relative' }}>
                     <div className="lv-user-row-container" ref={userProfileRef} style={{ flex: 1 }}>

@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Sparkles, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
+import { useAuth } from "@clerk/clerk-react";
 
 export default function SuccessPage() {
     const navigate = useNavigate();
+    const { getToken } = useAuth();
     const [searchParams] = useSearchParams();
     const sessionId = searchParams.get('session_id');
+    const { fetchUserData } = useAuthStore();
 
     const [status, setStatus] = useState('verifying'); // 'verifying' | 'verified' | 'failed'
     const [planName, setPlanName] = useState('');
@@ -26,6 +30,8 @@ export default function SuccessPage() {
                 if (data.paid) {
                     setStatus('verified');
                     setPlanName(data.planName);
+                    // Update global auth store with new tier
+                    fetchUserData(getToken);
                 } else {
                     setStatus('failed');
                 }
