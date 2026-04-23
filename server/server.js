@@ -48,7 +48,12 @@ app.use("/api/", apiLimiter)
 // ── Body Parsing ──
 // CRITICAL: Stripe webhook must receive the raw body (Buffer) for signature verification.
 // Mount it DIRECTLY here before express.json() parses anything.
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// Initialize Stripe only if key is present
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+}
+
 const User = require('./models/User');
 
 const PLAN_TO_TIER = { 
@@ -61,6 +66,11 @@ const PLAN_TO_TIER = {
 };
 
 app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    if (!stripe) {
+        console.error('❌ Stripe is not configured. Webhook ignored.');
+        return res.status(500).send('Stripe not configured');
+    }
+
     const sig = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
