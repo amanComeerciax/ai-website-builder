@@ -5,18 +5,18 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // ── POST /api/payment/create-checkout-session ──
 router.post('/create-checkout-session', async (req, res) => {
     try {
-        const { planName, planPrice, userId } = req.body;
+        const { planName, planPrice, currency, userId } = req.body;
 
         if (!planName || !planPrice) {
             return res.status(400).json({ error: 'Plan name and price are required' });
         }
 
         const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card', 'upi'],
+            payment_method_types: currency === 'usd' ? ['card'] : ['card', 'upi'],
             line_items: [
                 {
                     price_data: {
-                        currency: 'inr',
+                        currency: currency || 'inr',
                         product_data: {
                             name: `StackForge AI - ${planName}`,
                         },

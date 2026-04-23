@@ -10,21 +10,38 @@ const CheckIcon = () => (
 
 const plans = [
     {
-        name: "Pro Access",
-        desc: "Full access to AI website builder with premium features.",
+        name: "Pro Access (India)",
+        desc: "Happily contributing for testing and development support.",
         price: "200",
         currency: "₹",
+        currencyCode: "inr",
         features: [
             "Unlimited Project Generations",
             "Custom Domain Support",
             "1-Click Netlify Deploy",
             "Premium Templates Access",
-            "Priority AI Support",
-            "Remove Watermark"
+            "Priority AI Support"
         ],
-        btn: "Get Pro Now",
+        btn: "Support with Love",
         popular: true,
         primary: true,
+    },
+    {
+        name: "Pro Access (Global)",
+        desc: "Happily contributing for testing and development support.",
+        price: "5",
+        currency: "$",
+        currencyCode: "usd",
+        features: [
+            "Unlimited Project Generations",
+            "Custom Domain Support",
+            "1-Click Netlify Deploy",
+            "Premium Templates Access",
+            "Priority AI Support"
+        ],
+        btn: "Support with Love",
+        popular: false,
+        primary: false,
     }
 ];
 
@@ -136,6 +153,7 @@ export default function PricingPage() {
                 body: JSON.stringify({
                     planName: plan.name,
                     planPrice: plan.price,
+                    currency: plan.currencyCode,
                     userId: userId,
                 })
             });
