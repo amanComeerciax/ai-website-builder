@@ -21,6 +21,7 @@
   flex-direction: column;
 }
 
+
 .lv-sidebar-scroll-area::-webkit-scrollbar {
   width: 4px;
 }
@@ -223,6 +224,8 @@
   flex-direction: column;
   gap: 12px;
   margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  background: #111111;
 }
 
 .lv-share-card {
@@ -319,9 +322,11 @@
   margin-top: 4px;
   border: none;
   width: 100%;
+  min-width: 0;
   cursor: pointer;
   text-align: left;
   transition: background 0.2s;
+  overflow: hidden;
 }
 
 .lv-user-row:hover {
@@ -477,6 +482,7 @@ img.lv-user-avatar {
 .lv-user-info {
   flex: 1;
   min-width: 0;
+  max-width: 120px;
   display: flex;
   flex-direction: column;
 }
@@ -507,6 +513,26 @@ img.lv-user-avatar {
 .lv-logout-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #ff4d4d;
+}
+
+.lv-inbox-trigger {
+  background: rgba(255, 255, 255, 0.04);
+  border: none;
+  color: #888;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.lv-inbox-trigger:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 /* ═══════════════════════════════════════
