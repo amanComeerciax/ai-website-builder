@@ -122,21 +122,25 @@ export default function ChatPage() {
     // 2. OR the project has generated content from a previous session
     const showRightPanel = isIdeVisible || hasGeneratedContent
 
-    // Fetch project from API if not in local store (e.g., page refresh)
     useEffect(() => {
-        if (projectId && projectId !== 'new' && !project && isAuthLoaded) {
-            const fetchProject = async () => {
-                const token = await getToken()
-                const { activeWorkspaceId } = useWorkspaceStore.getState()
-                await useProjectStore.getState().fetchProjects(token, activeWorkspaceId)
+        if (projectId && projectId !== 'new' && isAuthLoaded) {
+            const sync = async () => {
+                const token = await getToken();
+                const { activeWorkspaceId } = useWorkspaceStore.getState();
+                const currentProjects = useProjectStore.getState().projects;
+                
+                // Only fetch if project isn't already in store
+                if (!currentProjects.find(p => p.id === projectId)) {
+                    await useProjectStore.getState().fetchProjects(token, activeWorkspaceId);
+                }
             }
-            fetchProject()
+            sync();
         }
         // Track recently viewed
         if (projectId && projectId !== 'new') {
-            useRecentlyViewedStore.getState().addRecentlyViewed(projectId)
+            useRecentlyViewedStore.getState().addRecentlyViewed(projectId);
         }
-    }, [projectId, project, isAuthLoaded, getToken])
+    }, [projectId, isAuthLoaded]); // Removed 'project' and 'getToken' to stop the loop
 
     const projectName = project ? project.name : (projectId === 'new' ? 'Untitled Project' : 'Loading...')
     
