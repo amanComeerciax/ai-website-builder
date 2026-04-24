@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import './PublishModal.css';
 
-const PublishModal = ({ isOpen, onClose, project, onPublish, isPublishing }) => {
+const PublishModal = ({ isOpen, onClose, project, onPublish, isPublishing, deployEta }) => {
     const [step, setStep] = useState(1);
     const [url, setUrl] = useState('');
     const [access, setAccess] = useState('public');
@@ -262,7 +262,7 @@ const PublishModal = ({ isOpen, onClose, project, onPublish, isPublishing }) => 
                             {isPublishing ? (
                                 <>
                                     <Loader2 size={16} className="ep-spin" style={{marginRight: '8px', display:'inline-block'}} />
-                                    Publishing...
+                                    {deployEta > 0 ? `Publishing... ${deployEta}s` : 'Finalizing...'}
                                 </>
                             ) : 'Publish'}
                         </button>

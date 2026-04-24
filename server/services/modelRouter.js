@@ -31,6 +31,11 @@ const ROUTING_TABLE = {
   // Chat → Groq (instant responses)
   chat_response:   { model: 'groq', temperature: 0.5, jsonMode: false },
 
+  // AI Assist — lightweight helpers (Groq for speed)
+  suggest_names:      { model: 'groq', temperature: 0.8, jsonMode: false },
+  suggest_description:{ model: 'groq', temperature: 0.7, jsonMode: false },
+  enhance_text:       { model: 'groq', temperature: 0.5, jsonMode: false },
+
   // Code Generation → Mistral (with Qwen fallback)
   generate_html:   { model: 'mistral', temperature: 0.1, jsonMode: false, useFallbackChain: true },
   generate_file:   { model: 'mistral', temperature: 0.1, jsonMode: true,  useFallbackChain: true },

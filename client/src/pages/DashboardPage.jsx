@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   Plus,
   Mic,
@@ -8,6 +8,8 @@ import {
   Clock,
   LayoutTemplate,
   FolderOpen,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/clerk-react";
@@ -15,6 +17,7 @@ import { useAuthStore } from "../stores/authStore";
 import { useProjectStore } from "../stores/projectStore";
 import { useWorkspaceStore } from "../stores/workspaceStore";
 import { useRecentlyViewedStore } from "../stores/recentlyViewedStore";
+import AnimatedGenerateButton from "../components/ui/AnimatedGenerateButton";
 import "./DashboardPage.css";
 
 // Rotating placeholder
@@ -24,6 +27,30 @@ const PROMPTS = [
   "An e-commerce store for artisan candles...",
   "A SaaS dashboard with analytics charts...",
   "A restaurant site with online ordering...",
+];
+
+// Pool of creative prompt suggestions
+const SUGGESTION_POOL = [
+  "Build a portfolio for a UI designer with dark mode",
+  "Create a landing page for an AI startup",
+  "Make a coffee shop website with online ordering",
+  "Design a fitness coaching platform",
+  "Create an e-commerce store for handmade jewelry",
+  "Build a blog about sustainable living",
+  "Make a restaurant website with a menu and reservations",
+  "Design a travel agency site with tour packages",
+  "Create a SaaS dashboard with pricing plans",
+  "Build a real estate listing website",
+  "Design a wedding planning website",
+  "Create a law firm website with case studies",
+  "Build a music artist portfolio with discography",
+  "Make a medical clinic website with appointment booking",
+  "Design a fashion brand landing page",
+  "Create a non-profit website for an animal shelter",
+  "Build a sports team website with schedules",
+  "Design a photography portfolio with galleries",
+  "Create an online learning platform with courses",
+  "Build an automotive dealership website",
 ];
 
 // Shared prompt quality check
@@ -281,14 +308,21 @@ export default function DashboardPage() {
 
   const [warningMsg, setWarningMsg] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   const textareaRef = useRef(null);
 
-  const { projects, createProject } = useProjectStore();
+  const { projects, createProject, isLoadingProjects } = useProjectStore();
   const { recentItems } = useRecentlyViewedStore();
 
   // Tab state
   const [activeTab, setActiveTab] = useState("projects");
+
+  // Randomize 6 suggestions on mount
+  const suggestions = useMemo(() => {
+    const shuffled = [...SUGGESTION_POOL].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 6);
+  }, []);
 
   // Templates
   const [templates, setTemplates] = useState([]);
@@ -397,6 +431,31 @@ export default function DashboardPage() {
     }
   };
 
+  const handleEnhancePrompt = async () => {
+    const trimmed = promptValue.trim();
+    if (!trimmed || isEnhancing) return;
+    setIsEnhancing(true);
+    try {
+      const res = await fetch('/api/generate/enhance-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: trimmed, type: 'prompt' }),
+      });
+      const data = await res.json();
+      if (data.enhanced) {
+        setPromptValue(data.enhanced);
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+          textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+      }
+    } catch (err) {
+      console.error('Enhance failed:', err);
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   // Build recently viewed list from stored IDs + project data
   const recentProjects = recentItems
     .map((item) => {
@@ -475,6 +534,16 @@ export default function DashboardPage() {
               </button>
             </div>
             <div className="lv-toolbar-right">
+              {promptValue.trim() && (
+                <AnimatedGenerateButton
+                  labelIdle="Enhance"
+                  labelActive="Enhancing"
+                  highlightHueDeg={270}
+                  generating={isEnhancing}
+                  onClick={handleEnhancePrompt}
+                  disabled={isEnhancing}
+                />
+              )}
               <button className="lv-tool-icon">
                 <Mic size={24} />
               </button>
@@ -488,6 +557,24 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Suggestion chips */}
+        {!promptValue.trim() && (
+          <div className="lv-suggestions">
+            {suggestions.map((s, i) => (
+              <button
+                key={i}
+                className="lv-suggestion-chip"
+                onClick={() => {
+                  setPromptValue(s);
+                  textareaRef.current?.focus();
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Tab Section ── */}
@@ -545,16 +632,23 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
+          ) : isLoadingProjects ? (
+            <div className="lv-empty-tab" style={{ opacity: 0.5 }}>
+              <Loader2 size={36} className="lv-spin" style={{ color: "rgba(255,255,255,0.2)" }} />
+              <div className="lv-empty-tab-text">Loading projects...</div>
+            </div>
           ) : (
-            <div className="lv-empty-tab">
-              <FolderOpen size={36} className="lv-empty-tab-icon" />
-              <div className="lv-empty-tab-text">No projects yet</div>
-              <button
-                className="lv-empty-tab-btn"
+            <div className="lv-empty-tab" style={{ background: 'rgba(139, 92, 246, 0.05)', border: '1px solid rgba(139, 92, 246, 0.1)', borderRadius: '16px', padding: '48px 24px' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <FolderOpen size={32} color="#a78bfa" />
+              </div>
+              <div className="lv-empty-tab-text" style={{ fontSize: '1.2rem', color: '#fff', marginBottom: '8px' }}>Build your first project</div>
+              <p style={{ color: 'rgba(255,255,255,0.6)', maxWidth: '280px', margin: '0 auto 24px', fontSize: '0.9rem', lineHeight: '1.5' }}>Type what you want to create in the box above and let AI do the heavy lifting.</p>
+              <AnimatedGenerateButton
+                labelIdle="Start Generating"
+                highlightHueDeg={270}
                 onClick={() => textareaRef.current?.focus()}
-              >
-                Create your first project
-              </button>
+              />
             </div>
           ))}
 

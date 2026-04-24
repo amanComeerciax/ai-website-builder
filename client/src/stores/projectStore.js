@@ -3,6 +3,7 @@ import { apiClient } from '../lib/api'
 
 export const useProjectStore = create((set, get) => ({
     projects: [],
+    isLoadingProjects: true,
     
     // Clear all projects (for workspace switching)
     clearProjects: () => set({ projects: [] }),
@@ -49,6 +50,7 @@ export const useProjectStore = create((set, get) => ({
 
     // Fetch all projects from DB
     fetchProjects: async (token, workspaceId = null) => {
+        set({ isLoadingProjects: true });
         try {
             const data = await apiClient.getProjects(token, workspaceId);
             const projects = (data.projects || []).map(p => ({
@@ -67,9 +69,10 @@ export const useProjectStore = create((set, get) => ({
                 websiteName: p.websiteName || null,
                 description: p.description || null
             }));
-            set({ projects });
+            set({ projects, isLoadingProjects: false });
         } catch (err) {
             console.error('[ProjectStore] Failed to fetch projects:', err);
+            set({ isLoadingProjects: false });
         }
     },
 

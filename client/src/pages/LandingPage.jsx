@@ -327,6 +327,7 @@ export default function LandingPage() {
 
     const hiwGridRef = useRef(null)
 
+    // GSAP animations for the How It Works grid
     useGSAP(() => {
         const cards = gsap.utils.toArray('.hiw-card')
         
@@ -339,7 +340,7 @@ export default function LandingPage() {
                 },
                 { 
                     opacity: 1, 
-                    y: 0,
+                    y: 0, 
                     scale: 1,
                     duration: 1,
                     ease: "power4.out",

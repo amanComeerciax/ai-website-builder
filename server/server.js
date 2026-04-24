@@ -129,6 +129,55 @@ app.use("/api/health", healthRoutes)
 const adminRoutes = require("./routes/adminRoutes")
 app.use("/api/admin", adminRoutes)
 
+// ── Public Contact Form Endpoint (for deployed websites) ──
+const { sendContactEmail } = require('./services/emailService');
+const Project = require('./models/Project');
+
+app.post('/api/contact', async (req, res) => {
+    try {
+        const { name, email, message, projectId } = req.body;
+        if (!name || !email || !message) {
+            return res.status(400).json({ error: 'Name, email, and message are required' });
+        }
+
+        // Find project owner's email
+        let recipientEmail = process.env.CONTACT_FALLBACK_EMAIL || process.env.SUPER_ADMIN_EMAILS?.split(',')[0]?.trim();
+        let websiteName = 'Your Website';
+
+        if (projectId) {
+            const project = await Project.findById(projectId).populate('userId');
+            if (project) {
+                websiteName = project.websiteName || project.name || 'Your Website';
+                // Get owner email from User model
+                const UserModel = require('./models/User');
+                const owner = await UserModel.findOne({ clerkId: project.userId });
+                if (owner?.email) recipientEmail = owner.email;
+            }
+        }
+
+        if (!recipientEmail) {
+            return res.status(500).json({ error: 'No recipient email configured' });
+        }
+
+        const result = await sendContactEmail({
+            to: recipientEmail,
+            fromName: name,
+            fromEmail: email,
+            message,
+            websiteName,
+        });
+
+        if (result.success) {
+            res.json({ success: true, message: 'Message sent successfully' });
+        } else {
+            res.status(500).json({ error: 'Failed to send message' });
+        }
+    } catch (err) {
+        console.error('[Contact] Error:', err.message);
+        res.status(500).json({ error: 'Failed to send message' });
+    }
+});
+
 // ── Global Error Handler ──
 app.use((err, req, res, next) => {
     console.error("❌ Server Error:", err.message)

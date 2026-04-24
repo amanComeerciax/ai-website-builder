@@ -3,13 +3,14 @@ import { useParams } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import {
     Type, Layout, Grid3X3, Check, ChevronLeft, ChevronRight,
-    Sparkles, Layers, Zap,
+    Sparkles, Layers, Zap, Loader2,
     FileText, Coffee, PenTool, Globe, Camera, Utensils, Code2,
     Briefcase, Heart, ShoppingBag, GraduationCap, Dumbbell, Music,
     Scale, Stethoscope, HandHeart, Home, Car, Trophy, Gem, Plane,
     Building2, Star
 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
+import AnimatedGenerateButton from '../ui/AnimatedGenerateButton'
 import './SetupWizard.css'
 
 const STEPS = [
@@ -69,6 +70,12 @@ export default function SetupWizard() {
 
     const nameRef = useRef(null)
     const descRef = useRef(null)
+
+    // AI assist state
+    const [suggestedNames, setSuggestedNames] = useState([])
+    const [loadingNames, setLoadingNames] = useState(false)
+    const [loadingDesc, setLoadingDesc] = useState(false)
+    const [enhancingDesc, setEnhancingDesc] = useState(false)
 
     useEffect(() => {
         if (configStep === 0) nameRef.current?.focus()
@@ -182,6 +189,68 @@ export default function SetupWizard() {
         setStyleOptions(prev => ({ ...prev, templateId }))
     }
 
+    // ── AI: Generate Names ──
+    const handleGenerateNames = async () => {
+        setLoadingNames(true)
+        try {
+            const res = await fetch('/api/generate/suggest-names', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: styleOptions.initialPrompt || 'create a website' })
+            })
+            const data = await res.json()
+            if (data.names) setSuggestedNames(data.names)
+        } catch (err) {
+            console.error('Name generation failed:', err)
+        } finally {
+            setLoadingNames(false)
+        }
+    }
+
+    // ── AI: Generate Description ──
+    const handleGenerateDescription = async () => {
+        setLoadingDesc(true)
+        try {
+            const res = await fetch('/api/generate/suggest-description', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: styleOptions.initialPrompt || 'create a website',
+                    brandName: styleOptions.websiteName || ''
+                })
+            })
+            const data = await res.json()
+            if (data.description) {
+                setStyleOptions(prev => ({ ...prev, description: data.description }))
+            }
+        } catch (err) {
+            console.error('Description generation failed:', err)
+        } finally {
+            setLoadingDesc(false)
+        }
+    }
+
+    // ── AI: Enhance Description ──
+    const handleEnhanceDescription = async () => {
+        if (!styleOptions.description?.trim()) return
+        setEnhancingDesc(true)
+        try {
+            const res = await fetch('/api/generate/enhance-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: styleOptions.description, type: 'description' })
+            })
+            const data = await res.json()
+            if (data.enhanced) {
+                setStyleOptions(prev => ({ ...prev, description: data.enhanced }))
+            }
+        } catch (err) {
+            console.error('Enhance failed:', err)
+        } finally {
+            setEnhancingDesc(false)
+        }
+    }
+
     const canPrimary = configStep === 0
         ? !!styleOptions.websiteName?.trim()
         : configStep === 1
@@ -282,6 +351,32 @@ export default function SetupWizard() {
                             <div className="sw-hint">
                                 <span>Used in the header, footer, and page title</span>
                             </div>
+
+                            {/* Generate Names Button */}
+                            <AnimatedGenerateButton
+                                className="sw-anim-btn"
+                                labelIdle="Generate Names"
+                                labelActive="Generating"
+                                highlightHueDeg={270}
+                                generating={loadingNames}
+                                onClick={handleGenerateNames}
+                                disabled={loadingNames}
+                            />
+
+                            {/* Name Pills */}
+                            {suggestedNames.length > 0 && (
+                                <div className="sw-name-pills">
+                                    {suggestedNames.map((name, i) => (
+                                        <button
+                                            key={i}
+                                            className={`sw-name-pill ${styleOptions.websiteName === name ? 'selected' : ''}`}
+                                            onClick={() => setStyleOptions(prev => ({ ...prev, websiteName: name }))}
+                                        >
+                                            {name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </>
                     )}
 
@@ -309,6 +404,30 @@ export default function SetupWizard() {
                                 <span className={`sw-hint-count ${(styleOptions.description || '').length > 2400 ? 'warn' : ''}`}>
                                     {(styleOptions.description || '').length}/2500
                                 </span>
+                            </div>
+
+                            {/* AI Description Buttons */}
+                            <div className="sw-ai-row" style={{ display: 'flex', gap: '8px' }}>
+                                <AnimatedGenerateButton
+                                    className="sw-anim-btn"
+                                    labelIdle="Generate Description"
+                                    labelActive="Generating"
+                                    highlightHueDeg={270}
+                                    generating={loadingDesc}
+                                    onClick={handleGenerateDescription}
+                                    disabled={loadingDesc}
+                                />
+                                {styleOptions.description?.trim() && (
+                                    <AnimatedGenerateButton
+                                        className="sw-anim-btn"
+                                        labelIdle="Enhance"
+                                        labelActive="Enhancing"
+                                        highlightHueDeg={270}
+                                        generating={enhancingDesc}
+                                        onClick={handleEnhanceDescription}
+                                        disabled={enhancingDesc}
+                                    />
+                                )}
                             </div>
                         </>
                     )}

@@ -2893,9 +2893,16 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const hash = location.hash || '#workspace';
   const { user } = useUser();
-  const { userData } = useAuthStore();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { userData, fetchUserData } = useAuthStore();
   const { workspaces, activeWorkspaceId } = useWorkspaceStore();
   
+  useEffect(() => {
+    if (isLoaded && isSignedIn && !userData) {
+      fetchUserData(getToken);
+    }
+  }, [isLoaded, isSignedIn, userData, fetchUserData, getToken]);
+
   const activeWorkspace = workspaces?.find(w => w._id === activeWorkspaceId) || workspaces?.[0];
   const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User';
   const userInitial = userName.charAt(0).toUpperCase();

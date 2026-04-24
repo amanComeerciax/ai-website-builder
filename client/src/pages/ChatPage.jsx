@@ -50,7 +50,7 @@ export default function ChatPage() {
     const { 
         isGenerating, generationStatus, isDetailsExpanded, setDetailsExpanded,
         isIdeVisible, setIdeVisible, activeView, setActiveView, messages, addMessage, startGeneration,
-        generationPhase, isVisualEditMode, isConfigured
+        generationPhase, isVisualEditMode, isConfigured, generationLogs
     } = useChatStore()
     const { files } = useEditorStore()
     
@@ -60,6 +60,8 @@ export default function ChatPage() {
         
     // Deployment state
     const [isDeploying, setIsDeploying] = useState(false)
+    const [deployEta, setDeployEta] = useState(0)
+    const [buildProgress, setBuildProgress] = useState(0)
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
     const [publishedUrl, setPublishedUrl] = useState(null)
 
@@ -73,6 +75,29 @@ export default function ChatPage() {
         }
     }, [project]);
 
+    // Build Progress tracker 
+    useEffect(() => {
+        if (!isGenerating) {
+            setBuildProgress(100);
+            setTimeout(() => setBuildProgress(0), 500);
+            return;
+        }
+
+        // Base progress on SSE data
+        if (generationPhase === 'thinking') setBuildProgress(15);
+        else if (generationPhase === 'streaming_logs') {
+            const calculated = 15 + ((generationLogs?.length || 0) * 7);
+            setBuildProgress(Math.min(calculated, 95));
+        }
+
+        // Asymptotic fill between steps
+        const interval = setInterval(() => {
+            setBuildProgress(prev => prev < 95 ? prev + 1 : prev);
+        }, 800);
+
+        return () => clearInterval(interval);
+    }, [isGenerating, generationPhase, generationLogs?.length]);
+
     useEffect(() => {
         if (isAuthLoaded) {
             getToken().then(token => fetchFolders(token))
@@ -82,6 +107,12 @@ export default function ChatPage() {
     const handleDeploy = async (metadata = {}) => {
         if (!projectId || projectId === 'new') return;
         setIsDeploying(true);
+        setDeployEta(60);
+        
+        const etaInterval = setInterval(() => {
+            setDeployEta(prev => Math.max(0, prev - 1));
+        }, 1000);
+
         try {
             const token = await getToken();
             
@@ -113,7 +144,9 @@ export default function ChatPage() {
             console.error("Deploy error:", err);
             alert("Deploy failed");
         } finally {
+            clearInterval(etaInterval);
             setIsDeploying(false);
+            setDeployEta(0);
         }
     };
     
@@ -381,6 +414,12 @@ export default function ChatPage() {
                 </div>
 
                 <div className="ep-toolbar-right">
+                    {isGenerating && (
+                        <div className="ep-tool-btn" style={{ cursor: 'default', color: '#a78bfa', background: 'transparent' }}>
+                            <Loader2 size={14} className="ep-spin" />
+                            <span>Building... {buildProgress}%</span>
+                        </div>
+                    )}
                     <button className="ep-tool-btn ep-share-btn">
                         <Share2 size={14} />
                         <span>Share</span>
@@ -403,16 +442,16 @@ export default function ChatPage() {
                         <button 
                             className="ep-tool-btn ep-deploy-btn" 
                             onClick={() => setIsPublishModalOpen(true)} 
-                            disabled={isDeploying || !hasGeneratedContent}
-                            title={!hasGeneratedContent ? "Nothing to deploy yet" : "Publish your site"}
-                            style={isDeploying ? { opacity: 0.7, cursor: 'wait' } : {}}
+                            disabled={isDeploying || !hasGeneratedContent || isGenerating}
+                            title={isGenerating ? "Wait for generation to complete" : !hasGeneratedContent ? "Nothing to deploy yet" : "Publish your site"}
+                            style={isDeploying || isGenerating ? { opacity: 0.7, cursor: isDeploying ? 'wait' : 'not-allowed' } : {}}
                         >
                             {isDeploying ? (
                                 <Loader2 size={14} className="ep-spin" />
                             ) : (
                                 <Rocket size={14} />
                             )}
-                            <span>{isDeploying ? 'Deploying...' : 'Deploy'}</span>
+                            <span>{isDeploying ? (deployEta > 0 ? `Deploying... ${deployEta}s` : 'Finalizing...') : 'Deploy'}</span>
                         </button>
                     )}
                 </div>
@@ -519,6 +558,7 @@ export default function ChatPage() {
                 project={project ? { ...project, publishedUrl } : null}
                 onPublish={handleDeploy}
                 isPublishing={isDeploying}
+                deployEta={deployEta}
             />
         </div>
     )

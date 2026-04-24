@@ -15,10 +15,20 @@ export default function TemplatesPage() {
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     
+    // Pagination / Lazy Loading States
+    const [visibleCount, setVisibleCount] = useState(6);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const loadMoreRef = React.useRef(null);
+    
     // AI Guided Selection States
     const [analyzingPrompt, setAnalyzingPrompt] = useState(!!initialPrompt);
     const [aiRecommendedCategory, setAiRecommendedCategory] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState('all');
+
+    // Reset pagination when category changes
+    useEffect(() => {
+        setVisibleCount(6);
+    }, [selectedCategory, initialPrompt]);
 
     // Modal States
     const [previewTemplate, setPreviewTemplate] = useState(null);
@@ -212,6 +222,28 @@ export default function TemplatesPage() {
         return tpl.id.includes(selectedCategory) || (tpl.categoryId && tpl.categoryId.includes(selectedCategory));
     });
 
+    // Intersection Observer for Infinite Scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isLoadingMore) {
+                const hasMore = filteredTemplates.length > visibleCount;
+                if (hasMore) {
+                    setIsLoadingMore(true);
+                    setTimeout(() => {
+                        setVisibleCount(prev => prev + 6);
+                        setIsLoadingMore(false);
+                    }, 800); // Mimic network load time
+                }
+            }
+        }, { rootMargin: '100px' });
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [filteredTemplates.length, visibleCount, isLoadingMore]);
+
     return (
         <div className="lv-templates-page">
             <div className="lv-templates-container">
@@ -297,7 +329,7 @@ export default function TemplatesPage() {
                             </div>
                         )}
 
-                        {filteredTemplates.map((tpl) => (
+                        {filteredTemplates.slice(0, visibleCount).map((tpl) => (
                             <div 
                                 key={tpl.id} 
                                 className="lv-template-card"
@@ -315,6 +347,17 @@ export default function TemplatesPage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+                
+                {/* Infinite Scroll trigger and Loading Indicator */}
+                {filteredTemplates.length > 0 && !loading && !analyzingPrompt && visibleCount < filteredTemplates.length && (
+                    <div ref={loadMoreRef} style={{ padding: '40px 0', display: 'flex', justifyContent: 'center', width: '100%', marginTop: '20px' }}>
+                        {isLoadingMore && (
+                            <svg className="lv-spinner" viewBox="0 0 50 50" style={{ width: '32px', height: '32px' }}>
+                                <circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="5"></circle>
+                            </svg>
+                        )}
                     </div>
                 )}
             </div>

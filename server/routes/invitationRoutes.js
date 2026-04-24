@@ -4,6 +4,7 @@ const WorkspaceInvitation = require('../models/WorkspaceInvitation');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const Workspace = require('../models/Workspace');
 const User = require('../models/User');
+const { sendInvitationEmail } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -82,6 +83,16 @@ router.post("/", requireAuth, async (req, res, next) => {
                 workspaceName: workspace.name,
                 status: 'pending'
             });
+
+            // Send actual email notification via Resend
+            const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+            const inviteUrl = `${clientUrl}/dashboard`;
+            sendInvitationEmail({
+                to: invitedEmail,
+                inviterName,
+                workspaceName: workspace.name,
+                inviteUrl,
+            }).catch(err => console.error('[Invitation] Email send failed:', err));
 
             results.push({ email: invitedEmail, status: 'sent', invitationId: invitation._id });
         }
