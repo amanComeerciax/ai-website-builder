@@ -75,7 +75,16 @@ const projectSchema = new mongoose.Schema(
       type: String,
       enum: ['workspace', 'private', 'public'],
       default: 'workspace'
-    }
+    },
+    // Project-level collaborators (separate from workspace members)
+    collaborators: [{
+      userId: { type: String, required: true },
+      email: { type: String, default: '' },
+      name: { type: String, default: '' },
+      avatar: { type: String, default: '' },
+      role: { type: String, enum: ['editor', 'viewer'], default: 'editor' },
+      joinedAt: { type: Date, default: Date.now }
+    }]
   },
   { timestamps: true }
 );

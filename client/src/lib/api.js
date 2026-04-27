@@ -64,13 +64,15 @@ class ApiClient {
         return this.request(url, {}, token)
     }
 
-    getProject(id, token) {
-        return this.request(`/projects/${id}`, {}, token)
+    getProject(id, token, inviteToken = null) {
+        const url = inviteToken ? `/projects/${id}?inviteToken=${inviteToken}` : `/projects/${id}`;
+        return this.request(url, {}, token)
     }
 
     // Full workspace hydration: returns { project, messages }
-    getWorkspace(id, token) {
-        return this.request(`/projects/${id}`, {}, token)
+    getWorkspace(id, token, inviteToken = null) {
+        const url = inviteToken ? `/projects/${id}?inviteToken=${inviteToken}` : `/projects/${id}`;
+        return this.request(url, {}, token)
     }
 
     // Lightweight: just returns { html, name } for hover previews
@@ -233,6 +235,78 @@ class ApiClient {
         }, authToken)
     }
 
+    // ── Project Invitations ──
+    getProjectCollaborators(projectId, token) {
+        return this.request(`/projects/${projectId}/invitations`, {}, token)
+    }
+
+    sendProjectInvitation(projectId, data, token) {
+        return this.request(`/projects/${projectId}/invitations`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, token)
+    }
+
+    generateProjectInviteLink(projectId, data, token) {
+        return this.request(`/projects/${projectId}/invitations/link`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, token)
+    }
+
+    revokeProjectInvitation(projectId, invitationId, token) {
+        return this.request(`/projects/${projectId}/invitations/${invitationId}`, {
+            method: 'DELETE',
+        }, token)
+    }
+
+    updateProjectInvitationRole(projectId, invitationId, role, token) {
+        return this.request(`/projects/${projectId}/invitations/${invitationId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ role })
+        }, token)
+    }
+
+    getProjectInviteInfo(linkToken) {
+        return this.request(`/projects/invite/${linkToken}`, {})
+    }
+
+    acceptProjectInvite(linkToken, token) {
+        return this.request(`/projects/invite/${linkToken}/accept`, {
+            method: 'POST',
+        }, token)
+    }
+
+    declineProjectInvite(linkToken, token) {
+        return this.request(`/projects/invite/${linkToken}/decline`, {
+            method: 'POST',
+        }, token)
+    }
+
+    // Get projects shared with the current user (project-level collaborator)
+    getSharedProjects(token) {
+        return this.request(`/projects/shared-with-me`, {}, token)
+    }
+
+    // Remove a collaborator from a project
+    removeProjectCollaborator(projectId, collaboratorUserId, token) {
+        return this.request(`/projects/${projectId}/collaborators/${collaboratorUserId}`, {
+            method: 'DELETE',
+        }, token)
+    }
+
+    // Update collaborator role
+    updateProjectCollaboratorRole(projectId, collaboratorUserId, role, token) {
+        return this.request(`/projects/${projectId}/collaborators/${collaboratorUserId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ role })
+        }, token)
+    }
+
+    // Get ALL project collaborators for a workspace (for settings People page)
+    getWorkspaceProjectCollaborators(workspaceId, token) {
+        return this.request(`/workspaces/${workspaceId}/project-collaborators`, {}, token)
+    }
     // ── Members ──
     getWorkspaceMembers(workspaceId, token) {
         return this.request(`/workspaces/${workspaceId}/members`, {}, token)

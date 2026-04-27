@@ -19,6 +19,7 @@ const paymentRoutes = require("./routes/payment")
 
 const invitationRoutes = require("./routes/invitationRoutes")
 const memberRoutes = require("./routes/memberRoutes")
+const projectInviteRoutes = require("./routes/projectInviteRoutes")
 
 const mcpManager = require("./services/mcpManager")
 
@@ -113,6 +114,7 @@ app.use(clerkMiddleware({
 
 // ── Routes ──
 app.use("/api/auth", authRoutes)
+app.use("/api/projects", projectInviteRoutes)   // sub-routes: /:projectId/invitations, /invite/:token, /shared-with-me (MUST be before projectRoutes)
 app.use("/api/projects", projectRoutes)
 app.use("/api/generate", generateRoutes)
 app.use("/api/folders", folderRoutes)

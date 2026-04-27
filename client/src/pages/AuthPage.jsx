@@ -134,23 +134,30 @@ export default function AuthPage({ mode = "sign-up" }) {
         <div style={styles.leftInner}>
           {/* Clerk Auth Form */}
           <div style={{ minHeight: "600px" }}>
-            {mode === "sign-up" ? (
-              <SignUp
-                routing="path"
-                path="/signup"
-                signInUrl="/login"
-                fallbackRedirectUrl="/dashboard"
-                appearance={clerkAppearance}
-              />
-            ) : (
-              <SignIn
-                routing="path"
-                path="/login"
-                signUpUrl="/signup"
-                fallbackRedirectUrl="/dashboard"
-                appearance={clerkAppearance}
-              />
-            )}
+            {(() => {
+              const params = new URLSearchParams(window.location.search);
+              const redirectTo = params.get('redirect');
+              const redirectProps = redirectTo 
+                ? { forceRedirectUrl: redirectTo } 
+                : { fallbackRedirectUrl: "/dashboard" };
+              return mode === "sign-up" ? (
+                <SignUp
+                  routing="path"
+                  path="/signup"
+                  signInUrl="/login"
+                  {...redirectProps}
+                  appearance={clerkAppearance}
+                />
+              ) : (
+                <SignIn
+                  routing="path"
+                  path="/login"
+                  signUpUrl="/signup"
+                  {...redirectProps}
+                  appearance={clerkAppearance}
+                />
+              );
+            })()}
           </div>
 
           {/* SSO Note */}

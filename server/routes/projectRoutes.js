@@ -9,15 +9,24 @@ const { generateProjectName } = require('../utils/nameGenerator.js');
 
 const { requireAuth } = require('../middleware/requireAuth');
 
-// Helper: check if user can access a project (owner or workspace member)
+// Helper: check if user can access a project (owner, workspace member, or project collaborator)
 async function getProjectWithAccess(projectId, userId) {
     // First try direct ownership
     let project = await Project.findOne({ _id: projectId, userId });
     if (project) return { project, role: 'owner', isCreator: true };
 
-    // Otherwise check if user is a workspace member for this project
+    // Otherwise load project and check access paths
     project = await Project.findById(projectId);
-    if (!project || !project.workspaceId) return null;
+    if (!project) return null;
+
+    // Check project-level collaborators first
+    const collaborator = project.collaborators?.find(c => c.userId === userId);
+    if (collaborator) {
+        return { project, role: collaborator.role, isCreator: false };
+    }
+
+    // Then check workspace membership
+    if (!project.workspaceId) return null;
 
     const member = await WorkspaceMember.findOne({ 
         workspaceId: project.workspaceId, 
@@ -179,7 +188,26 @@ router.get("/:id/preview-html", requireAuth, async (req, res, next) => {
 router.get("/:id", requireAuth, async (req, res, next) => {
     try {
         const userId = req.auth.userId
-        const access = await getProjectWithAccess(req.params.id, userId);
+        const inviteToken = req.query.inviteToken;
+        
+        let access = await getProjectWithAccess(req.params.id, userId);
+
+        // If no direct access, check if a valid invitation exists for this token
+        if (!access && inviteToken) {
+            const ProjectInvitation = require("../models/ProjectInvitation");
+            const invite = await ProjectInvitation.findOne({
+                projectId: req.params.id,
+                token: inviteToken,
+                status: 'pending'
+            });
+            if (invite) {
+                const project = await Project.findById(req.params.id);
+                if (project) {
+                    access = { project, role: 'viewer', isCreator: false };
+                }
+            }
+        }
+
         if (!access) {
             return res.status(404).json({ error: "Project not found" })
         }

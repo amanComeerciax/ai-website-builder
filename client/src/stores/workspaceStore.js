@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { apiClient } from '../lib/api';
 import { useProjectStore } from './projectStore';
 import { useFolderStore } from './folderStore';
+import { useUIStore } from './uiStore';
 
 export const useWorkspaceStore = create((set, get) => ({
     workspaces: [],
@@ -80,9 +81,11 @@ export const useWorkspaceStore = create((set, get) => ({
         // Clear stale project/folder data immediately to prevent flashing data from previous workspace
         const projectStore = useProjectStore.getState();
         const folderStore = useFolderStore.getState();
+        const uiStore = useUIStore.getState();
         
         projectStore.clearProjects && projectStore.clearProjects();
         folderStore.clearFolders && folderStore.clearFolders();
+        uiStore.setHoveredProject(null);
 
         // Fetch the projects and folders for the new workspace
         await Promise.all([
