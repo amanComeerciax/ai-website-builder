@@ -193,8 +193,10 @@ router.get("/stream/:jobId", async (req, res) => {
     });
 
     // Create a dedicated Redis connection for QueueEvents
-    const connection = new IORedis(process.env.UPSTASH_REDIS_URL || 'redis://127.0.0.1:6379', {
-        maxRetriesPerRequest: null
+    const redisStreamUrl = process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+    const connection = new IORedis(redisStreamUrl, {
+        maxRetriesPerRequest: null,
+        tls: redisStreamUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined
     });
 
     const queueEvents = new QueueEvents('AI_Generation_Queue', { connection });

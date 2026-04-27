@@ -268,10 +268,19 @@ export default function ChatPage() {
                     if (isConfigured) {
                         startGeneration(prompt, projectId, token, {})
                     } else {
+                        // Store the initial prompt so AI can use it for category inference later
+                        useChatStore.getState().setStyleOptions(prev => ({
+                            ...prev,
+                            initialPrompt: prompt,
+                        }));
+
                         addMessage({ 
                             role: 'assistant', 
-                            content: `Hi! I'm excited to build your website for **"${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"**. \n\nTo get started, **pick a category and choose a theme** from the options below.` 
+                            content: `Hi! I'm excited to build your website for **"${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"**. To get started, pick a category and choose a theme from the options below.` 
                         });
+
+                        // Show the SetupWizard in the right panel
+                        useChatStore.setState({ isIdeVisible: true, activeView: 'preview' });
                     }
                 }
 

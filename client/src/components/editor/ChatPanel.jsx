@@ -231,13 +231,22 @@ export default function ChatPanel() {
         setAttachments([])
         
         if (!isConfigured) {
+            // Save the prompt for AI category inference in Step 2
+            useChatStore.getState().setStyleOptions(prev => ({
+                ...prev,
+                initialPrompt: prev.initialPrompt || messageContent,
+            }));
+
             addMessage({ role: 'user', content: messageContent, images: msgImages.length > 0 ? msgImages : undefined })
             setTimeout(() => {
                 addMessage({ 
                     role: 'assistant', 
-                    content: "I'm still waiting for you to complete the design setup above! Please finish the steps so I can start building your site correctly. 😊" 
+                    content: "Please complete the design setup on the right panel first! Fill in your brand name and description, then pick a theme so I can build your site correctly. 😊" 
                 })
             }, 600)
+            
+            // Force show the SetupWizard
+            useChatStore.setState({ isIdeVisible: true, activeView: 'preview' });
             return
         }
 

@@ -35,6 +35,7 @@ const userSchema = new mongoose.Schema(
                 enum: ["active", "canceled", "past_due", "inactive"],
                 default: "active",
             },
+            razorpayPaymentId: String,
         },
         // Usage tracking
         usage: {

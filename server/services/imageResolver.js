@@ -167,7 +167,10 @@ async function resolveImages(html, businessContext = '') {
   let unchangedCount = 0;
   const usedUrls = new Set();
 
-  // ── STEP 1: Process all <img> tags ──
+  // Build a replacement map FIRST, then apply all at once to avoid cascading corruption
+  const replacementMap = new Map(); // originalSrc -> newUrl
+
+  // ── STEP 1: Collect all <img> tags and build the replacement map ──
   const imgRegex = /<img[^>]*\ssrc\s*=\s*"([^"]*)"[^>]*>/gi;
   const matches = [...html.matchAll(imgRegex)];
   
@@ -175,11 +178,17 @@ async function resolveImages(html, businessContext = '') {
     const fullImgTag = match[0];
     const originalSrc = match[1];
     
+    // Skip empty src
+    if (!originalSrc || originalSrc.trim() === '') continue;
+    
     // Skip already-resolved URLs (Pexels CDN or valid Unsplash photo IDs)
     if (originalSrc.includes('images.pexels.com') || 
         (originalSrc.includes('images.unsplash.com/photo-') && !originalSrc.includes('/featured'))) {
       continue;
     }
+
+    // Skip if we've already mapped this exact src
+    if (replacementMap.has(originalSrc)) continue;
 
     // ── Extract search query from the image context ──
     let searchQuery = '';
@@ -220,8 +229,7 @@ async function resolveImages(html, businessContext = '') {
     const result = await findImage(searchQuery, width, height, sessionState);
 
     if (result && !usedUrls.has(result.url)) {
-      // replaceAll: fix EVERY occurrence of this src, not just the first one
-      html = html.replaceAll(originalSrc, result.url);
+      replacementMap.set(originalSrc, result.url);
       usedUrls.add(result.url);
       if (result.tier === 'pexels') pexelsCount++;
       else if (result.tier === 'google') googleCount++;
@@ -229,7 +237,7 @@ async function resolveImages(html, businessContext = '') {
       // Duplicate — try with modified query to get a different image
       const altResult = await findImage(searchQuery + ' high quality photo', width, height, sessionState);
       if (altResult && !usedUrls.has(altResult.url)) {
-        html = html.replaceAll(originalSrc, altResult.url);
+        replacementMap.set(originalSrc, altResult.url);
         usedUrls.add(altResult.url);
         if (altResult.tier === 'pexels') pexelsCount++;
         else if (altResult.tier === 'google') googleCount++;
@@ -241,22 +249,40 @@ async function resolveImages(html, businessContext = '') {
     }
   }
 
-  // ── STEP 2: Fix broken background-image URLs in CSS ──
-  // Also catches Pollinations AI URLs in CSS (image.pollinations.ai)
+  // ── STEP 2: Apply all replacements SAFELY using src-attribute-only replacement ──
+  // This prevents cascading corruption where a replacement URL contains a substring
+  // that matches another original URL.
+  for (const [originalSrc, newUrl] of replacementMap) {
+    // Escape special regex characters in the original URL
+    const escaped = originalSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Only replace inside src="..." attributes — NOT in arbitrary text
+    const srcAttrRegex = new RegExp(`(src\\s*=\\s*")${escaped}(")`, 'g');
+    html = html.replace(srcAttrRegex, `$1${newUrl}$2`);
+    
+    // Also replace inside CSS background-image url()
+    const bgRegex2 = new RegExp(`(url\\(\\s*['"]?)${escaped}(['"]?\\s*\\))`, 'g');
+    html = html.replace(bgRegex2, `$1${newUrl}$2`);
+  }
+
+  // ── STEP 3: Fix broken background-image URLs in CSS ──
   const bgRegex = /url\(\s*['"]?(https?:\/\/(?:source\.unsplash\.com|placehold\.co|placeholder\.com|via\.placeholder\.com|dummyimage\.com|image\.pollinations\.ai)[^'"\)]+)['"]?\s*\)/gi;
   const bgMatches = [...html.matchAll(bgRegex)];
   
   for (const bgMatch of bgMatches) {
     const brokenUrl = bgMatch[1];
+    // Skip if already replaced by the map above
+    if ([...replacementMap.values()].includes(brokenUrl)) continue;
+    
     const result = await findImage(businessContext || 'abstract background', 1200, 800, sessionState);
     if (result) {
+      // Safe single replacement
       html = html.replace(brokenUrl, result.url);
       if (result.tier === 'pexels') pexelsCount++;
       else if (result.tier === 'google') googleCount++;
     }
   }
 
-  // ── STEP 3: Fix empty src="" ──
+  // ── STEP 4: Fix empty src="" ──
   const emptySrcCount = (html.match(/src\s*=\s*""\s*/g) || []).length;
   if (emptySrcCount > 0) {
     const result = await findImage(businessContext || 'modern business', 800, 600, sessionState);
