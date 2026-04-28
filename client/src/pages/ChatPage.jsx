@@ -224,7 +224,7 @@ export default function ChatPage() {
         if (projectId && isAuthLoaded) {
             const load = async () => {
                 const token = await getToken();
-                await loadProject(projectId, token, inviteToken);
+                await useChatStore.getState().loadProject(projectId, token, inviteToken);
                 useProjectStore.getState().fetchProjects(token);
                 useEditorStore.getState().loadProject(projectId);
             }

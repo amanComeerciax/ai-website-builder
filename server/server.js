@@ -34,11 +34,9 @@ const PORT = process.env.PORT || 5000
 // ── Security Middleware ──
 app.use(helmet())
 app.use(cors({
-    origin: [
-        process.env.CLIENT_URL,
-        "http://localhost:5173",
-        "https://ai-website-builder-blue.vercel.app"
-    ].filter(Boolean),
+    origin: function (origin, callback) {
+        callback(null, true);
+    },
     credentials: true,
 }))
 
