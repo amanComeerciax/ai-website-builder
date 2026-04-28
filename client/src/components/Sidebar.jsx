@@ -52,7 +52,21 @@ export default function Sidebar() {
     const { user: clerkUser } = useUser()
     const { signOut } = useClerk()
     const { userData, fetchUserData, syncUser } = useAuthStore()
-    const { toggleSidebar, toggleWorkspaceDropdown, setCreateFolderOpen, isWorkspaceDropdownOpen, isCreateWorkspaceOpen, setCreateWorkspaceOpen, isInviteModalOpen, setInviteModalOpen, isInboxOpen, setInboxOpen } = useUIStore()
+    const { 
+        toggleSidebar, 
+        toggleWorkspaceDropdown, 
+        setCreateFolderOpen, 
+        isWorkspaceDropdownOpen, 
+        isCreateWorkspaceOpen, 
+        setCreateWorkspaceOpen, 
+        isInviteModalOpen, 
+        setInviteModalOpen, 
+        isInboxOpen, 
+        setInboxOpen,
+        hoveredProject,
+        hoverPos,
+        setHoveredProject
+    } = useUIStore()
     const { projects, fetchProjects, toggleStar, renameProject, deleteProject, moveToFolder } = useProjectStore()
     const { folders, fetchFolders } = useFolderStore()
     const { workspaces, activeWorkspaceId, fetchWorkspaces } = useWorkspaceStore()
@@ -61,6 +75,7 @@ export default function Sidebar() {
     const navigate = useNavigate()
     const [isProjectsExpanded, setIsProjectsExpanded] = useState(false)
     const [isCreatedByMeExpanded, setIsCreatedByMeExpanded] = useState(false)
+    const [isSharedWithMeExpanded, setIsSharedWithMeExpanded] = useState(false)
     const [isSearchOpen, setIsSearchOpen] = useState(false)
 
     // Three-dot menu
@@ -76,9 +91,6 @@ export default function Sidebar() {
     // User profile dropdown
     const [isUserProfileOpen, setIsUserProfileOpen] = useState(false)
     const [appearanceTheme, setAppearanceTheme] = useState('system') // 'light', 'dark', 'system'
-    // Project hover preview
-    const [hoveredProject, setHoveredProject] = useState(null)
-    const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 })
     const userProfileRef = useRef(null)
 
     useEffect(() => {
@@ -226,8 +238,7 @@ export default function Sidebar() {
                         const row = e.currentTarget.closest('.lv-project-row')
                         if (!row) return
                         const rect = row.getBoundingClientRect()
-                        setHoveredProject(proj)
-                        setHoverPos({ x: rect.right + 8, y: rect.top - 20 })
+                        setHoveredProject(proj, { x: rect.right + 8, y: rect.top - 20 })
                     }}
                     onMouseLeave={() => setHoveredProject(null)}
                 >
@@ -414,18 +425,47 @@ export default function Sidebar() {
 
                     {isCreatedByMeExpanded && (
                         <div className="lv-sub-nav lv-created-projects">
-                            {projects.length > 0 ? (
-                                projects.map(proj => renderProjectRow(proj))
+                            {projects.filter(p => !p.isShared).length > 0 ? (
+                                projects.filter(p => !p.isShared).map(proj => renderProjectRow(proj))
                             ) : (
                                 <div className="lv-empty-recents lv-indented">No projects yet</div>
                             )}
                         </div>
                     )}
 
-                    <NavLink to="/projects/shared" className={({ isActive }) => `lv-nav-link ${isActive ? 'lv-nav-link-active' : ''}`}>
-                        <Users size={14} />
-                        <span>Shared with me</span>
-                    </NavLink>
+                    <div className="lv-nav-item-with-toggle">
+                        <NavLink to="/projects/shared" className={({ isActive }) => `lv-nav-link ${isActive ? 'lv-nav-link-active' : ''}`}>
+                            <Users size={14} />
+                            <span>Shared with me</span>
+                        </NavLink>
+                        <button 
+                            className="lv-item-toggle"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setIsSharedWithMeExpanded(!isSharedWithMeExpanded);
+                            }}
+                        >
+                            <ChevronDown 
+                                size={14} 
+                                style={{ 
+                                    transform: isSharedWithMeExpanded ? 'rotate(180deg)' : 'none', 
+                                    transition: 'transform 0.2s',
+                                    color: isSharedWithMeExpanded ? '#fff' : '#666'
+                                }} 
+                            />
+                        </button>
+                    </div>
+
+                    {isSharedWithMeExpanded && (
+                        <div className="lv-sub-nav lv-created-projects">
+                            {projects.filter(p => p.isShared).length > 0 ? (
+                                projects.filter(p => p.isShared).map(proj => renderProjectRow(proj))
+                            ) : (
+                                <div className="lv-empty-recents lv-indented">No shared projects</div>
+                            )}
+                        </div>
+                    )}
                 </nav>
             </div>
 

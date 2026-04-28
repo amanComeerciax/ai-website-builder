@@ -4,6 +4,7 @@ const WorkspaceInvitation = require('../models/WorkspaceInvitation');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const Workspace = require('../models/Workspace');
 const User = require('../models/User');
+const { sendInvitationEmail } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -83,6 +84,16 @@ router.post("/", requireAuth, async (req, res, next) => {
                 status: 'pending'
             });
 
+            // Send actual email notification via Resend
+            const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+            const inviteUrl = `${clientUrl}/dashboard`;
+            sendInvitationEmail({
+                to: invitedEmail,
+                inviterName,
+                workspaceName: workspace.name,
+                inviteUrl,
+            }).catch(err => console.error('[Invitation] Email send failed:', err));
+
             results.push({ email: invitedEmail, status: 'sent', invitationId: invitation._id });
         }
 
@@ -101,24 +112,45 @@ router.get("/inbox", requireAuth, async (req, res, next) => {
         const user = await User.findOne({ clerkId: userId });
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        // Find all pending invitations for this email
-        const invitations = await WorkspaceInvitation.find({
-            invitedEmail: user.email.toLowerCase(),
+        const userEmail = user.email.toLowerCase();
+        const now = new Date();
+
+        // Fetch workspace invitations
+        const wsInvitations = await WorkspaceInvitation.find({
+            invitedEmail: userEmail,
             status: 'pending'
         }).sort({ createdAt: -1 }).lean();
 
-        // Filter out expired ones
-        const now = new Date();
-        const validInvitations = invitations.filter(inv => {
+        // Filter out expired workspace invites
+        const validWsInvitations = wsInvitations.filter(inv => {
             if (inv.expiresAt && now > new Date(inv.expiresAt)) {
-                // Mark as expired in background
                 WorkspaceInvitation.updateOne({ _id: inv._id }, { status: 'expired' }).exec();
                 return false;
             }
             return true;
-        });
+        }).map(inv => ({ ...inv, inviteType: 'workspace' }));
 
-        res.json({ invitations: validInvitations, count: validInvitations.length });
+        // Fetch project invitations (email-based only)
+        const ProjectInvitation = require('../models/ProjectInvitation');
+        const projInvitations = await ProjectInvitation.find({
+            invitedEmail: userEmail,
+            status: 'pending'
+        }).sort({ createdAt: -1 }).lean();
+
+        // Filter out expired project invites
+        const validProjInvitations = projInvitations.filter(inv => {
+            if (inv.expiresAt && now > new Date(inv.expiresAt)) {
+                ProjectInvitation.updateOne({ _id: inv._id }, { status: 'expired' }).exec();
+                return false;
+            }
+            return true;
+        }).map(inv => ({ ...inv, inviteType: 'project' }));
+
+        // Merge + sort by createdAt desc
+        const allInvitations = [...validWsInvitations, ...validProjInvitations]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.json({ invitations: allInvitations, count: allInvitations.length });
     } catch (error) {
         next(error);
     }

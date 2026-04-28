@@ -316,7 +316,8 @@ export default function ChatPanel() {
             setTimeout(() => {
                 addMessage({ 
                     role: 'assistant', 
-                    content: `It looks like that message might have been accidental or doesn't have enough context for me to work with! Could you describe what you'd like me to do more specifically? Here are some ideas:\n\n• "Add a contact form with email and phone fields"\n• "Change the color scheme to dark mode"\n• "Make the hero section text bigger and bolder"\n• "Add a testimonials section with real user reviews"\n• "Create a responsive navbar with a logo"` 
+                    content: `⚠️ Hmm, that doesn't look like a website instruction. Could you be more specific? Here are some ideas:\n\n• "Add a contact form with email and phone fields"\n• "Change the color scheme to dark mode"\n• "Make the hero section text bigger and bolder"\n• "Add a testimonials section with user reviews"\n• "Create a responsive navbar with a logo"`,
+                    isWarning: true
                 })
             }, 600)
             return
@@ -508,11 +509,11 @@ export default function ChatPanel() {
                 )}
 
                 {messages.map((msg) => (
-                    <div key={msg.id} className={'cp-msg cp-msg-' + msg.role}>
+                    <div key={msg.id} className={`cp-msg cp-msg-${msg.role}${msg.isWarning ? ' cp-msg-warning' : ''}`}>
                         <div className="cp-msg-avatar">
                             {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                         </div>
-                        <div className="cp-msg-content">
+                        <div className={`cp-msg-content${msg.isWarning ? ' cp-warning-content' : ''}`}>
                             {/* Visual edit tag chips (above message) */}
                             {msg.visualEditElements && msg.visualEditElements.length > 0 && (
                                 <div className="cp-msg-tags">
@@ -536,7 +537,20 @@ export default function ChatPanel() {
                                     ))}
                                 </div>
                             )}
-                            <p>{cleanMessageContent(msg.content)}</p>
+                            {msg.isWarning ? (
+                                <div className="cp-warning-card">
+                                    {msg.content.split('\n').map((line, i) => {
+                                        const trimLine = line.trim()
+                                        if (!trimLine) return null
+                                        if (trimLine.startsWith('•')) {
+                                            return <div key={i} className="cp-warning-bullet">{trimLine}</div>
+                                        }
+                                        return <p key={i} style={{ margin: '0 0 8px' }}>{trimLine}</p>
+                                    })}
+                                </div>
+                            ) : (
+                                <p>{cleanMessageContent(msg.content)}</p>
+                            )}
                             <button 
                                 className={`cp-copy-btn ${copiedId === msg.id ? 'copied' : ''}`}
                                 onClick={() => handleCopy(msg.id, msg.content)}

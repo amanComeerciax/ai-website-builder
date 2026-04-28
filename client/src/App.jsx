@@ -12,15 +12,21 @@ import SuccessPage from './pages/SuccessPage'
 import SettingsPage from './pages/SettingsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import BoneyardFixtures from './pages/BoneyardFixtures'
+import JoinProjectPage from './pages/JoinProjectPage'
 import { Toaster } from 'react-hot-toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { ToastProvider } from './components/UIComponents/Toasts/tsx/ToastPill'
 
-const ProtectedRoute = ({ children }) => (
-  <>
-    <SignedIn>{children}</SignedIn>
-    <SignedOut><Navigate to="/login" replace /></SignedOut>
-  </>
-)
+const ProtectedRoute = ({ children }) => {
+  const location = window.location;
+  const redirectPath = location.pathname + location.search;
+  return (
+    <>
+      <SignedIn>{children}</SignedIn>
+      <SignedOut><Navigate to={`/login?redirect=${encodeURIComponent(redirectPath)}`} replace /></SignedOut>
+    </>
+  );
+}
 
 const PublicRoute = ({ children }) => {
   const { isLoaded, isSignedIn } = useUser();
@@ -36,7 +42,7 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
-    <>
+    <ToastProvider>
       <Toaster position="top-center" reverseOrder={false} />
       {/* Fallback full-screen dark loading spinner before Clerk calculates session payload. 
           Stops FOUC (flash of unauthenticated content) on deep links */}
@@ -110,11 +116,14 @@ function App() {
           <Route path="/login/*" element={<PublicRoute><AuthPage mode="sign-in" /></PublicRoute>} />
           <Route path="/signup/*" element={<PublicRoute><AuthPage mode="sign-up" /></PublicRoute>} />
 
+          {/* Project Invite acceptance page */}
+          <Route path="/project-invite/:token" element={<ProtectedRoute><JoinProjectPage /></ProtectedRoute>} />
+
           {/* Catch-all */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </ClerkLoaded>
-    </>
+    </ToastProvider>
 
   )
 }

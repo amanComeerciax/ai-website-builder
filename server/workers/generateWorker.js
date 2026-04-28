@@ -2,7 +2,6 @@
 // BullMQ worker that processes generation jobs
 
 // const { Worker } = require("bullmq")
-// const claudeService = require("../services/claude")
 
 console.log("⚙️  Generation worker stub loaded — implement on Day 15")
 

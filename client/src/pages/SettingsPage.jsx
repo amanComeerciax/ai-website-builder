@@ -711,6 +711,7 @@ const PeoplePage = () => {
   const [callerRole, setCallerRole] = useState('viewer');
   const [callerUserId, setCallerUserId] = useState(null);
   const [pendingInvites, setPendingInvites] = useState([]);
+  const [projectCollaborators, setProjectCollaborators] = useState([]); // {projectName, collaborator}[]
   const [tab, setTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All roles');
@@ -718,29 +719,30 @@ const PeoplePage = () => {
   const [roleSubmenu, setRoleSubmenu] = useState(null);
   const menuRef = React.useRef(null);
 
-  useEffect(() => {
+  const loadData = async () => {
     if (!activeWorkspaceId) return;
-    const load = async () => {
-      const token = await getToken();
-      const { members: m, callerRole: cr } = await apiClient.getWorkspaceMembers(activeWorkspaceId, token);
-      setMembers(m || []);
-      setCallerRole(cr || 'viewer');
-      // Identify who the current user is
-      const currentUser = (m || []).find(mem => mem.email === clerkUser?.primaryEmailAddress?.emailAddress);
-      if (currentUser) setCallerUserId(currentUser.userId);
-      const { invitations } = await apiClient.getWorkspaceInvitations(activeWorkspaceId, token);
-      setPendingInvites(invitations || []);
-    };
-    load();
-  }, [activeWorkspaceId]);
+    const token = await getToken();
+    const { members: m, callerRole: cr } = await apiClient.getWorkspaceMembers(activeWorkspaceId, token);
+    setMembers(m || []);
+    setCallerRole(cr || 'viewer');
+    const currentUser = (m || []).find(mem => mem.email === clerkUser?.primaryEmailAddress?.emailAddress);
+    if (currentUser) setCallerUserId(currentUser.userId);
+    const { invitations } = await apiClient.getWorkspaceInvitations(activeWorkspaceId, token);
+    setPendingInvites(invitations || []);
+    // Load project collaborators for this workspace
+    try {
+      const data = await apiClient.getWorkspaceProjectCollaborators(activeWorkspaceId, token);
+      setProjectCollaborators(data.collaborators || []);
+    } catch { /* endpoint may not exist yet, silent */ }
+  };
 
-  // Close menu on outside click
+  useEffect(() => { loadData(); }, [activeWorkspaceId]);
+
   useEffect(() => {
     if (!activeActionMenu) return;
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setActiveActionMenu(null);
-        setRoleSubmenu(null);
+        setActiveActionMenu(null); setRoleSubmenu(null);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -754,9 +756,8 @@ const PeoplePage = () => {
       await apiClient.updateMemberRole(activeWorkspaceId, memberId, newRole, token);
       setMembers(prev => prev.map(m => m._id === memberId ? { ...m, role: newRole } : m));
       toast.success('Role updated');
-    } catch (err) { toast.error(err.message) }
-    setActiveActionMenu(null);
-    setRoleSubmenu(null);
+    } catch (err) { toast.error(err.message); }
+    setActiveActionMenu(null); setRoleSubmenu(null);
   };
 
   const handleRemove = async (memberId) => {
@@ -766,7 +767,7 @@ const PeoplePage = () => {
       await apiClient.removeMember(activeWorkspaceId, memberId, token);
       setMembers(prev => prev.filter(m => m._id !== memberId));
       toast.success('Member removed');
-    } catch (err) { toast.error(err.message) }
+    } catch (err) { toast.error(err.message); }
     setActiveActionMenu(null);
   };
 
@@ -777,8 +778,19 @@ const PeoplePage = () => {
       const { member } = await apiClient.blockMember(activeWorkspaceId, memberId, token);
       setMembers(prev => prev.map(m => m._id === memberId ? { ...m, status: member.status } : m));
       toast.success(member.status === 'blocked' ? 'Member blocked' : 'Member unblocked');
-    } catch (err) { toast.error(err.message) }
+    } catch (err) { toast.error(err.message); }
     setActiveActionMenu(null);
+  };
+
+  const handleRemoveCollaborator = async (projectId, collaboratorUserId) => {
+    try {
+      const token = await getToken();
+      await apiClient.removeProjectCollaborator(projectId, collaboratorUserId, token);
+      setProjectCollaborators(prev => prev.filter(
+        c => !(c.projectId === projectId && c.collaborator.userId === collaboratorUserId)
+      ));
+      toast.success('Collaborator removed');
+    } catch (err) { toast.error(err.message || 'Failed to remove collaborator'); }
   };
 
   const handleExport = () => {
@@ -786,55 +798,44 @@ const PeoplePage = () => {
     const headers = ['Name', 'Email', 'Role', 'Status', 'Joined Date'];
     const csvRows = [headers.join(',')];
     members.forEach(m => {
-        csvRows.push([
-            `"${m.name || ''}"`,
-            `"${m.email || ''}"`,
-            `"${m.role || ''}"`,
-            `"${m.status || ''}"`,
-            `"${new Date(m.joinedAt || Date.now()).toISOString()}"`
-        ].join(','));
+      csvRows.push([`"${m.name||''}"`,`"${m.email||''}"`,`"${m.role||''}"`,`"${m.status||''}"`,`"${new Date(m.joinedAt||Date.now()).toISOString()}"`].join(','));
     });
-    const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRows.join('\n'));
     const link = document.createElement('a');
-    link.setAttribute('href', csvContent);
+    link.setAttribute('href', "data:text/csv;charset=utf-8," + encodeURIComponent(csvRows.join('\n')));
     link.setAttribute('download', 'workspace-members.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-  const formatDate = (d) => {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
   const isOwnerOrAdmin = ['owner', 'admin'].includes(callerRole);
   const isOwner = callerRole === 'owner';
 
-  // Filter members
-  let filtered = members;
-  if (tab === 'collaborators') {
-    filtered = filtered.filter(m => m.role !== 'owner');
-  }
+  // Build filtered member list for All and Members sub-tabs
+  let filteredMembers = members;
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
-    filtered = filtered.filter(m => (m.name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q));
+    filteredMembers = filteredMembers.filter(m => (m.name||'').toLowerCase().includes(q) || (m.email||'').toLowerCase().includes(q));
   }
   if (roleFilter !== 'All roles') {
-    filtered = filtered.filter(m => m.role === roleFilter.toLowerCase());
+    filteredMembers = filteredMembers.filter(m => m.role === roleFilter.toLowerCase());
   }
 
-  // Menu item component
+  // Filter project collaborators
+  let filteredCollabs = projectCollaborators;
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filteredCollabs = filteredCollabs.filter(c =>
+      (c.collaborator.name||'').toLowerCase().includes(q) ||
+      (c.collaborator.email||'').toLowerCase().includes(q) ||
+      (c.projectName||'').toLowerCase().includes(q)
+    );
+  }
+
   const MenuItem = ({ onClick, icon, label, danger }) => (
     <button
-      style={{
-        width: '100%', padding: '8px 14px', background: 'none', border: 'none',
-        color: danger ? '#ef4444' : '#ccc', fontSize: '13px', cursor: 'pointer',
-        textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px',
-        transition: 'background 0.1s'
-      }}
-      onMouseOver={(e) => e.currentTarget.style.background = '#2a2a2a'}
-      onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+      style={{ width: '100%', padding: '8px 14px', background: 'none', border: 'none', color: danger ? '#ef4444' : '#ccc', fontSize: '13px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.1s' }}
+      onMouseOver={e => e.currentTarget.style.background = '#2a2a2a'}
+      onMouseOut={e => e.currentTarget.style.background = 'none'}
       onClick={onClick}
     >
       {icon}{label}
@@ -844,143 +845,153 @@ const PeoplePage = () => {
   const renderActionMenu = (member) => {
     const isSelf = member.userId === callerUserId;
     const isTargetOwner = member.role === 'owner';
-
     return (
-      <div 
-        ref={menuRef}
-        style={{
-          position: 'absolute', left: '100%', top: '-8px', marginLeft: '8px', background: '#1e1e1e',
-          border: '1px solid #333', borderRadius: '10px', overflow: 'visible',
-          zIndex: 9999, minWidth: '200px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-          padding: '4px 0'
-        }}
-      >
-        {/* View profile — always shown */}
-        <MenuItem
-          icon={<ExternalLink size={14} />}
-          label="View profile"
-          onClick={() => { setActiveActionMenu(null); navigate('/settings#profile'); }}
-        />
-
+      <div ref={menuRef} style={{ position: 'absolute', left: '100%', top: '-8px', marginLeft: '8px', background: '#1e1e1e', border: '1px solid #333', borderRadius: '10px', zIndex: 9999, minWidth: '200px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', padding: '4px 0' }}>
+        <MenuItem icon={<ExternalLink size={14} />} label="View profile" onClick={() => { setActiveActionMenu(null); navigate('/settings#profile'); }} />
         {isSelf ? (
           <>
-            {/* Own row: Set credit limit, Leave workspace */}
-            <MenuItem
-              icon={<CreditCard size={14} />}
-              label="Set credit limit"
-              onClick={() => { setActiveActionMenu(null); toast('Credit limits coming soon'); }}
-            />
+            <MenuItem icon={<CreditCard size={14} />} label="Set credit limit" onClick={() => { setActiveActionMenu(null); toast('Credit limits coming soon'); }} />
             <div style={{ borderTop: '1px solid #2a2a2a', margin: '4px 0' }} />
-            <MenuItem
-              icon={<ArrowLeft size={14} />}
-              label="Leave workspace"
-              danger
-              onClick={() => { setActiveActionMenu(null); toast.error("Can't leave — this is your only workspace"); }}
-            />
+            <MenuItem icon={<ArrowLeft size={14} />} label="Leave workspace" danger onClick={() => { setActiveActionMenu(null); toast.error("Can't leave — this is your only workspace"); }} />
           </>
         ) : !isTargetOwner ? (
           <>
-            {/* Other member row */}
             {isOwner && (
-              <>
-                {/* Change role sub-menu */}
-                <div style={{ position: 'relative' }}>
-                  <button
-                    style={{
-                      width: '100%', padding: '8px 14px', background: 'none', border: 'none',
-                      color: '#ccc', fontSize: '13px', cursor: 'pointer',
-                      textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between',
-                      transition: 'background 0.1s'
-                    }}
-                    onMouseOver={(e) => { e.currentTarget.style.background = '#2a2a2a'; setRoleSubmenu(member._id); }}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'none'}
-                    onClick={() => setRoleSubmenu(roleSubmenu === member._id ? null : member._id)}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Users size={14} /> Change role
-                    </span>
-                    <ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />
-                  </button>
-                  {roleSubmenu === member._id && (
-                    <div style={{
-                      position: 'absolute', right: '100%', top: 0, marginRight: '4px', background: '#1e1e1e',
-                      border: '1px solid #333', borderRadius: '8px', overflow: 'hidden',
-                      zIndex: 10000, minWidth: '130px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
-                    }}>
-                      {['admin', 'editor', 'viewer'].map(r => (
-                        <button
-                          key={r}
-                          style={{
-                            width: '100%', padding: '8px 14px', background: member.role === r ? '#2a2a2a' : 'none',
-                            border: 'none', color: member.role === r ? '#818cf8' : '#ccc',
-                            fontSize: '13px', cursor: 'pointer', textAlign: 'left',
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            transition: 'background 0.1s', textTransform: 'capitalize'
-                          }}
-                          onMouseOver={(e) => e.currentTarget.style.background = '#2a2a2a'}
-                          onMouseOut={(e) => { if (member.role !== r) e.currentTarget.style.background = 'none'; }}
-                          onClick={() => handleRoleChange(member._id, r)}
-                        >
-                          {r}
-                          {member.role === r && <Check size={14} color="#818cf8" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
+              <div style={{ position: 'relative' }}>
+                <button
+                  style={{ width: '100%', padding: '8px 14px', background: 'none', border: 'none', color: '#ccc', fontSize: '13px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between', transition: 'background 0.1s' }}
+                  onMouseOver={e => { e.currentTarget.style.background = '#2a2a2a'; setRoleSubmenu(member._id); }}
+                  onMouseOut={e => e.currentTarget.style.background = 'none'}
+                  onClick={() => setRoleSubmenu(roleSubmenu === member._id ? null : member._id)}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Users size={14} /> Change role</span>
+                  <ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />
+                </button>
+                {roleSubmenu === member._id && (
+                  <div style={{ position: 'absolute', right: '100%', top: 0, marginRight: '4px', background: '#1e1e1e', border: '1px solid #333', borderRadius: '8px', overflow: 'hidden', zIndex: 10000, minWidth: '130px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                    {['admin', 'editor', 'viewer'].map(r => (
+                      <button key={r} style={{ width: '100%', padding: '8px 14px', background: member.role === r ? '#2a2a2a' : 'none', border: 'none', color: member.role === r ? '#818cf8' : '#ccc', fontSize: '13px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background 0.1s', textTransform: 'capitalize' }}
+                        onMouseOver={e => e.currentTarget.style.background = '#2a2a2a'}
+                        onMouseOut={e => { if (member.role !== r) e.currentTarget.style.background = 'none'; }}
+                        onClick={() => handleRoleChange(member._id, r)}
+                      >
+                        {r} {member.role === r && <Check size={14} color="#818cf8" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             <div style={{ borderTop: '1px solid #2a2a2a', margin: '4px 0' }} />
-            {isOwner && (
-              <MenuItem
-                icon={<span>⛔</span>}
-                label={member.status === 'blocked' ? 'Unban from workspace' : 'Ban from workspace'}
-                onClick={() => handleBlock(member._id)}
-              />
-            )}
-            {isOwnerOrAdmin && (
-              <MenuItem
-                icon={<span>🗑</span>}
-                label="Remove from workspace"
-                danger
-                onClick={() => handleRemove(member._id)}
-              />
-            )}
+            {isOwner && <MenuItem icon={<span>⛔</span>} label={member.status === 'blocked' ? 'Unban from workspace' : 'Ban from workspace'} onClick={() => handleBlock(member._id)} />}
+            {isOwnerOrAdmin && <MenuItem icon={<span>🗑</span>} label="Remove from workspace" danger onClick={() => handleRemove(member._id)} />}
           </>
         ) : null}
       </div>
     );
   };
 
+  // ── Build unified people list (merge ws members + project collabs by email) ──
+  const collabsByEmail = {};
+  projectCollaborators.forEach(c => {
+    const email = (c.collaborator.email || '').toLowerCase();
+    if (!email) return;
+    if (!collabsByEmail[email]) collabsByEmail[email] = [];
+    collabsByEmail[email].push(c);
+  });
+
+  // Unified rows for All tab: each unique person appears once
+  const unifiedPeople = [];
+  const seenEmails = new Set();
+
+  // 1) Workspace members first
+  filteredMembers.forEach(member => {
+    const email = (member.email || '').toLowerCase();
+    seenEmails.add(email);
+    const collabEntries = collabsByEmail[email] || [];
+    unifiedPeople.push({
+      key: member._id,
+      name: member.name,
+      email: member.email,
+      avatar: member.avatar,
+      userId: member.userId,
+      memberId: member._id,
+      wsRole: member.role,
+      status: member.status,
+      joinedAt: member.joinedAt,
+      isWorkspace: true,
+      isProject: collabEntries.length > 0,
+      collabEntries, // [{projectId, projectName, collaborator}]
+      isSelf: member.userId === callerUserId,
+    });
+  });
+
+  // 2) Project-only collabs (not in workspace)
+  filteredCollabs.forEach(c => {
+    const email = (c.collaborator.email || '').toLowerCase();
+    if (seenEmails.has(email)) return; // already merged above
+    seenEmails.add(email);
+    // Group all projects for this email
+    const allEntries = (collabsByEmail[email] || []);
+    unifiedPeople.push({
+      key: `pc-${email}`,
+      name: c.collaborator.name,
+      email: c.collaborator.email,
+      avatar: null,
+      userId: c.collaborator.userId,
+      memberId: null,
+      wsRole: null,
+      status: 'active',
+      joinedAt: c.collaborator.joinedAt,
+      isWorkspace: false,
+      isProject: true,
+      collabEntries: allEntries,
+      isSelf: false,
+    });
+  });
+
+  // Counts
+  const allCount = unifiedPeople.length;
+  const inviteCount = pendingInvites.length;
+  const collabCount = projectCollaborators.length;
+
+  // Chip components
+  const WsChip = () => <span style={{ fontSize: '11px', color: '#888', background: '#222', padding: '2px 8px', borderRadius: '6px', marginRight: '4px' }}>Workspace</span>;
+  const ProjChip = () => <span style={{ fontSize: '11px', color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '2px 8px', borderRadius: '6px' }}>Project</span>;
+
   return (
     <div className="sp-content">
       <div className="sp-page-header">
         <div>
           <h1 className="sp-page-title">People</h1>
-          <p className="sp-page-subtitle">Manage members and their roles.</p>
+          <p className="sp-page-subtitle">Manage members, invitations, and project collaborators.</p>
         </div>
         <a className="sp-docs-link">⊙ Docs</a>
       </div>
 
       <div className="sp-tabs">
-        <button className={`sp-tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>All</button>
-        <button className={`sp-tab ${tab === 'invitations' ? 'active' : ''}`} onClick={() => setTab('invitations')}>
-          Invitations {pendingInvites.length > 0 && <span style={{background:'#ef4444',color:'#fff',fontSize:'10px',padding:'1px 6px',borderRadius:'8px',marginLeft:'4px'}}>{pendingInvites.length}</span>}
+        <button className={`sp-tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>
+          All <span style={{ color: '#666', fontSize: '12px', marginLeft: '4px' }}>{allCount}</span>
         </button>
-        <button className={`sp-tab ${tab === 'collaborators' ? 'active' : ''}`} onClick={() => setTab('collaborators')}>Collaborators</button>
+        <button className={`sp-tab ${tab === 'invitations' ? 'active' : ''}`} onClick={() => setTab('invitations')}>
+          Invitations {inviteCount > 0 && <span style={{ background: '#ef4444', color: '#fff', fontSize: '10px', padding: '1px 6px', borderRadius: '8px', marginLeft: '4px' }}>{inviteCount}</span>}
+        </button>
+        <button className={`sp-tab ${tab === 'collaborators' ? 'active' : ''}`} onClick={() => setTab('collaborators')}>
+          Collaborators {collabCount > 0 && <span style={{ background: '#3b82f6', color: '#fff', fontSize: '10px', padding: '1px 6px', borderRadius: '8px', marginLeft: '4px' }}>{collabCount}</span>}
+        </button>
       </div>
 
       <div className="sp-filter-bar">
         <div className="sp-search-bar">
           <Search size={14} />
-          <input type="text" className="sp-input" placeholder="Search members..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          <input type="text" className="sp-input" placeholder="Search..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
         </div>
-        <MutedDropdown options={['All roles', 'Owner', 'Admin', 'Editor', 'Viewer']} value={roleFilter} onChange={setRoleFilter} />
-        <div style={{flex: 1}}></div>
+        {tab !== 'invitations' && <MutedDropdown options={['All roles', 'Owner', 'Admin', 'Editor', 'Viewer']} value={roleFilter} onChange={setRoleFilter} />}
+        <div style={{ flex: 1 }} />
         {isOwnerOrAdmin && (
           <>
-            <button className="sp-btn sp-btn-outline" style={{borderStyle: 'dashed'}} onClick={() => setInviteLinkModalOpen(true)}>Copy Invite Link</button>
-            <button className="sp-btn sp-btn-outline" onClick={handleExport} title="Export members (CSV)" style={{padding: '0 8px'}}>
+            <button className="sp-btn sp-btn-outline" style={{ borderStyle: 'dashed' }} onClick={() => setInviteLinkModalOpen(true)}>Copy Invite Link</button>
+            <button className="sp-btn sp-btn-outline" onClick={handleExport} title="Export CSV" style={{ padding: '0 8px' }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
             </button>
             <button className="sp-btn sp-btn-white" onClick={() => setInviteModalOpen(true)}>Invite members</button>
@@ -988,96 +999,174 @@ const PeoplePage = () => {
         )}
       </div>
 
-      {tab === 'invitations' ? (
+      {/* ── INVITATIONS TAB ── */}
+      {tab === 'invitations' && (
         <div className="sp-table-wrapper">
           <table className="sp-table">
-            <thead><tr><th>Email</th><th>Role</th><th>Invited by</th><th>Sent</th><th>Status</th></tr></thead>
+            <thead><tr><th>Email</th><th>Type</th><th>Role</th><th>Invited by</th><th>Sent</th><th>Status</th></tr></thead>
             <tbody>
-              {pendingInvites.length === 0 ? (
-                <tr><td colSpan="5" style={{textAlign: 'center', color: '#666', padding: '32px'}}>No pending invitations</td></tr>
-              ) : pendingInvites.map(inv => (
-                <tr key={inv._id}>
-                  <td style={{color: '#fff'}}>{inv.invitedEmail}</td>
-                  <td><span style={{textTransform: 'capitalize'}}>{inv.role}</span></td>
-                  <td>{inv.invitedByName}</td>
-                  <td>{formatDate(inv.createdAt)}</td>
-                  <td><span style={{color: '#f59e0b', fontSize: '12px'}}>⏳ Pending</span></td>
-                </tr>
-              ))}
+              {pendingInvites.length === 0 && filteredCollabs.length === 0 ? (
+                <tr><td colSpan="6" style={{ textAlign: 'center', color: '#666', padding: '32px' }}>No pending invitations</td></tr>
+              ) : (
+                <>
+                  {pendingInvites.map(inv => (
+                    <tr key={inv._id}>
+                      <td style={{ color: '#fff' }}>{inv.invitedEmail}</td>
+                      <td><WsChip /></td>
+                      <td><span style={{ textTransform: 'capitalize' }}>{inv.role}</span></td>
+                      <td>{inv.invitedByName}</td>
+                      <td>{formatDate(inv.createdAt)}</td>
+                      <td><span style={{ color: '#f59e0b', fontSize: '12px' }}>⏳ Pending</span></td>
+                    </tr>
+                  ))}
+                  {/* Show project collabs as accepted invitations too */}
+                  {filteredCollabs.map((c, i) => (
+                    <tr key={`inv-collab-${i}`}>
+                      <td style={{ color: '#fff' }}>{c.collaborator.email}</td>
+                      <td><ProjChip /></td>
+                      <td><span style={{ textTransform: 'capitalize' }}>{c.collaborator.role}</span></td>
+                      <td style={{ color: '#888', fontSize: '13px' }}>{c.projectName}</td>
+                      <td>{formatDate(c.collaborator.joinedAt)}</td>
+                      <td><span style={{ color: '#22c55e', fontSize: '12px' }}>● Accepted</span></td>
+                    </tr>
+                  ))}
+                </>
+              )}
             </tbody>
           </table>
-          <div className="sp-table-footer">Showing {pendingInvites.length} pending invitation(s)</div>
+          <div className="sp-table-footer">Showing {pendingInvites.length} pending + {filteredCollabs.length} accepted invitation(s)</div>
         </div>
-      ) : (
+      )}
+
+      {/* ── COLLABORATORS TAB ── */}
+      {tab === 'collaborators' && (
         <div className="sp-table-wrapper">
           <table className="sp-table">
-            <thead>
-              <tr>
-                <th>Name ⇅</th>
-                <th>Role ⇅</th>
-                <th>Status</th>
-                <th>Joined date ⇅</th>
-                <th></th>
-              </tr>
-            </thead>
+            <thead><tr><th>Person</th><th>Type</th><th>Project</th><th>Role</th><th>Joined</th><th></th></tr></thead>
             <tbody>
-              {filtered.map(member => {
-                const isSelf = member.userId === callerUserId;
+              {filteredCollabs.length === 0 ? (
+                <tr><td colSpan="6" style={{ textAlign: 'center', color: '#666', padding: '32px' }}>No project collaborators yet</td></tr>
+              ) : filteredCollabs.map((c, i) => {
+                const email = (c.collaborator.email || '').toLowerCase();
+                const isAlsoWs = members.some(m => (m.email || '').toLowerCase() === email);
                 return (
-                  <tr key={member._id} style={member.status === 'blocked' ? {opacity: 0.5} : {}}>
+                  <tr key={`collab-${i}`}>
                     <td>
                       <div className="sp-table-user">
-                        {member.avatar ? (
-                          <img src={member.avatar} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
-                        ) : (
-                          <div className="sp-avatar-sm blue">{(member.name || member.email || '?')[0].toUpperCase()}</div>
-                        )}
+                        <div className="sp-avatar-sm blue">{(c.collaborator.name || c.collaborator.email || '?')[0].toUpperCase()}</div>
                         <div>
-                          <div style={{fontWeight: 600, color: '#fff'}}>{member.name || 'Unknown'}{isSelf ? ' (you)' : ''}</div>
-                          <div style={{color: '#666', fontSize: '12px'}}>{member.email}</div>
+                          <div style={{ fontWeight: 600, color: '#fff' }}>{c.collaborator.name || 'Unknown'}</div>
+                          <div style={{ color: '#666', fontSize: '12px' }}>{c.collaborator.email}</div>
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <span style={{textTransform: 'capitalize', color: member.role === 'owner' ? '#818cf8' : '#ccc'}}>
-                        {member.role}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{fontSize: '12px', color: member.status === 'blocked' ? '#ef4444' : '#22c55e'}}>
-                        {member.status === 'blocked' ? '⛔ Blocked' : '● Active'}
-                      </span>
-                    </td>
-                    <td>{formatDate(member.joinedAt)}</td>
-                    <td style={{position: 'relative'}}>
-                      <MoreHorizontal
-                        size={16}
-                        color="#666"
-                        style={{cursor: 'pointer'}}
-                        onClick={() => {
-                          setActiveActionMenu(activeActionMenu === member._id ? null : member._id);
-                          setRoleSubmenu(null);
-                        }}
-                      />
-                      {activeActionMenu === member._id && renderActionMenu(member)}
+                    <td><div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>{isAlsoWs && <WsChip />}<ProjChip /></div></td>
+                    <td style={{ color: '#aaa', fontSize: '13px' }}>{c.projectName}</td>
+                    <td><span style={{ textTransform: 'capitalize', color: '#ccc', fontSize: '13px' }}>{c.collaborator.role}</span></td>
+                    <td>{formatDate(c.collaborator.joinedAt)}</td>
+                    <td style={{ position: 'relative' }}>
+                      {isOwnerOrAdmin && (
+                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                          <MoreHorizontal size={16} color="#666" style={{ cursor: 'pointer' }}
+                            onClick={() => setActiveActionMenu(activeActionMenu === `c-${i}` ? null : `c-${i}`)}
+                          />
+                          {activeActionMenu === `c-${i}` && (
+                            <div ref={menuRef} style={{ position: 'absolute', right: 0, top: '100%', background: '#1e1e1e', border: '1px solid #333', borderRadius: '10px', zIndex: 9999, minWidth: '180px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', padding: '4px 0' }}>
+                              <MenuItem icon={<span>🗑</span>} label="Remove from project" danger
+                                onClick={() => { handleRemoveCollaborator(c.projectId, c.collaborator.userId); setActiveActionMenu(null); }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          <div className="sp-table-footer">Showing {filtered.length} of {members.length} members</div>
+          <div className="sp-table-footer">Showing {filteredCollabs.length} project collaborator(s)</div>
         </div>
       )}
-      
-      <InviteLinkModal 
-        isOpen={isInviteLinkModalOpen} 
-        onClose={() => setInviteLinkModalOpen(false)} 
-        workspaceId={activeWorkspaceId} 
-      />
+
+      {/* ── ALL TAB (unified, merged by email) ── */}
+      {tab === 'all' && (
+        <div className="sp-table-wrapper">
+          <table className="sp-table">
+            <thead>
+              <tr><th>Name ⇅</th><th>Type</th><th>Role ⇅</th><th>Status</th><th>Joined date ⇅</th><th></th></tr>
+            </thead>
+            <tbody>
+              {unifiedPeople.length === 0 ? (
+                <tr><td colSpan="6" style={{ textAlign: 'center', color: '#666', padding: '32px' }}>No people found</td></tr>
+              ) : unifiedPeople.map(person => (
+                <tr key={person.key} style={person.status === 'blocked' ? { opacity: 0.5 } : {}}>
+                  <td>
+                    <div className="sp-table-user">
+                      {person.avatar ? (
+                        <img src={person.avatar} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
+                      ) : (
+                        <div className="sp-avatar-sm blue">{(person.name || person.email || '?')[0].toUpperCase()}</div>
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>{person.name || 'Unknown'}{person.isSelf ? ' (you)' : ''}</div>
+                        <div style={{ color: '#666', fontSize: '12px' }}>{person.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {person.isWorkspace && <WsChip />}
+                      {person.isProject && <ProjChip />}
+                    </div>
+                  </td>
+                  <td>
+                    {person.isWorkspace && person.isProject ? (
+                      <div style={{ lineHeight: 1.6 }}>
+                        <div style={{ fontSize: '12px', color: person.wsRole === 'owner' ? '#818cf8' : '#ccc', textTransform: 'capitalize' }}>
+                          WS: {person.wsRole}
+                        </div>
+                        {person.collabEntries.map((ce, ci) => (
+                          <div key={ci} style={{ fontSize: '11px', color: '#3b82f6' }}>
+                            {ce.projectName}: {ce.collaborator.role}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span style={{ textTransform: 'capitalize', color: person.wsRole === 'owner' ? '#818cf8' : '#ccc' }}>
+                        {person.wsRole || (person.collabEntries[0]?.collaborator.role) || '—'}
+                      </span>
+                    )}
+                  </td>
+                  <td><span style={{ fontSize: '12px', color: person.status === 'blocked' ? '#ef4444' : '#22c55e' }}>{person.status === 'blocked' ? '⛔ Blocked' : '● Active'}</span></td>
+                  <td>{formatDate(person.joinedAt)}</td>
+                  <td style={{ position: 'relative' }}>
+                    {person.isWorkspace && person.memberId ? (
+                      <>
+                        <MoreHorizontal size={16} color="#666" style={{ cursor: 'pointer' }}
+                          onClick={() => { setActiveActionMenu(activeActionMenu === person.memberId ? null : person.memberId); setRoleSubmenu(null); }}
+                        />
+                        {activeActionMenu === person.memberId && renderActionMenu({ ...person, _id: person.memberId, role: person.wsRole })}
+                      </>
+                    ) : isOwnerOrAdmin && person.isProject ? (
+                      <span style={{ fontSize: '12px', color: '#ef4444', cursor: 'pointer' }}
+                        onClick={() => person.collabEntries.forEach(ce => handleRemoveCollaborator(ce.projectId, ce.collaborator.userId))}>Remove</span>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="sp-table-footer">Showing {unifiedPeople.length} people ({filteredMembers.length} workspace + {unifiedPeople.filter(p => p.isProject && !p.isWorkspace).length} project-only)</div>
+        </div>
+      )}
+
+      <InviteLinkModal isOpen={isInviteLinkModalOpen} onClose={() => setInviteLinkModalOpen(false)} workspaceId={activeWorkspaceId} />
     </div>
   );
 };
+
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: PLANS
@@ -2893,9 +2982,16 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const hash = location.hash || '#workspace';
   const { user } = useUser();
-  const { userData } = useAuthStore();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { userData, fetchUserData } = useAuthStore();
   const { workspaces, activeWorkspaceId } = useWorkspaceStore();
   
+  useEffect(() => {
+    if (isLoaded && isSignedIn && !userData) {
+      fetchUserData(getToken);
+    }
+  }, [isLoaded, isSignedIn, userData, fetchUserData, getToken]);
+
   const activeWorkspace = workspaces?.find(w => w._id === activeWorkspaceId) || workspaces?.[0];
   const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User';
   const userInitial = userName.charAt(0).toUpperCase();

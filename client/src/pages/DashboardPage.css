@@ -366,7 +366,6 @@
   .lv-hero-title {
     font-size: 26px;
   }
-  
   .lv-tab-section {
     padding: 16px 12px 20px;
     margin: 120px auto 30px;
@@ -391,4 +390,70 @@
 
 @keyframes lv-spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Prompt Suggestion Chips ── */
+.lv-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 680px;
+  width: 100%;
+  margin-top: 16px;
+  animation: slideUpFade 0.3s ease-out;
+}
+
+.lv-suggestion-chip {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.lv-suggestion-chip:hover {
+  background: #111111;
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* ── Enhance Button ── */
+.lv-enhance-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #a78bfa;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.lv-enhance-btn:hover {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+}
+
+.lv-enhance-btn.loading {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.lv-spin {
+  animation: spin 1s linear infinite;
 }

@@ -66,7 +66,7 @@ export const useChatStore = create(
                 return { styleOptions: newOpts };
             }),
             
-            loadProject: async (projectId, token) => {
+            loadProject: async (projectId, token, inviteToken = null) => {
                 // Step 1: Instantly restore from localStorage cache (fast UI)
                 set((state) => {
                     const newProjectData = { ...state.projectData };
@@ -126,7 +126,7 @@ export const useChatStore = create(
                 // Step 2: Hydrate from DB (skip for timestamp-based fallback IDs)
                 if (projectId && projectId !== 'new' && projectId.length === 24) {
                     try {
-                        const data = await apiClient.getWorkspace(projectId, token);
+                        const data = await apiClient.getWorkspace(projectId, token, inviteToken);
                         if (data && data.project) {
                             set({ 
                                 isConfigured: !!data.project.isConfigured,

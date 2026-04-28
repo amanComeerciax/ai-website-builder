@@ -49,5 +49,10 @@ export const useInvitationStore = create((set, get) => ({
         }
     },
 
+    removeFromInbox: (id) => set(state => ({
+        inbox: state.inbox.filter(inv => inv._id !== id),
+        inboxCount: Math.max(0, state.inboxCount - 1)
+    })),
+
     clearInbox: () => set({ inbox: [], inboxCount: 0 })
 }));

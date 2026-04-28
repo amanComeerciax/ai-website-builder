@@ -32,15 +32,14 @@ router.post('/sync', requireAuth, async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
+    const superAdmins = (process.env.SUPER_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+    const isSuperAdmin = user.email && superAdmins.includes(user.email.toLowerCase());
+
     return res.status(200).json({ 
       success: true, 
       user: {
-        email: user.email,
-        name: user.name || "",
-        avatar: user.avatar || "",
-        tier: user.subscription?.tier || 'free',
-        usage: user.usage || { generationsThisMonth: 0 },
-        role: user.role || 'user'
+        ...user.toObject(),
+        role: isSuperAdmin ? 'admin' : (user.role || 'user')
       } 
     });
   } catch (error) {
@@ -134,6 +133,9 @@ router.get('/me', requireAuth, async (req, res) => {
       }
     }
 
+    const superAdmins = (process.env.SUPER_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+    const isSuperAdmin = user.email && superAdmins.includes(user.email.toLowerCase());
+
     return res.status(200).json({
       email: user.email,
       name: user.name || "",
@@ -142,7 +144,7 @@ router.get('/me', requireAuth, async (req, res) => {
       usage: user.usage || { generationsThisMonth: 0 },
       defaultWorkspaceId,
       activeWorkspaceId,
-      role: user.role || 'user',
+      role: isSuperAdmin ? 'admin' : (user.role || 'user'),
       workspaces: finalWorkspaces.map(w => ({ _id: w._id, name: w.name, plan: w.plan, createdAt: w.createdAt }))
     });
   } catch (error) {

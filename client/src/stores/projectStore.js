@@ -4,6 +4,7 @@ import { apiClient } from '../lib/api'
 export const useProjectStore = create((set, get) => ({
     projects: [],
     isLoading: false,
+    isLoadingProjects: false,
     
     // Clear all projects (for workspace switching)
     clearProjects: () => set({ projects: [] }),
@@ -53,29 +54,64 @@ export const useProjectStore = create((set, get) => ({
 
     // Fetch all projects from DB
     fetchProjects: async (token, workspaceId = null) => {
-        set({ isLoading: true });
+        set({ isLoadingProjects: true });
         try {
-            const data = await apiClient.getProjects(token, workspaceId);
-            const projects = (data.projects || []).map(p => ({
-                id: p._id,
-                name: p.name,
-                time: new Date(p.createdAt).toLocaleDateString(),
-                lastEdited: new Date(p.updatedAt).getTime(),
-                createdAt: p.createdAt,
-                updatedAt: p.updatedAt,
-                isStarred: p.isStarred || false,
-                isShared: p.isShared || false,
-                folderId: p.folderId || null,
-                techStack: p.techStack || 'react',
-                status: p.status || 'idle',
-                publishedUrl: p.publishedUrl || null,
-                websiteName: p.websiteName || null,
-                description: p.description || null
-            }));
-            set({ projects, isLoading: false });
+            const [mainData, sharedData] = await Promise.all([
+                apiClient.getProjects(token, workspaceId).catch(() => ({ projects: [] })),
+                apiClient.getSharedProjects(token).catch(() => ({ projects: [] }))
+            ]);
+
+            const projectMap = new Map();
+
+            // Process main projects
+            (mainData.projects || []).forEach(p => {
+                projectMap.set(p._id, {
+                    id: p._id,
+                    name: p.name,
+                    time: new Date(p.createdAt).toLocaleDateString(),
+                    lastEdited: new Date(p.updatedAt).getTime(),
+                    createdAt: p.createdAt,
+                    updatedAt: p.updatedAt,
+                    isStarred: p.isStarred || false,
+                    isShared: p.isShared || false,
+                    folderId: p.folderId || null,
+                    techStack: p.techStack || 'react',
+                    status: p.status || 'idle',
+                    publishedUrl: p.publishedUrl || null,
+                    websiteName: p.websiteName || null,
+                    description: p.description || null
+                });
+            });
+
+            // Process shared projects
+            (sharedData.projects || []).forEach(p => {
+                if (!projectMap.has(p._id)) {
+                    projectMap.set(p._id, {
+                        id: p._id,
+                        name: p.name,
+                        time: new Date(p.createdAt).toLocaleDateString(),
+                        lastEdited: new Date(p.updatedAt).getTime(),
+                        createdAt: p.createdAt,
+                        updatedAt: p.updatedAt,
+                        isStarred: p.isStarred || false,
+                        isShared: true, // Always true for shared-with-me list
+                        folderId: p.folderId || null,
+                        techStack: p.techStack || 'react',
+                        status: p.status || 'idle',
+                        publishedUrl: p.publishedUrl || null,
+                        websiteName: p.websiteName || null,
+                        description: p.description || null
+                    });
+                } else {
+                    // If it already exists in the workspace, we still mark it as shared so it shows up in "Shared with me" filter
+                    projectMap.get(p._id).isShared = true;
+                }
+            });
+
+            set({ projects: Array.from(projectMap.values()), isLoadingProjects: false });
         } catch (err) {
             console.error('[ProjectStore] Failed to fetch projects:', err);
-            set({ isLoading: false });
+            set({ isLoadingProjects: false });
         }
     },
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { 
     ChevronDown, Clock, PanelLeftClose, Rocket, Share2, 
@@ -18,6 +18,8 @@ import RenameModal from '../components/modals/RenameModal'
 import MoveToFolderModal from '../components/modals/MoveToFolderModal'
 import DetailsModal from '../components/modals/DetailsModal'
 import PublishModal from '../components/modals/PublishModal'
+import SharePopover from '../components/modals/SharePopover'
+import JoinProjectModal from '../components/modals/JoinProjectModal'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import { useChatStore } from '../stores/chatStore'
@@ -26,8 +28,9 @@ import { useEditorStore } from '../stores/editorStore'
 import { useFolderStore } from '../stores/folderStore'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import { useAuthStore } from '../stores/authStore'
-import { useRecentlyViewedStore } from '../stores/recentlyViewedStore'
 import { useUser } from '@clerk/clerk-react'
+import { useToast } from '../components/UIComponents/Toasts/tsx/ToastPill'
+import { useRecentlyViewedStore } from '../stores/recentlyViewedStore'
 import './ChatPage.css'
 
 export default function ChatPage() {
@@ -36,6 +39,7 @@ export default function ChatPage() {
     const { user: clerkUser } = useUser()
     const location = useLocation()
     const navigate = useNavigate()
+    const inviteToken = new URLSearchParams(location.search).get('inviteToken')
     const { getProjectById } = useProjectStore()
     const { folders, fetchFolders } = useFolderStore()
     const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -46,11 +50,14 @@ export default function ChatPage() {
     const [renameModal, setRenameModal] = useState({ open: false, id: null, name: '' })
     const [moveModal, setMoveModal] = useState({ open: false, id: null, name: '', folderId: null })
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+    const [isShareOpen, setIsShareOpen] = useState(false)
+    const shareBtnRef = useRef(null)
+    const { toast } = useToast()
     
     const { 
         isGenerating, generationStatus, isDetailsExpanded, setDetailsExpanded,
         isIdeVisible, setIdeVisible, activeView, setActiveView, messages, addMessage, startGeneration,
-        generationPhase, isVisualEditMode, isConfigured
+        generationPhase, isVisualEditMode, isConfigured, generationLogs
     } = useChatStore()
     const { files } = useEditorStore()
     
@@ -60,6 +67,7 @@ export default function ChatPage() {
         
     // Deployment state
     const [isDeploying, setIsDeploying] = useState(false)
+    const [buildProgress, setBuildProgress] = useState(0)
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
     const [publishedUrl, setPublishedUrl] = useState(null)
 
@@ -73,6 +81,46 @@ export default function ChatPage() {
         }
     }, [project]);
 
+    // Check project access periodically (kick if access removed)
+    useEffect(() => {
+        if (!projectId || projectId === 'new') return;
+        const interval = setInterval(async () => {
+            try {
+                const token = await getToken();
+                const res = await fetch(`/api/projects/${projectId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 403 || res.status === 404) {
+                    navigate('/dashboard');
+                }
+            } catch(e) {}
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [projectId, getToken, navigate]);
+
+    // Build Progress tracker 
+    useEffect(() => {
+        if (!isGenerating) {
+            setBuildProgress(100);
+            setTimeout(() => setBuildProgress(0), 500);
+            return;
+        }
+
+        // Base progress on SSE data
+        if (generationPhase === 'thinking') setBuildProgress(15);
+        else if (generationPhase === 'streaming_logs') {
+            const calculated = 15 + ((generationLogs?.length || 0) * 7);
+            setBuildProgress(Math.min(calculated, 95));
+        }
+
+        // Asymptotic fill between steps
+        const interval = setInterval(() => {
+            setBuildProgress(prev => prev < 95 ? prev + 1 : prev);
+        }, 800);
+
+        return () => clearInterval(interval);
+    }, [isGenerating, generationPhase, generationLogs?.length]);
+
     useEffect(() => {
         if (isAuthLoaded) {
             getToken().then(token => fetchFolders(token))
@@ -82,6 +130,7 @@ export default function ChatPage() {
     const handleDeploy = async (metadata = {}) => {
         if (!projectId || projectId === 'new') return;
         setIsDeploying(true);
+        
         try {
             const token = await getToken();
             
@@ -173,14 +222,13 @@ export default function ChatPage() {
     // Switch completely isolated IDE workspaces when the URL changes
     useEffect(() => {
         if (projectId && isAuthLoaded) {
-            const sync = async () => {
+            const load = async () => {
                 const token = await getToken();
-                // Ensure project store has data for the "Live" button and Modals
+                await loadProject(projectId, token, inviteToken);
                 useProjectStore.getState().fetchProjects(token);
-                useChatStore.getState().loadProject(projectId, token);
                 useEditorStore.getState().loadProject(projectId);
             }
-            sync()
+            load()
         }
     }, [projectId, isAuthLoaded, getToken]);
 
@@ -401,10 +449,40 @@ export default function ChatPage() {
                 </div>
 
                 <div className="ep-toolbar-right">
-                    <button className="ep-tool-btn ep-share-btn">
-                        <Share2 size={14} />
-                        <span>Share</span>
-                    </button>
+                    {isGenerating && (
+                        <div className="ep-tool-btn" style={{ cursor: 'default', color: '#a78bfa', background: 'transparent' }}>
+                            <Loader2 size={14} className="ep-spin" />
+                            <span>Building... {buildProgress}%</span>
+                        </div>
+                    )}
+                    <div style={{ position: 'relative', display: 'flex' }}>
+                        <button 
+                            ref={shareBtnRef}
+                            className="ep-tool-btn ep-share-btn"
+                            onClick={(e) => {
+                                if (!hasGeneratedContent || isGenerating) {
+                                    e.preventDefault();
+                                    toast({
+                                        title: "Website generation incomplete",
+                                        variant: "warning",
+                                        duration: 3000,
+                                    });
+                                } else {
+                                    setIsShareOpen(!isShareOpen)
+                                }
+                            }}
+                        >
+                            <Share2 size={14} />
+                            <span>Share</span>
+                        </button>
+                        <SharePopover 
+                            isOpen={isShareOpen} 
+                            onClose={() => setIsShareOpen(false)} 
+                            buttonRef={shareBtnRef}
+                            projectId={projectId}
+                            publishedUrl={publishedUrl}
+                        />
+                    </div>
                     {publishedUrl ? (
                         <div style={{display:'flex', gap:'8px'}}>
                             <a href={publishedUrl} target="_blank" rel="noreferrer" className="ep-tool-btn ep-deploy-btn published" style={{background: '#3b82f6', color: '#fff', border: 'none'}}>
@@ -422,10 +500,21 @@ export default function ChatPage() {
                     ) : (
                         <button 
                             className="ep-tool-btn ep-deploy-btn" 
-                            onClick={() => setIsPublishModalOpen(true)} 
-                            disabled={isDeploying || !hasGeneratedContent}
-                            title={!hasGeneratedContent ? "Nothing to deploy yet" : "Publish your site"}
-                            style={isDeploying ? { opacity: 0.7, cursor: 'wait' } : {}}
+                            onClick={(e) => {
+                                if (isDeploying) return;
+                                if (!hasGeneratedContent || isGenerating) {
+                                    e.preventDefault();
+                                    toast({
+                                        title: "Website generation incomplete",
+                                        variant: "warning",
+                                        duration: 3000,
+                                    });
+                                    return;
+                                }
+                                setIsPublishModalOpen(true);
+                            }}
+                            title={isGenerating ? "Wait for generation to complete" : !hasGeneratedContent ? "Nothing to deploy yet" : "Publish your site"}
+                            style={isDeploying || isGenerating || !hasGeneratedContent ? { opacity: 0.7, cursor: isDeploying ? 'wait' : 'not-allowed' } : {}}
                         >
                             {isDeploying ? (
                                 <Loader2 size={14} className="ep-spin" />
@@ -540,6 +629,17 @@ export default function ChatPage() {
                 onPublish={handleDeploy}
                 isPublishing={isDeploying}
             />
+
+            {inviteToken && (
+                <JoinProjectModal 
+                    inviteToken={inviteToken}
+                    onClose={(newProjectId) => {
+                        const searchParams = new URLSearchParams(location.search)
+                        searchParams.delete('inviteToken')
+                        navigate({ pathname: location.pathname, search: searchParams.toString() }, { replace: true })
+                    }}
+                />
+            )}
         </div>
     )
 }

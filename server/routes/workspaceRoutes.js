@@ -279,4 +279,35 @@ router.delete("/:id", requireAuth, async (req, res, next) => {
     }
 });
 
+// ── GET /api/workspaces/:id/project-collaborators — All project collaborators in this workspace ──
+router.get("/:id/project-collaborators", requireAuth, async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const workspaceId = req.params.id;
+
+        // Must be a member
+        const member = await WorkspaceMember.findOne({ workspaceId, userId, status: 'active' });
+        if (!member) return res.status(403).json({ error: "Access denied" });
+
+        // Load all projects in this workspace that have collaborators
+        const projects = await Project.find({ workspaceId, 'collaborators.0': { $exists: true } }).lean();
+
+        // Flatten to {projectId, projectName, collaborator}
+        const collaborators = [];
+        for (const project of projects) {
+            for (const collab of (project.collaborators || [])) {
+                collaborators.push({
+                    projectId: project._id.toString(),
+                    projectName: project.name,
+                    collaborator: collab
+                });
+            }
+        }
+
+        res.json({ collaborators });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;

@@ -3,14 +3,18 @@ import { Mail, Check, XCircle, Clock } from 'lucide-react'
 import { useAuth } from '@clerk/clerk-react'
 import { useInvitationStore } from '../stores/invitationStore'
 import { useWorkspaceStore } from '../stores/workspaceStore'
+import { useProjectStore } from '../stores/projectStore'
+import { apiClient } from '../lib/api'
 import { toast } from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 import './InboxPanel.css'
 
 export default function InboxPanel({ isOpen, onClose }) {
     const [activeTab, setActiveTab] = useState('inbox')
     const { getToken } = useAuth()
-    const { inbox, inboxCount, isLoading, fetchInbox, acceptInvitation, declineInvitation } = useInvitationStore()
+    const { inbox, inboxCount, isLoading, fetchInbox, acceptInvitation, declineInvitation, removeFromInbox } = useInvitationStore()
     const { fetchWorkspaces } = useWorkspaceStore()
+    const navigate = useNavigate()
 
     useEffect(() => {
         if (isOpen) {
@@ -20,21 +24,53 @@ export default function InboxPanel({ isOpen, onClose }) {
 
     if (!isOpen) return null
 
-    const handleAccept = async (invId) => {
+    const handleAccept = async (inv) => {
         try {
             const token = await getToken()
-            await acceptInvitation(invId, token)
-            toast.success('Invitation accepted! Workspace added.')
-            await fetchWorkspaces(token)
+            if (inv.inviteType === 'project') {
+                try {
+                    const data = await apiClient.acceptProjectInvite(inv.token, token)
+                    removeFromInbox(inv._id)
+                    toast.success("You've joined the project!")
+                    useProjectStore.getState().fetchProjects(token)
+                    // No redirect for inbox acceptance
+                } catch (err) {
+                    if (
+                        err.message?.includes('already a collaborator') || 
+                        err.message?.includes('owner of this project') ||
+                        err.message?.toLowerCase().includes('expired') ||
+                        err.message?.toLowerCase().includes('invalid')
+                    ) {
+                        removeFromInbox(inv._id)
+                        toast.error(err.message)
+                        onClose()
+                    } else {
+                        throw err
+                    }
+                }
+            } else {
+                await acceptInvitation(inv._id, token)
+                toast.success('Invitation accepted! Workspace added.')
+                await fetchWorkspaces(token)
+            }
         } catch (err) {
             toast.error(err.message || 'Failed to accept invitation')
         }
     }
 
-    const handleDecline = async (invId) => {
+    const handleDecline = async (inv) => {
         try {
             const token = await getToken()
-            await declineInvitation(invId, token)
+            if (inv.inviteType === 'project') {
+                try {
+                    await apiClient.declineProjectInvite(inv.token, token)
+                } catch (err) {
+                    // Ignore error if it's already expired/deleted, just remove locally
+                }
+                removeFromInbox(inv._id)
+            } else {
+                await declineInvitation(inv._id, token)
+            }
             toast('Invitation declined', { icon: '✕' })
         } catch (err) {
             toast.error(err.message || 'Failed to decline invitation')
@@ -68,6 +104,17 @@ export default function InboxPanel({ isOpen, onClose }) {
                     >
                         What's new
                     </button>
+                    {activeTab === 'inbox' && inbox.length > 0 && (
+                        <button 
+                            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#888', fontSize: '11px', cursor: 'pointer', padding: '0 8px' }}
+                            onClick={() => {
+                                inbox.forEach(inv => removeFromInbox(inv._id));
+                                toast.success('Inbox cleared locally');
+                            }}
+                        >
+                            Clear all
+                        </button>
+                    )}
                 </div>
 
                 <div className="lv-inbox-body">
@@ -81,7 +128,7 @@ export default function InboxPanel({ isOpen, onClose }) {
                             <div className="lv-inbox-empty">
                                 <Mail size={32} strokeWidth={1.2} className="lv-inbox-empty-icon" />
                                 <h4>No messages or invites</h4>
-                                <p>Workspace invitations will appear here</p>
+                                <p>Workspace and project invitations will appear here</p>
                             </div>
                         ) : (
                             inbox.map(inv => (
@@ -92,17 +139,22 @@ export default function InboxPanel({ isOpen, onClose }) {
                                     <div className="lv-inbox-item-body">
                                         <p className="lv-inbox-item-text">
                                             <strong>{inv.invitedByName || 'Someone'}</strong> invited you to{' '}
-                                            <strong>{inv.workspaceName || 'a workspace'}</strong> as <span className="lv-inbox-role-tag">{inv.role}</span>
+                                            {inv.inviteType === 'project' ? (
+                                                <>project "<strong>{inv.projectName || 'a project'}</strong>"</>
+                                            ) : (
+                                                <><strong>{inv.workspaceName || 'a workspace'}</strong></>
+                                            )}
+                                            {' '}as <span className="lv-inbox-role-tag">{inv.role}</span>
                                         </p>
                                         <div className="lv-inbox-item-time">
                                             <Clock size={10} /> {timeAgo(inv.createdAt)}
                                         </div>
                                         <div className="lv-inbox-item-actions">
-                                            <button className="lv-inbox-accept" onClick={() => handleAccept(inv._id)}>
+                                            <button className="lv-inbox-accept" onClick={() => handleAccept(inv)}>
                                                 <Check size={12} /> Accept
                                             </button>
-                                            <button className="lv-inbox-decline" onClick={() => handleDecline(inv._id)}>
-                                                <XCircle size={12} /> Decline
+                                            <button className="lv-inbox-decline" onClick={() => handleDecline(inv)}>
+                                                <XCircle size={12} /> Dismiss
                                             </button>
                                         </div>
                                     </div>
@@ -135,3 +187,4 @@ export default function InboxPanel({ isOpen, onClose }) {
         </>
     )
 }
+

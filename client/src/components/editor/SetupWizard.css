@@ -450,3 +450,91 @@
   .sw-card { padding: 24px 20px 20px; border-radius: 18px; }
   .sw-heading { font-size: 18px; }
 }
+
+/* ── AI Assist Buttons ── */
+.sw-ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    color: #a78bfa;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 10px;
+}
+.sw-ai-btn:hover {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.35);
+    color: #c4b5fd;
+}
+.sw-ai-btn.loading {
+    opacity: 0.6;
+    cursor: wait;
+}
+.sw-ai-btn-secondary {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.5);
+}
+.sw-ai-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.sw-ai-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ── Name Pills ── */
+.sw-name-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    animation: slideUpFade 0.25s ease-out;
+}
+
+.sw-name-pill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-family: inherit;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.sw-name-pill:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.85);
+    transform: translateY(-1px);
+}
+.sw-name-pill.selected {
+    background: rgba(139, 92, 246, 0.12);
+    border-color: rgba(139, 92, 246, 0.35);
+    color: #c4b5fd;
+}
+
+/* ── Spinner ── */
+@keyframes sw-spin {
+    to { transform: rotate(360deg); }
+}
+.sw-spin {
+    animation: sw-spin 1s linear infinite;
+}
+
+@keyframes slideUpFade {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+}

@@ -22,4 +22,12 @@ export const useUIStore = create((set) => ({
 
     isInviteLinkModalOpen: false,
     setInviteLinkModalOpen: (isOpen) => set({ isInviteLinkModalOpen: isOpen }),
+
+    // Global Project Hover State (for Sidebar/Dashboard)
+    hoveredProject: null,
+    hoverPos: { x: 0, y: 0 },
+    setHoveredProject: (project, position = null) => set((state) => ({ 
+        hoveredProject: project, 
+        hoverPos: position || state.hoverPos 
+    })),
 }));

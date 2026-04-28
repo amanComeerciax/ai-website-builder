@@ -335,19 +335,18 @@
   color: var(--zinc-200);
 }
 
-/* DROPDOWN */
 .pp-dropdown {
   position: absolute;
-  top: 100%;
-  right: 0;
+  top: 0;
+  left: 100%;
   width: 160px;
   background: var(--zinc-900);
   border: 1px solid var(--zinc-800);
   border-radius: 8px;
   padding: 4px;
-  margin-top: 4px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-  z-index: 20;
+  margin-left: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+  z-index: 100;
 }
 
 .pp-dropdown-item {
