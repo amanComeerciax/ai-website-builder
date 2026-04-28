@@ -43,7 +43,7 @@ app.use(cors({
 // ── Rate Limiting ──
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 500, // generous limit for development — tighten for production
+    max: process.env.NODE_ENV === 'development' ? 5000 : 500, // Allow high limit in development to handle polling
     message: { error: "Too many requests, please try again later." },
 })
 app.use("/api/", apiLimiter)

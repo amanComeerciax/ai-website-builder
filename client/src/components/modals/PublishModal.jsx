@@ -120,8 +120,8 @@ const PublishModal = ({ isOpen, onClose, project, onPublish, isPublishing }) => 
                             />
                         </div>
 
-                        <div className="pm-field">
-                            <label className="pm-input-label">Social image</label>
+                        <div className="pm-field" style={{ opacity: 0.5, pointerEvents: 'none' }}>
+                            <label className="pm-input-label">Social image <span style={{fontSize: '11px', color: '#a1a1aa', fontWeight: 'normal', marginLeft: '6px'}}>(Coming soon)</span></label>
                             <div className="pm-social-preview-card">
                                 <div className="pm-social-img-box">
                                     {socialImage ? (
@@ -139,11 +139,11 @@ const PublishModal = ({ isOpen, onClose, project, onPublish, isPublishing }) => 
                                 </div>
                             </div>
                             <div className="pm-social-actions" style={{display:'flex', gap:'8px', marginTop:'12px'}}>
-                                <button className="pm-btn pm-btn-secondary" style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', background:'rgba(255,255,255,0.05)', color:'#fff', border:'1px solid rgba(255,255,255,0.1)'}}>
-                                    <Upload size={14} /> Upload
+                                <button disabled className="pm-btn pm-btn-secondary" style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', background:'rgba(255,255,255,0.02)', color:'rgba(255,255,255,0.4)', border:'1px solid rgba(255,255,255,0.05)', cursor:'not-allowed'}}>
+                                    <Upload size={14} /> Upload (Soon)
                                 </button>
-                                <button className="pm-btn pm-btn-secondary" style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', background:'rgba(255,255,255,0.05)', color:'#fff', border:'1px solid rgba(255,255,255,0.1)'}}>
-                                    <Wand2 size={14} /> Generate
+                                <button disabled className="pm-btn pm-btn-secondary" style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', background:'rgba(255,255,255,0.02)', color:'rgba(255,255,255,0.4)', border:'1px solid rgba(255,255,255,0.05)', cursor:'not-allowed'}}>
+                                    <Wand2 size={14} /> Generate (Soon)
                                 </button>
                             </div>
                         </div>
@@ -239,34 +239,20 @@ const PublishModal = ({ isOpen, onClose, project, onPublish, isPublishing }) => 
                 </div>
 
                 <div className="pm-footer">
-                    {step > 1 ? (
-                        <button className="pm-back-btn" onClick={prevStep}>
-                            <ChevronLeft size={18} />
-                            Back
-                        </button>
-                    ) : (
-                        <div />
-                    )}
-                    
-                    {step < 4 ? (
-                        <button className="pm-btn pm-btn-primary" onClick={nextStep}>
-                            Continue
-                        </button>
-                    ) : (
-                        <button 
-                            className="pm-btn pm-btn-primary" 
-                            onClick={() => onPublish({ websiteName: websiteTitle, description })}
-                            disabled={isPublishing}
-                            style={{minWidth: '120px'}}
-                        >
-                            {isPublishing ? (
-                                <>
-                                    <Loader2 size={16} className="ep-spin" style={{marginRight: '8px', display:'inline-block'}} />
-                                    Publishing...
-                                </>
-                            ) : 'Publish'}
-                        </button>
-                    ) }
+                    <div />
+                    <button 
+                        className="pm-btn pm-btn-primary" 
+                        onClick={() => onPublish({ websiteName: websiteTitle, description })}
+                        disabled={isPublishing}
+                        style={{minWidth: '120px'}}
+                    >
+                        {isPublishing ? (
+                            <>
+                                <Loader2 size={16} className="ep-spin" style={{marginRight: '8px', display:'inline-block'}} />
+                                Publishing...
+                            </>
+                        ) : 'Publish'}
+                    </button>
                 </div>
             </div>
         </div>

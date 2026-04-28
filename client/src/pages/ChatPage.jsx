@@ -82,9 +82,12 @@ export default function ChatPage() {
     }, [project]);
 
     // Check project access periodically (kick if access removed)
+    // Optimized for production: 60s interval, pauses when tab is hidden
     useEffect(() => {
         if (!projectId || projectId === 'new') return;
-        const interval = setInterval(async () => {
+        
+        const checkAccess = async () => {
+            if (document.visibilityState !== 'visible') return;
             try {
                 const token = await getToken();
                 const res = await fetch(`/api/projects/${projectId}`, {
@@ -94,8 +97,20 @@ export default function ChatPage() {
                     navigate('/dashboard');
                 }
             } catch(e) {}
-        }, 5000);
-        return () => clearInterval(interval);
+        };
+
+        const interval = setInterval(checkAccess, 60000); // 60 seconds
+        
+        // Immediate check when returning to tab
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') checkAccess();
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [projectId, getToken, navigate]);
 
     // Build Progress tracker 
